@@ -116,7 +116,9 @@ workflows where the CLI is one tool among many.
 When a project uses a deprecated config name, the deprecation warning
 stays off stdout. The JSON result then has a `deprecations` array.
 Each entry has `kind` (`configFile` or `settingsKey`), `old`, `new`,
-and `fix`:
+and `fix`. A project that has both files also gets an entry of kind
+`ignoredConfigFile`: skmtc reads `skmtc.config.json` and ignores
+`client.json`. Its `fix` is the command that deletes `client.json`:
 
 ```jsonc
 "deprecations": [
@@ -137,9 +139,9 @@ This makes the CLI's behavior fully deterministic and scriptable.
 
 In interactive mode, a command that reads a project with a deprecated
 config name offers the migration before it does its work. It asks one
-time for each project in each run, for example
+question in each run that names all the projects on old names, for example
 `my-api uses client.json, which is deprecated. Migrate to skmtc.config.json now? (Y/n)`.
-Yes runs `skmtc migrate config <project>`, and the command continues
+Yes runs `skmtc migrate config <project>` for each of them, and the command continues
 on the migrated config. No continues with the old names. Strict mode
 never asks. See [migrate](migrate.md#skmtc-migrate-config).
 

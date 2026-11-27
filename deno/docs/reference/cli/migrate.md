@@ -72,16 +72,25 @@ Strict mode. No prompt; the command applies the changes.
   ask with `--force` or `--json`. Then it applies the changes.
 
 Other commands also offer this migration in interactive mode. When a
-command reads a project that uses an old name, it asks one time for
-each project in each run:
+command reads projects that use an old name, it asks one question
+that names all of them, one time in each run:
 
 ```
 my-api uses client.json, which is deprecated. Migrate to skmtc.config.json now? (Y/n)
 ```
 
-The question names only the old names that the project uses. Yes runs
-the same code as `skmtc migrate config <project>`, and the command
-then continues on the migrated config. No continues with the old
+```
+admin, my-api and shop use client.json / settings.system, which are deprecated. Migrate them to skmtc.config.json / settings.parse now? (Y/n)
+```
+
+The question names only the old names that the projects use. A
+command that reads every project, such as `skmtc list`, names every
+project on an old name. `skmtc generate <project>` names only its own
+project.
+
+Yes runs the same code as `skmtc migrate config <project>`
+for each project that the question names, and the command then
+continues on the migrated config. No continues with the old
 names and the warning. The CLI does not ask in strict or agent mode,
 with `--json`, without a TTY, or in `migrate config` itself. It does
 not ask for a project that has both files; it prints the warning with

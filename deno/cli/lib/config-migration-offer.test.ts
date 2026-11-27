@@ -70,6 +70,47 @@ Deno.test('offerConfigMigrations - asks once, and on yes migrates before the com
   })
 })
 
+Deno.test('SkmtcRoot.open - three projects on old names get one question that names them all', async () => {
+  const projects = {
+    admin: { 'client.json': legacyConfig },
+    pets: { 'client.json': legacyConfig },
+    shop: { 'skmtc.config.json': legacyConfig }
+  }
+
+  await withConfigRoot(projects, async ({ readFile }) => {
+    const questions: string[] = []
+
+    await withOffer(async () => {
+      const promptStub = globalThis.prompt
+      globalThis.prompt = (message?: string) => (questions.push(message ?? ''), 'y')
+
+      try {
+        await captureConsole(async () => {
+          await SkmtcRoot.open(createMockManager())
+          // A second open in the same run does not ask again.
+          await SkmtcRoot.open(createMockManager())
+        })
+      } finally {
+        globalThis.prompt = promptStub
+      }
+    })
+
+    assertEquals(questions.length, 1)
+    assertEquals(
+      questions[0],
+      'admin, pets and shop use client.json / settings.system, which are deprecated. ' +
+        'Migrate them to skmtc.config.json / settings.parse now? (Y/n)'
+    )
+
+    // Yes migrates every project the question named.
+    const migrated = JSON.stringify({ settings: { basePath: 'src', parse: { not: 'unknown' } } }, null, 2)
+    for (const projectName of ['admin', 'pets', 'shop']) {
+      assertEquals(readFile(projectName, 'client.json'), undefined)
+      assertEquals(readFile(projectName, 'skmtc.config.json'), migrated)
+    }
+  })
+})
+
 Deno.test('SkmtcRoot.open - on no, the command continues on the old names, with the warnings', async () => {
   await withConfigRoot({ pets: { 'client.json': legacyConfig } }, async ({ readFile, settingsPath }) => {
     const questions: string[] = []

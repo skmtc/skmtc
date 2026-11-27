@@ -58,14 +58,30 @@ export const enableConfigMigrationOffer = (enabled: boolean): void => {
   offer.offered.clear()
 }
 
-/** The question for a project's deprecated names. */
-const toOfferQuestion = (projectName: string, deprecations: ConfigDeprecation[]): string => {
-  const oldNames = deprecations.map(deprecation => deprecation.old)
-  const newNames = deprecations.map(deprecation => deprecation.new)
+/** A project still on a deprecated name, and the names it uses. */
+type PendingOffer = {
+  projectName: string
+  deprecations: ConfigDeprecation[]
+}
+
+/** The names in `names` once each, in their first order. */
+const toUnique = (names: string[]): string[] => [...new Set(names)]
+
+/** `a`, `a and b`, `a, b and c`. */
+const toNameList = (names: string[]): string =>
+  names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+
+/** One question for all the projects in `pending`, naming each of them. */
+const toOfferQuestion = (pending: PendingOffer[]): string => {
+  const deprecations = pending.flatMap(entry => entry.deprecations)
+  const oldNames = toUnique(deprecations.map(deprecation => deprecation.old))
+  const newNames = toUnique(deprecations.map(deprecation => deprecation.new))
+  const projectNames = pending.map(entry => entry.projectName).toSorted()
 
   return (
-    `${projectName} uses ${oldNames.join(' / ')}, which ${oldNames.length === 1 ? 'is' : 'are'} deprecated. ` +
-    `Migrate to ${newNames.join(' / ')} now?`
+    `${toNameList(projectNames)} ${projectNames.length === 1 ? 'uses' : 'use'} ${oldNames.join(' / ')}, ` +
+    `which ${oldNames.length === 1 ? 'is' : 'are'} deprecated. ` +
+    `Migrate ${projectNames.length === 1 ? '' : 'them '}to ${newNames.join(' / ')} now?`
   )
 }
 
@@ -86,33 +102,30 @@ type OfferArgs = {
 }
 
 /**
- * Offers to migrate each project in `projectNames` that is still on a
- * deprecated name, when the offer is on and the project was not offered
- * already in this run. A project the migration would refuse (it has both
- * files) is not offered: reading it prints the warning with the reason.
+ * Offers to migrate the projects in `projectNames` that are still on a
+ * deprecated name, with one question that names them all, when the offer
+ * is on. A project offered already in this run is not asked about again.
+ * A project the migration would refuse (it has both files) is not
+ * offered: reading it prints the warning with the reason.
  */
 export const offerConfigMigrations = async ({ projectNames, ask = askYesNo }: OfferArgs): Promise<void> => {
   if (!offer.enabled) {
     return
   }
 
-  for (const projectName of projectNames) {
-    if (offer.offered.has(projectName)) {
-      continue
-    }
+  const pending = projectNames
+    .filter(projectName => !offer.offered.has(projectName))
+    .map(projectName => {
+      offer.offered.add(projectName)
+      return { projectName, deprecations: readConfigDeprecations(toProjectPath(projectName)) }
+    })
+    .filter(entry => entry.deprecations.length > 0 && toPendingConfigMigration(entry.projectName))
 
-    offer.offered.add(projectName)
+  if (pending.length === 0 || !ask(toOfferQuestion(pending))) {
+    return
+  }
 
-    const deprecations = readConfigDeprecations(toProjectPath(projectName))
-
-    if (deprecations.length === 0 || !toPendingConfigMigration(projectName)) {
-      continue
-    }
-
-    if (!ask(toOfferQuestion(projectName, deprecations))) {
-      continue
-    }
-
+  for (const { projectName } of pending) {
     try {
       const { projects } = await migrateConfigHeadless({ projectName })
 
