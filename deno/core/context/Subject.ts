@@ -6,7 +6,9 @@ import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
-import { toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
+import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
+import type { Reach } from '@/parse/Reach.ts'
+import { toModelKey, type RefParts } from '@/helpers/refFns.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { Method } from '@/types/Method.ts'
 import type {
@@ -35,6 +37,36 @@ type ToSourceArgs = {
   variant: string
 }
 
+type ToExportPathArgs = {
+  projection: DeclaredProjection
+  context: GenerateContextType
+  variant: string
+}
+
+/**
+ * What the file plan asks of a subject: where its enrichments are, the
+ * file a projection gives it, and the models it can get to.
+ */
+export type PlannedSubject = {
+  /** Its kind, which is the `type` of the entries and the projections that take it. */
+  readonly type: DeclaredProjection['type']
+  /** Where its enrichments are below a generator's id. A variant's name follows. */
+  readonly enrichmentPath: string[]
+  /** What a message calls it. */
+  readonly label: string
+  /**
+   * The export path a declared projection gives it for one variant, as the
+   * projection's statics say it. `undefined` for a projection of another kind.
+   */
+  toExportPath(args: ToExportPathArgs): string | undefined
+  /**
+   * The keys of the models it names: for a model, its own key; for any other
+   * subject, the models its `$ref`s give (`Reach.namedByOperation`, `Reach.namedByWebhook`). It can get to
+   * each of them, and to what each reaches.
+   */
+  toNamedModels(reach: Reach): readonly string[]
+}
+
 /**
  * One subject of a run: an OpenAPI operation, a webhook, a GraphQL operation
  * or a model. For the run, it holds how its kind differs from the others:
@@ -46,13 +78,9 @@ type ToSourceArgs = {
  * @template Filter - One generator's `settings.include` or `settings.skip`
  *   filter for the kind; `never` for a kind that has none
  */
-export type Subject<Entry, Filter> = {
+export type Subject<Entry, Filter> = PlannedSubject & {
   /** Its frame or frames below the generator's in a trail, and so its place in `manifest.results`. */
   readonly trail: string | string[]
-  /** Where its enrichments are below a generator's id. A variant's name follows. */
-  readonly enrichmentPath: string[]
-  /** What a message calls it. */
-  readonly label: string
   // Function-typed properties, not methods: method parameters are checked
   // bivariantly, which would let an entry of one kind run subjects of another.
   isSupported: (args: AskArgs<Entry>) => boolean
@@ -65,6 +93,7 @@ export type Subject<Entry, Filter> = {
 
 /** An OpenAPI operation as a subject. Its results and enrichments are at `[path][method]`. */
 export class OasOperationSubject implements Subject<OasOperationEntry, IncludePaths | SkipPaths> {
+  readonly type = 'oasOperation'
   operation: OasOperation
   trail: string[]
   enrichmentPath: string[]
@@ -98,6 +127,20 @@ export class OasOperationSubject implements Subject<OasOperationEntry, IncludePa
     return entry.toPreviewModule?.({ context, operation: this.operation, variant })
   }
 
+  toExportPath({ projection, context, variant }: ToExportPathArgs): string | undefined {
+    if (projection.type !== 'oasOperation') {
+      return undefined
+    }
+
+    const enrichments = projection.toEnrichments({ operation: this.operation, context, variant })
+
+    return projection.toExportPath({ operation: this.operation, enrichments, variant })
+  }
+
+  toNamedModels(reach: Reach): readonly string[] {
+    return reach.namedByOperation(this.operation)
+  }
+
   toSource({ generatorId, variant }: ToSourceArgs): OasOperationSource {
     return toOasOperationSource({ operation: this.operation, generatorId, variant })
   }
@@ -109,6 +152,7 @@ export class OasOperationSubject implements Subject<OasOperationEntry, IncludePa
  * operation's, with the webhook's name in the place of the path.
  */
 export class WebhookSubject implements Subject<WebhookEntry, IncludePaths | SkipPaths> {
+  readonly type = 'webhook'
   webhook: OasWebhook
   trail: string[]
   enrichmentPath: string[]
@@ -142,6 +186,20 @@ export class WebhookSubject implements Subject<WebhookEntry, IncludePaths | Skip
     return entry.toPreviewModule?.({ context, webhook: this.webhook, variant })
   }
 
+  toExportPath({ projection, context, variant }: ToExportPathArgs): string | undefined {
+    if (projection.type !== 'webhook') {
+      return undefined
+    }
+
+    const enrichments = projection.toEnrichments({ webhook: this.webhook, context, variant })
+
+    return projection.toExportPath({ webhook: this.webhook, enrichments, variant })
+  }
+
+  toNamedModels(reach: Reach): readonly string[] {
+    return reach.namedByWebhook(this.webhook)
+  }
+
   toSource({ generatorId, variant }: ToSourceArgs): WebhookSource {
     return toWebhookSource({ webhook: this.webhook, generatorId, variant })
   }
@@ -153,6 +211,7 @@ export class WebhookSubject implements Subject<WebhookEntry, IncludePaths | Skip
  * filter for a GraphQL operation, so no filter names it.
  */
 export class GqlOperationSubject implements Subject<GqlOperationEntry, never> {
+  readonly type = 'gqlOperation'
   operation: GqlOperation
   trail: string[]
   enrichmentPath: string[]
@@ -184,25 +243,43 @@ export class GqlOperationSubject implements Subject<GqlOperationEntry, never> {
     return entry.toPreviewModule?.({ context, operation: this.operation, variant })
   }
 
+  // A GraphQL document has no `$ref`s to read a reach from, so its files are not planned.
+  toExportPath(): undefined {
+    return undefined
+  }
+
+  toNamedModels(): readonly string[] {
+    return []
+  }
+
   toSource({ generatorId, variant }: ToSourceArgs): GqlOperationSource {
     return toGqlOperationSource({ operation: this.operation, generatorId, variant })
   }
 }
 
-/** A model as a subject: a schema component of either protocol. Its results and enrichments are at `[refName]`. */
+/**
+ * A model as a subject. Its results and enrichments are at its model key
+ * (`toModelKey`): the `refName` of a component, the whole pointer of any
+ * other model. The run makes one for each schema component of either
+ * protocol; the file plan also makes one for a model that is no component,
+ * which a `$ref` to a place inside a schema gives.
+ */
 export class ModelSubject implements Subject<ModelEntry, IncludeModelRefs | SkipModelRefs> {
+  readonly type = 'model'
   refName: RefName
   ref: RefParts
   trail: string
   enrichmentPath: string[]
   label: string
 
-  constructor(refName: RefName) {
-    this.refName = refName
-    this.ref = toSchemaComponentRef(refName)
-    this.trail = refName
-    this.enrichmentPath = [refName]
-    this.label = refName
+  constructor(ref: RefParts) {
+    this.refName = ref.refName
+    this.ref = ref
+    const key = toModelKey(ref)
+
+    this.trail = key
+    this.enrichmentPath = [key]
+    this.label = key
   }
 
   isSupported({ entry, context, variant }: AskArgs<ModelEntry>): boolean {
@@ -222,6 +299,20 @@ export class ModelSubject implements Subject<ModelEntry, IncludeModelRefs | Skip
 
   toPreviewModule({ entry, context, variant }: AskArgs<ModelEntry>): PreviewModule | undefined {
     return entry.toPreviewModule?.({ context, ref: this.ref, variant })
+  }
+
+  toExportPath({ projection, context, variant }: ToExportPathArgs): string | undefined {
+    if (projection.type !== 'model') {
+      return undefined
+    }
+
+    const enrichments = projection.toEnrichments({ ref: this.ref, context, variant })
+
+    return projection.toExportPath({ ref: this.ref, enrichments, variant })
+  }
+
+  toNamedModels(): readonly string[] {
+    return [toModelKey(this.ref)]
   }
 
   toSource({ generatorId, variant }: ToSourceArgs): ModelSource {
