@@ -1,3 +1,4 @@
+import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import type * as v from 'valibot'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
@@ -21,6 +22,13 @@ import type { PreviewModule } from '@/types/Preview.ts'
  */
 export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
   id: string
+  /**
+   * Every projection class this generator can insert: its own, and each one
+   * of another generator that it inserts. Core reads only their statics. See
+   * {@link DeclaredProjection}. Optional: an entry that declares none runs as
+   * before.
+   */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedWebhookArgs) => boolean
@@ -43,6 +51,8 @@ export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
 export type WebhookEntry<EnrichmentType = undefined> = {
   id: string
   type: 'webhook'
+  /** The projection classes the entry declared; absent when it declared none. See {@link DeclaredProjection}. */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: (args: IsSupportedWebhookArgs) => boolean
@@ -82,6 +92,7 @@ export type WebhookEntry<EnrichmentType = undefined> = {
  */
 export const toWebhookEntry = <EnrichmentType = undefined>({
   id,
+  projections,
   transform,
   toEnrichmentSchema,
   isSupported,
@@ -93,6 +104,7 @@ export const toWebhookEntry = <EnrichmentType = undefined>({
   return {
     id,
     type: 'webhook',
+    projections,
     transform,
     toEnrichmentSchema,
     isSupported: isSupported ?? (() => true),

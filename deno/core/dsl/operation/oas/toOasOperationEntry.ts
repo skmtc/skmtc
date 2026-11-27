@@ -1,3 +1,4 @@
+import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import type * as v from 'valibot'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
@@ -20,6 +21,13 @@ import type { PreviewModule } from '@/types/Preview.ts'
  */
 export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
+  /**
+   * Every projection class this generator can insert: its own, and each one
+   * of another generator that it inserts. Core reads only their statics. See
+   * {@link DeclaredProjection}. Optional: an entry that declares none runs as
+   * before.
+   */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedOasOperationArgs) => boolean
@@ -50,6 +58,8 @@ export type ToOasOperationConfigArgs<EnrichmentType = undefined> = {
 export type OasOperationEntry<EnrichmentType = undefined> = {
   id: string
   type: 'oasOperation'
+  /** The projection classes the entry declared; absent when it declared none. See {@link DeclaredProjection}. */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, operation, variant }: TransformOasOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: (args: IsSupportedOasOperationArgs) => boolean
@@ -93,6 +103,7 @@ export type OasOperationEntry<EnrichmentType = undefined> = {
  */
 export const toOasOperationEntry = <EnrichmentType = undefined>({
   id,
+  projections,
   transform,
   toEnrichmentSchema,
   isSupported,
@@ -104,6 +115,7 @@ export const toOasOperationEntry = <EnrichmentType = undefined>({
   return {
     id,
     type: 'oasOperation',
+    projections,
     transform,
     toEnrichmentSchema,
     isSupported: isSupported ?? (() => true),

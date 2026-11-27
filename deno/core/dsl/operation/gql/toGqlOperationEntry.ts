@@ -1,3 +1,4 @@
+import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import type * as v from 'valibot'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
@@ -19,6 +20,13 @@ import type { PreviewModule } from '@/types/Preview.ts'
  */
 export type ToGqlOperationConfigArgs<EnrichmentType = undefined> = {
   id: string
+  /**
+   * Every projection class this generator can insert: its own, and each one
+   * of another generator that it inserts. Core reads only their statics. See
+   * {@link DeclaredProjection}. Optional: an entry that declares none runs as
+   * before.
+   */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedGqlOperationArgs) => boolean
@@ -36,6 +44,8 @@ export type ToGqlOperationConfigArgs<EnrichmentType = undefined> = {
 export type GqlOperationEntry<EnrichmentType = undefined> = {
   id: string
   type: 'gqlOperation'
+  /** The projection classes the entry declared; absent when it declared none. See {@link DeclaredProjection}. */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, operation, variant }: TransformGqlOperationArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported: (args: IsSupportedGqlOperationArgs) => boolean
@@ -59,6 +69,7 @@ export type GqlOperationEntry<EnrichmentType = undefined> = {
  */
 export const toGqlOperationEntry = <EnrichmentType = undefined>({
   id,
+  projections,
   transform,
   toEnrichmentSchema,
   isSupported,
@@ -69,6 +80,7 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
   return {
     id,
     type: 'gqlOperation',
+    projections,
     transform,
     toEnrichmentSchema,
     isSupported: isSupported ?? (() => true),
