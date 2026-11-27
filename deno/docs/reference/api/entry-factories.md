@@ -117,6 +117,29 @@ toModelEntry<EnrichmentSchema>({
 Whether this generator entry supports variants. Defaults to
 `() => false` when omitted.
 
+### `projections?: readonly DeclaredProjection[]` (optional)
+
+Every projection class the generator can insert. List its own
+projections. Also list each projection of another generator that it
+inserts, such as the model projection an operation generator takes
+its schemas from.
+
+```ts
+toOasOperationEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  projections: [HookProjection, ZodProjection],
+  transform: ({ context, operation, variant }) => {
+    context.insertOperation({ projection: HookProjection, operation, variant })
+  }
+})
+```
+
+Core reads only statics from the list (`id`, `type`, `toEnrichments`,
+`toExportPath`), and constructs nothing. With the list, core can know
+before a run which files the generator can write. The list is
+optional.
+
 ### `toEnrichmentDefaults?: ({ context, <operation|ref>, variant }) => EnrichmentType | undefined` (optional)
 
 Compute the DEFAULT enrichment values for an item from its schema —
@@ -250,6 +273,7 @@ type OasOperationEntry<E = undefined> = {
   toPreviewModule?: (args: ToOasOperationPreviewModuleArgs) => PreviewModule
   toEnrichmentRequest?: <R extends E>(op: OasOperation) => EnrichmentRequest<R> | undefined
   toEnrichmentDefaults?: (args: ToOasOperationEnrichmentsArgs) => E | undefined
+  projections?: readonly DeclaredProjection[]
 }
 
 // GQL — operation/gql/toGqlOperationEntry.ts
@@ -266,6 +290,7 @@ type ModelEntry<E = undefined> = {
   toPreviewModule?: (args: ToModelPreviewModuleArgs) => PreviewModule
   toEnrichmentRequest?: <R extends E>(ref: RefParts) => EnrichmentRequest<R> | undefined
   toEnrichmentDefaults?: (args: ToModelEnrichmentsArgs) => E | undefined
+  projections?: readonly DeclaredProjection[]
 }
 ```
 
@@ -412,6 +437,7 @@ are two different factory calls with overlapping config:
 | `toEnrichmentRequest` | yes | — |
 | `toEnrichmentDefaults` | yes (typically forwards the base's static) | yes (model and OAS) |
 | `supportsVariant` | yes | — |
+| `projections` | yes (optional) | — |
 
 The two factories don't share code. Both need the `id` and
 `toEnrichmentSchema`, so the convention is to declare them once at
