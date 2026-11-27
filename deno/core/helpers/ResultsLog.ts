@@ -93,7 +93,12 @@ export class ResultsLog {
 
 /** Writes an own, enumerable property, even for keys such as `__proto__`. */
 const defineOwn = (node: ResultsItem, key: string, value: ResultsItem | ResultType) => {
-  Object.defineProperty(node, key, { value, enumerable: true, writable: true, configurable: true })
+  // An assignment to `__proto__` would set the prototype, so that key is defined.
+  if (key === '__proto__') {
+    Object.defineProperty(node, key, { value, enumerable: true, writable: true, configurable: true })
+  } else {
+    node[key] = value
+  }
 }
 
 /**
