@@ -7,7 +7,6 @@ import { getByWorkspacePath } from '@/helpers/getByWorkspacePath.ts'
 import { DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
-import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
@@ -20,7 +19,6 @@ import {
   type RefParts
 } from '@/helpers/refFns.ts'
 import type { ComponentsEntry } from '@/oas/components/Components.ts'
-import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type {
@@ -59,7 +57,6 @@ import type {
 } from '@/types/Settings.ts'
 import { isMethod, type Method } from '@/types/Method.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
-import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
 import { WebhookDriver } from '@/dsl/webhook/WebhookDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
@@ -70,6 +67,20 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { toVariantList } from '@/helpers/toVariantList.ts'
+import {
+  GqlOperationSubject,
+  ModelSubject,
+  OasOperationSubject,
+  WebhookSubject,
+  type Subject
+} from '@/context/Subject.ts'
+
+export {
+  toGqlOperationSource,
+  toModelSource,
+  toOasOperationSource,
+  toWebhookSource
+} from '@/context/Subject.ts'
 // @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
 import get from 'lodash-es/get'
 import type { RefName } from '@/types/RefName.ts'
@@ -98,12 +109,7 @@ import type {
   Preview,
   PreviewModule
 } from '@/types/Preview.ts'
-import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
-import type { WebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
-import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
-import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
-import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
@@ -145,6 +151,13 @@ type SubjectCounts = {
   transformed: number
   /** The ones that threw. */
   failed: number
+}
+
+/** One generator's `settings.include` and `settings.skip` filters for subjects of one kind. */
+type SubjectFilters<Filter> = {
+  /** With an include filter, the generator runs only the subjects it names. */
+  include: Filter | undefined
+  skip: Filter | undefined
 }
 
 /** What one of a generator's subjects is called on its log line. */
@@ -608,11 +621,13 @@ export class GenerateContext implements GenerateContextType {
           // Generator targets OAS; current document is GraphQL — skip silently.
           return
         }
-        this.#runOasOperationGenerator(
-          this.document.value,
+        this.#runSubjects(
           generatorConfig,
-          toIncludePaths(include, generatorConfig.id),
-          toSkipPaths(skip, generatorConfig.id),
+          this.document.value.operations.map(operation => new OasOperationSubject(operation)),
+          {
+            include: toIncludePaths(include, generatorConfig.id),
+            skip: toSkipPaths(skip, generatorConfig.id)
+          },
           st
         )
         break
@@ -622,11 +637,13 @@ export class GenerateContext implements GenerateContextType {
           // skip silently.
           return
         }
-        this.#runWebhookGenerator(
-          this.document.value,
+        this.#runSubjects(
           generatorConfig,
-          toIncludePaths(include, generatorConfig.id),
-          toSkipPaths(skip, generatorConfig.id),
+          this.document.value.webhooks.map(webhook => new WebhookSubject(webhook)),
+          {
+            include: toIncludePaths(include, generatorConfig.id),
+            skip: toSkipPaths(skip, generatorConfig.id)
+          },
           st
         )
         break
@@ -642,14 +659,21 @@ export class GenerateContext implements GenerateContextType {
         // follow-up that needs the same dispatch shape added for
         // GqlOperation. Tracked alongside the existing GQL-skip
         // gap.
-        this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
+        this.#runSubjects(
+          generatorConfig,
+          this.document.value.operations.map(operation => new GqlOperationSubject(operation)),
+          { include: undefined, skip: undefined },
+          st
+        )
         break
       case 'model':
-        this.#runModelGenerator(
-          this.document,
+        this.#runSubjects(
           generatorConfig,
-          toIncludeModels(include, generatorConfig.id),
-          toSkipModels(skip, generatorConfig.id),
+          this.#schemaRefNames().map(refName => new ModelSubject(refName)),
+          {
+            include: toIncludeModels(include, generatorConfig.id),
+            skip: toSkipModels(skip, generatorConfig.id)
+          },
           st
         )
         break
@@ -910,376 +934,60 @@ export class GenerateContext implements GenerateContextType {
     }
   }
 
-  #runOasOperationGenerator(
-    oasDocument: OasDocument,
-    generatorConfig: OasOperationEntry,
-    include: IncludePaths | undefined,
-    skip: SkipPaths | undefined,
+  /**
+   * Runs one generator over subjects of its kind. A subject has one result
+   * for each of its variants: `notSupported`, `skipped`, `success` or
+   * `error`. The four kinds differ only in what a {@link Subject} answers.
+   */
+  #runSubjects<Entry extends GeneratorConfig, Filter>(
+    entry: Entry,
+    subjects: Subject<Entry, Filter>[],
+    filters: SubjectFilters<Filter>,
     stackTrail: StackTrail
   ) {
-    oasDocument.operations.forEach(operation => {
-      stackTrail.trace([operation.path, operation.method], opTrail => {
-        // Resolve the variant list to fan out over. The consumer's
-        // enrichments are keyed `[generatorId][path][method][variant]`;
-        // the block at `[path][method]` is therefore a record of
-        // variant names. Three cases handled in `toVariantList`:
-        //
-        //   - absent → run a single 'main' pass with no enrichment
-        //   - present, non-object → treat as a single 'main' pass
-        //     (the per-variant Valibot wrap will reject this shape
-        //     at config-load time once it lands)
-        //   - present, object → enumerate keys; 'main' must be among
-        //     them or we throw (loud beats silent zero-output)
-        const opEnrichments: unknown = this.readEnrichment([
-          generatorConfig.id,
-          operation.path,
-          operation.method
-        ])
+    subjects.forEach(subject => {
+      stackTrail.trace(subject.trail, subjectTrail => {
+        // The enrichments of a subject are a record of variant names, at
+        // `[generatorId][...subject.enrichmentPath]`. `toVariantList` gives
+        // `['main']` for a block that is absent or no record, and throws
+        // for a record that lacks `main`: no output with no error is worse.
+        const enrichmentPath = [entry.id, ...subject.enrichmentPath]
+        const enrichments: unknown = this.readEnrichment(enrichmentPath)
 
         const variants = toVariantList({
-          opEnrichments,
-          generatorId: generatorConfig.id,
-          operationLabel: `${operation.method.toUpperCase()} ${operation.path}`
+          opEnrichments: enrichments,
+          generatorId: entry.id,
+          operationLabel: subject.label
         })
 
         variants.forEach(variant => {
-          opTrail.trace(['variant', variant], st =>
+          subjectTrail.trace(['variant', variant], st =>
             this.withSubjectTrail(st, () => {
               try {
-                if (
-                  typeof generatorConfig?.isSupported === 'function' &&
-                  !generatorConfig.isSupported({ operation, context: this, variant })
-                ) {
+                if (!subject.isSupported({ entry, context: this, variant })) {
                   this.#captureSubjectResult('notSupported', st)
                   return
                 }
 
-                // Order: isSupported (capability) → include (allow) → skip
-                // (deny). Match is now on `(path, method, variant)`. An
-                // empty variant array on a method means "every variant of
-                // this method"; a populated array names the variants the
-                // entry applies to.
-                if (
-                  include !== undefined &&
-                  !matchesPathFilter({
-                    paths: include,
-                    path: operation.path,
-                    method: operation.method,
-                    variant
-                  })
-                ) {
-                  this.#reportSkippedEnrichment(opEnrichments, variant, [
-                    generatorConfig.id,
-                    operation.path,
-                    operation.method,
-                    variant
-                  ])
+                // Order: isSupported (capability), then include (allow), then
+                // skip (deny). A filter names a subject with an empty list of
+                // variants, which is every variant, or with a list that has
+                // this one.
+                const isLeftOut =
+                  (filters.include !== undefined && !subject.matches(filters.include, variant)) ||
+                  subject.matches(filters.skip, variant)
+
+                if (isLeftOut) {
+                  this.#reportSkippedEnrichment(enrichments, variant, [...enrichmentPath, variant])
                   this.#captureSubjectResult('skipped', st)
                   return
                 }
 
-                if (
-                  matchesPathFilter({
-                    paths: skip,
-                    path: operation.path,
-                    method: operation.method,
-                    variant
-                  })
-                ) {
-                  this.#reportSkippedEnrichment(opEnrichments, variant, [
-                    generatorConfig.id,
-                    operation.path,
-                    operation.method,
-                    variant
-                  ])
-                  this.#captureSubjectResult('skipped', st)
-                  return
-                }
-
-                generatorConfig.transform({
-                  context: this,
-                  operation,
-                  variant
-                })
-
-                const source = toOasOperationSource({
-                  operation,
-                  generatorId: generatorConfig.id,
-                  variant
-                })
+                subject.transform({ entry, context: this, variant })
 
                 this.#addPreview(
-                  source,
-                  generatorConfig.toPreviewModule?.({ context: this, operation, variant })
-                )
-
-                this.#captureSubjectResult('success', st)
-              } catch (error) {
-                this.#failItem(error, st)
-              }
-            })
-          )
-        })
-      })
-    })
-  }
-
-  #runWebhookGenerator(
-    oasDocument: OasDocument,
-    generatorConfig: WebhookEntry,
-    include: IncludePaths | undefined,
-    skip: SkipPaths | undefined,
-    stackTrail: StackTrail
-  ) {
-    oasDocument.webhooks.forEach(webhook => {
-      stackTrail.trace(['webhook', webhook.name, webhook.method], webhookTrail => {
-        // Variant fan-out, keyed `[generatorId][name][method][variant]` —
-        // the webhook analogue of the operation routing. `toVariantList`
-        // handles absent / non-object / object enrichment blocks and
-        // enforces the `'main'`-must-be-present rule.
-        const webhookEnrichments: unknown = this.readEnrichment([
-          generatorConfig.id,
-          webhook.name,
-          webhook.method
-        ])
-
-        const variants = toVariantList({
-          opEnrichments: webhookEnrichments,
-          generatorId: generatorConfig.id,
-          operationLabel: `webhook '${webhook.name}' (${webhook.method.toUpperCase()})`
-        })
-
-        variants.forEach(variant => {
-          webhookTrail.trace(['variant', variant], st =>
-            this.withSubjectTrail(st, () => {
-              try {
-                if (
-                  typeof generatorConfig?.isSupported === 'function' &&
-                  !generatorConfig.isSupported({ webhook, context: this, variant })
-                ) {
-                  this.#captureSubjectResult('notSupported', st)
-                  return
-                }
-
-                // Order: isSupported (capability) → include (allow) → skip
-                // (deny). The skip/include shape is structurally identical to
-                // operations (the webhook name occupies the `path` slot), so
-                // `matchesPathFilter` is reused with `path: webhook.name`.
-                if (
-                  include !== undefined &&
-                  !matchesPathFilter({
-                    paths: include,
-                    path: webhook.name,
-                    method: webhook.method,
-                    variant
-                  })
-                ) {
-                  this.#reportSkippedEnrichment(webhookEnrichments, variant, [
-                    generatorConfig.id,
-                    webhook.name,
-                    webhook.method,
-                    variant
-                  ])
-                  this.#captureSubjectResult('skipped', st)
-                  return
-                }
-
-                if (
-                  matchesPathFilter({
-                    paths: skip,
-                    path: webhook.name,
-                    method: webhook.method,
-                    variant
-                  })
-                ) {
-                  this.#reportSkippedEnrichment(webhookEnrichments, variant, [
-                    generatorConfig.id,
-                    webhook.name,
-                    webhook.method,
-                    variant
-                  ])
-                  this.#captureSubjectResult('skipped', st)
-                  return
-                }
-
-                generatorConfig.transform({
-                  context: this,
-                  webhook,
-                  variant
-                })
-
-                const source = toWebhookSource({
-                  webhook,
-                  generatorId: generatorConfig.id,
-                  variant
-                })
-
-                this.#addPreview(
-                  source,
-                  generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
-                )
-
-                this.#captureSubjectResult('success', st)
-              } catch (error) {
-                this.#failItem(error, st)
-              }
-            })
-          )
-        })
-      })
-    })
-  }
-
-  #runGqlOperationGenerator(
-    gqlDocument: GqlDocument,
-    generatorConfig: GqlOperationEntry,
-    stackTrail: StackTrail
-  ) {
-    gqlDocument.operations.forEach(operation => {
-      stackTrail.trace([operation.rootKind, operation.fieldName], opTrail => {
-        // GraphQL enrichment routing key is
-        // `[generatorId][rootKind][fieldName][variant]`.
-        const opEnrichments: unknown = this.readEnrichment([
-          generatorConfig.id,
-          operation.rootKind,
-          operation.fieldName
-        ])
-
-        const variants = toVariantList({
-          opEnrichments,
-          generatorId: generatorConfig.id,
-          operationLabel: `${operation.rootKind} ${operation.fieldName}`
-        })
-
-        variants.forEach(variant => {
-          opTrail.trace(['variant', variant], st =>
-            this.withSubjectTrail(st, () => {
-              try {
-                if (
-                  typeof generatorConfig.isSupported === 'function' &&
-                  !generatorConfig.isSupported({ operation, context: this, variant })
-                ) {
-                  this.#captureSubjectResult('notSupported', st)
-                  return
-                }
-
-                generatorConfig.transform({
-                  context: this,
-                  operation,
-                  variant
-                })
-
-                const source = toGqlOperationSource({
-                  operation,
-                  generatorId: generatorConfig.id,
-                  variant
-                })
-
-                this.#addPreview(
-                  source,
-                  generatorConfig.toPreviewModule?.({ context: this, operation, variant })
-                )
-
-                this.#captureSubjectResult('success', st)
-              } catch (error) {
-                this.#failItem(error, st)
-              }
-            })
-          )
-        })
-      })
-    })
-  }
-
-  #runModelGenerator(
-    document: SkmtcParsedDocument,
-    generatorConfig: ModelEntry,
-    include: IncludeModelRefs | undefined,
-    skip: SkipModelRefs | undefined,
-    stackTrail: StackTrail
-  ) {
-    const refNames =
-      document.type === 'oas'
-        ? (document.value.components?.toSchemasRefNames() ?? [])
-        : document.value.registry.toSchemasRefNames()
-
-    refNames.forEach(refName => {
-      const ref = toSchemaComponentRef(refName)
-
-      stackTrail.trace(refName, refTrail => {
-        // Resolve the variant list to fan out over. The consumer's
-        // enrichments are keyed `[generatorId][refName][variant]`; the
-        // block at `[refName]` is therefore a record of variant names.
-        // Three cases handled in `toVariantList`:
-        //
-        //   - absent → run a single 'main' pass with no enrichment
-        //   - present, non-object → treat as a single 'main' pass
-        //     (the per-variant Valibot wrap will reject this shape
-        //     at config-load time once it lands)
-        //   - present, object → enumerate keys; 'main' must be among
-        //     them or we throw (loud beats silent zero-output)
-        const modelEnrichments: unknown = this.readEnrichment([generatorConfig.id, refName])
-
-        const variants = toVariantList({
-          opEnrichments: modelEnrichments,
-          generatorId: generatorConfig.id,
-          operationLabel: refName
-        })
-
-        variants.forEach(variant => {
-          refTrail.trace(['variant', variant], st =>
-            this.withSubjectTrail(st, () => {
-              try {
-                if (
-                  typeof generatorConfig.isSupported === 'function' &&
-                  !generatorConfig.isSupported({ ref, context: this, variant })
-                ) {
-                  this.#captureSubjectResult('notSupported', st)
-                  return
-                }
-
-                // Order: isSupported (capability) → include (allow) → skip
-                // (deny). Match is on `(refName, variant)`. An empty variant
-                // array on a refName means "every variant of this refName"; a
-                // populated array names the variants the entry applies to.
-                if (
-                  include !== undefined &&
-                  !matchesRefFilter({ refs: include, refName, variant })
-                ) {
-                  this.#reportSkippedEnrichment(modelEnrichments, variant, [
-                    generatorConfig.id,
-                    refName,
-                    variant
-                  ])
-                  this.#captureSubjectResult('skipped', st)
-                  return
-                }
-
-                if (matchesRefFilter({ refs: skip, refName, variant })) {
-                  this.#reportSkippedEnrichment(modelEnrichments, variant, [
-                    generatorConfig.id,
-                    refName,
-                    variant
-                  ])
-                  this.#captureSubjectResult('skipped', st)
-                  return
-                }
-
-                generatorConfig.transform({
-                  context: this,
-                  ref,
-                  variant
-                })
-
-                const source = toModelSource({
-                  refName,
-                  generatorId: generatorConfig.id,
-                  variant
-                })
-
-                this.#addPreview(
-                  source,
-                  generatorConfig.toPreviewModule?.({ context: this, ref, variant })
+                  subject.toSource({ generatorId: entry.id, variant }),
+                  subject.toPreviewModule({ entry, context: this, variant })
                 )
 
                 this.#captureSubjectResult('success', st)
@@ -1958,190 +1666,6 @@ export class GenerateContext implements GenerateContextType {
     return definition.value
   }
 }
-
-type MatchesPathFilterArgs = {
-  paths: SkipPaths | IncludePaths | undefined
-  path: string
-  method: Method
-  variant: string
-}
-
-/**
- * Match a `(path, method, variant)` tuple against an operation-shaped
- * skip or include entry. Shared by both arms because skip and include
- * have the same matching rules; only the engine's interpretation of
- * the result differs (skip = deny, include = allow).
- *
- * Returns `false` when:
- * - `paths` is `undefined` (no filter applies)
- * - the `path` isn't keyed in the entry
- * - the `method` isn't present in the inner record
- *
- * Returns `true` when:
- * - the method's variant array is empty (matches every variant)
- * - the method's variant array contains `variant`
- */
-const matchesPathFilter = ({ paths, path, method, variant }: MatchesPathFilterArgs): boolean => {
-  if (!paths) {
-    return false
-  }
-
-  const methodMap = paths[path]
-  if (!methodMap) {
-    return false
-  }
-
-  const variants = methodMap[method]
-  if (variants === undefined) {
-    return false
-  }
-
-  if (variants.length === 0) {
-    return true
-  }
-
-  return variants.includes(variant)
-}
-
-type MatchesRefFilterArgs = {
-  refs: SkipModelRefs | IncludeModelRefs | undefined
-  refName: string
-  variant: string
-}
-
-/**
- * Match a `(refName, variant)` tuple against a model-shaped skip or
- * include entry. Sibling to {@link matchesPathFilter} — both arms
- * share matching rules; only the engine's interpretation of the
- * result differs (skip = deny, include = allow).
- *
- * Returns `false` when:
- * - `refs` is `undefined` (no filter applies)
- * - the `refName` isn't keyed in the entry
- *
- * Returns `true` when:
- * - the refName's variant array is empty (matches every variant)
- * - the refName's variant array contains `variant`
- */
-const matchesRefFilter = ({ refs, refName, variant }: MatchesRefFilterArgs): boolean => {
-  if (!refs) {
-    return false
-  }
-
-  const variants = refs[refName]
-  if (variants === undefined) {
-    return false
-  }
-
-  if (variants.length === 0) {
-    return true
-  }
-
-  return variants.includes(variant)
-}
-
-type ToOasOperationSourceArgs = {
-  operation: OasOperation
-  generatorId: string
-  /** Operation variant the artifact was emitted for (see {@link Variant}) */
-  variant: string
-}
-
-/**
- * Creates an OasOperationSource from an operation, generator ID, and variant.
- *
- * Transforms operation and generator information into a source descriptor
- * that can be used for tracking operation origins in the generation pipeline.
- *
- * @param args - Arguments containing operation, generator ID, and variant
- * @returns OasOperationSource descriptor for the operation
- */
-export const toOasOperationSource = ({
-  operation,
-  generatorId,
-  variant
-}: ToOasOperationSourceArgs): OasOperationSource => ({
-  type: 'oasOperation',
-  generatorId,
-  operationPath: operation.path,
-  operationMethod: operation.method,
-  variant
-})
-
-type ToWebhookSourceArgs = {
-  webhook: OasWebhook
-  generatorId: string
-  /** Webhook variant the artifact was emitted for (see {@link Variant}) */
-  variant: string
-}
-
-/**
- * Creates a {@link WebhookSource} from a webhook, generator ID, and variant.
- * Sibling of {@link toOasOperationSource} for the 3.1 webhook subject.
- */
-export const toWebhookSource = ({
-  webhook,
-  generatorId,
-  variant
-}: ToWebhookSourceArgs): WebhookSource => ({
-  type: 'webhook',
-  generatorId,
-  webhookName: webhook.name,
-  webhookMethod: webhook.method,
-  variant
-})
-
-type ToGqlOperationSourceArgs = {
-  operation: GqlOperation
-  generatorId: string
-  /** Operation variant the artifact was emitted for (see {@link Variant}) */
-  variant: string
-}
-
-/**
- * Creates a GraphQL operation source descriptor.
- *
- * Sibling to {@link toOasOperationSource} for the GraphQL protocol — encodes
- * `rootKind` and `fieldName` instead of `path` / `method`.
- */
-export const toGqlOperationSource = ({
-  operation,
-  generatorId,
-  variant
-}: ToGqlOperationSourceArgs): GqlOperationSource => ({
-  type: 'gqlOperation',
-  generatorId,
-  rootKind: operation.rootKind,
-  fieldName: operation.fieldName,
-  variant
-})
-
-type ToModelSourceArgs = {
-  refName: RefName
-  generatorId: string
-  /** Model variant the artifact was emitted for (see {@link Variant}) */
-  variant: string
-}
-
-/**
- * Creates a ModelSource from a reference name, generator ID, and variant.
- *
- * Transforms model reference and generator information into a source descriptor
- * that can be used for tracking model origins in the generation pipeline.
- *
- * @param args - Arguments containing reference name, generator ID, and variant
- * @returns ModelSource descriptor for the model
- */
-export const toModelSource = ({
-  refName,
-  generatorId,
-  variant
-}: ToModelSourceArgs): ModelSource => ({
-  type: 'model',
-  generatorId,
-  refName,
-  variant
-})
 
 /** One generator's `skip` or `include` filter for operations: path → method → variants. */
 type PathsFilter = Record<string, Partial<Record<Method, string[]>>>
