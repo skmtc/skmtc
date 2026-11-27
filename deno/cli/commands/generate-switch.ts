@@ -9,6 +9,7 @@ import { Manager } from '@/lib/manager.ts'
 import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
 import { offerConfigMigrations } from '@/lib/config-migration-offer.ts'
+import { saveSource, type SavedSource } from '@/lib/save-source.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -33,8 +34,34 @@ type GenerateSwitchArgs = {
    * to honour the config value.
    */
   anchorsFlag?: boolean
+  /**
+   * `--save`: store the schema argument as the top-level `source` of the
+   * project's config, so the next run needs no schema argument.
+   */
+  saveFlag?: boolean
   /** Override for the generation run — tests stub this to skip the worker. */
   generateLocalFn?: typeof generateLocal
+}
+
+const SAVE_USAGE = 'skmtc generate <project> <schema> --save'
+
+/**
+ * Stores the schema source a run was given. Exits 1 for a project with no
+ * config file: generating and then not saving would report a success that
+ * leaves the next run without its schema.
+ */
+const saveSchemaSource = (projectPath: string, source: string): SavedSource => {
+  const saved = saveSource({ projectPath, source })
+
+  if (saved.type === 'no-config') {
+    console.error(
+      `Error: --save found no config to write: ${saved.configPath} is missing or is not a JSON object.\n\n` +
+        'Run `skmtc init <project> <basePath>` to create it, or repair the file, then run the command again.'
+    )
+    return Deno.exit(1)
+  }
+
+  return saved
 }
 
 export const generateSwitch = async ({
@@ -47,8 +74,22 @@ export const generateSwitch = async ({
   tsconfig,
   tscCmd,
   anchorsFlag,
+  saveFlag,
   generateLocalFn
 }: GenerateSwitchArgs) => {
+  // `--save` stores the schema argument, so it needs one.
+  if (saveFlag && !schemaSourceString) {
+    return failWithRecipe({
+      command: 'generate',
+      arg: '<schema>',
+      usage: SAVE_USAGE,
+      example: 'skmtc generate my-api ./schema.json --save',
+      discover:
+        '--save stores the schema you pass as `source` in the project config. ' +
+        'With a stored source, `skmtc generate <project>` needs no schema and no --save.'
+    })
+  }
+
   // --json + --watch is incompatible: --json emits a single object
   // and exits, --watch is a stream. Fail loudly so the caller learns
   // to pick one.
@@ -89,13 +130,21 @@ export const generateSwitch = async ({
       usage: 'skmtc generate <project> [schema]',
       example: 'skmtc generate my-api ./schema.json',
       discover:
-        'If you want the schema source pinned, set `source` in ' +
+        'To store the schema source, pass it once with --save: ' +
+        `\`${SAVE_USAGE}\`. It is written as \`source\` in ` +
         '.skmtc/<project>/.settings/skmtc.config.json — then `skmtc generate <project>` ' +
         'is enough.'
     })
   }
 
   if (generateLocalArgs) {
+    // The schema was read, so the source is one that works. Store it before
+    // the run: a run that then fails still leaves the source for the retry.
+    const savedSource =
+      saveFlag && schemaSourceString
+        ? saveSchemaSource(generateLocalArgs.projectPath, schemaSourceString)
+        : undefined
+
     // A local project rebuilds bundle.js on every run, from the pins and
     // generator source it has now, and runs the bundle that build returns.
     // The build refuses a module graph with two copies of `@skmtc/core` or
@@ -134,6 +183,7 @@ export const generateSwitch = async ({
       basePath: generateLocalArgs.clientSettings?.basePath,
       manifestPath: toManifestPath(toProjectPath(projectName)),
       typecheck: typecheckResult,
+      savedSource,
       format
     })
 

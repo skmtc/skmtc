@@ -500,6 +500,7 @@ reasoning about a specific check without running it.
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `config-names/<project>` | `warning` when the project uses a deprecated config name (`client.json`, `settings.system`; hint `skmtc migrate config <project>`) or has both `client.json` and `skmtc.config.json`; `ok` otherwise |
 | `project-base-path/<project>` | `skmtc.config.json#settings.basePath` present and relative |
+| `project-alias/<project>` | `settings.basePath` is the folder the app's `@/` alias points to (read from a tsconfig's `paths` or a `deno.json` import map). `warning` means generated files import each other through an alias that resolves somewhere else. `skipped` when no such file states the alias, or the project sets `settings.packages` |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
 | `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock); `error` names each copy and the packages that import it — two copies generate empty files, so `generate` and `bundle` refuse to build the graph; `skipped` for `serverUrl` projects, with `--offline`, or when the graph can't be read (e.g. a pin edit no build has locked yet) |
 | `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |

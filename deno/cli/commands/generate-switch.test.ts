@@ -48,9 +48,28 @@ Deno.test('generateSwitch - strict mode without a resolvable schema fails with a
   assertEquals(recipeErrors.length, 1)
   assertStringIncludes(recipeErrors[0], 'missing required argument: <schema>')
   assertStringIncludes(recipeErrors[0], 'skmtc.config.json')
-  // The schema source is the config's top-level `source` key.
-  assertStringIncludes(recipeErrors[0], 'set `source` in')
+  // The schema source is the config's top-level `source` key, and the
+  // recipe names the flag that writes it.
+  assertStringIncludes(recipeErrors[0], 'skmtc generate <project> <schema> --save')
+  assertStringIncludes(recipeErrors[0], 'written as `source` in')
   assertEquals(recipeErrors[0].includes('settings.source'), false)
+})
+
+Deno.test('generateSwitch - --save with no schema argument fails with a recipe error', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await generateSwitch({
+      projectName: 'my-api',
+      schemaSourceString: undefined,
+      watch: undefined,
+      noInputFlag: true,
+      saveFlag: true
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertEquals(errors.length, 1)
+  assertStringIncludes(errors[0], 'missing required argument: <schema>')
+  assertStringIncludes(errors[0], 'skmtc generate <project> <schema> --save')
 })
 
 Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2', async () => {
@@ -323,5 +342,54 @@ Deno.test('generateSwitch - a name that is not a project writes nothing', async 
         assertEquals(existsSync(join(tempRoot, '.skmtc', fileName)), false)
       }
     })
+  })
+})
+
+// The first run of a project passes the schema as an argument, and
+// `generate` does not keep it. `--save` is what makes the second run work.
+Deno.test('generateSwitch - --save stores the schema, and the next run needs no argument', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ tempRoot, projectName, projectPath }) => {
+        const configPath = join(projectPath, '.settings', 'skmtc.config.json')
+        const schemaPath = join(tempRoot, 'openapi.json')
+        const { bundles, generateLocalFn } = toRecordingGenerateLocal()
+        const run = (schemaSourceString: string | undefined, saveFlag: boolean) =>
+          captureStdout(async () => {
+            await withCapturedExit(() =>
+              generateSwitch({
+                projectName,
+                schemaSourceString,
+                watch: undefined,
+                jsonFlag: true,
+                saveFlag,
+                generateLocalFn
+              })
+            )
+          })
+
+        // A project as `init` leaves it: no source.
+        await Deno.writeTextFile(configPath, JSON.stringify({ settings: { basePath: 'src/api' } }))
+
+        const [first] = await run(schemaPath, true)
+
+        assertEquals(JSON.parse(first).savedSource, {
+          source: schemaPath,
+          configPath,
+          changed: true
+        })
+        assertEquals(JSON.parse(await Deno.readTextFile(configPath)), {
+          source: schemaPath,
+          settings: { basePath: 'src/api' }
+        })
+
+        const [second] = await run(undefined, false)
+
+        assertEquals(JSON.parse(second).type, 'generated')
+        assertEquals('savedSource' in JSON.parse(second), false)
+        assertEquals(bundles.length, 2)
+      }
+    )
   })
 })

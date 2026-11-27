@@ -183,6 +183,11 @@ const run = async () => {
     )
     .option('--no-anchors', 'Force gen-maps (attribution) output OFF, regardless of config.')
     .option(
+      '--save',
+      'Store the [schema] argument as `source` in the project config, so later runs ' +
+        'need no schema argument.'
+    )
+    .option(
       '--debug',
       'Run generation under the V8 inspector in source mode (not the bundle) so a ' +
         'debugger can pause on breakpoints in generator code and inspect the live files ' +
@@ -194,7 +199,7 @@ const run = async () => {
     )
     .action(
       async (
-        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, debug, auto },
+        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, save, debug, auto },
         projectName,
         schemaSourceString
       ) => {
@@ -219,7 +224,8 @@ const run = async () => {
           tscCmd,
           // Cliffy maps `--anchors` / `--no-anchors` to a `boolean |
           // undefined` field — undefined when neither was passed.
-          anchorsFlag: anchors
+          anchorsFlag: anchors,
+          saveFlag: save
         })
       }
     )

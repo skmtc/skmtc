@@ -10,7 +10,11 @@ import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
 import type { Generator } from '@/types/generator.ts'
-import { withCapturedExit, withFakeTty } from '@/tests/strict-mode-helpers.test.ts'
+import {
+  captureStdout,
+  withCapturedExit,
+  withFakeTty
+} from '@/tests/strict-mode-helpers.test.ts'
 import { validateBasePath, InvalidBasePathError } from '@/lib/init-headless.ts'
 import { assertThrows } from '@std/assert/throws'
 
@@ -169,7 +173,9 @@ Deno.test('renderInit - missing basePath fails with recipe', async () => {
     await renderInit({
       projectName: 'my-api',
       basePath: undefined,
-      noInputFlag: true
+      noInputFlag: true,
+      // The test runs in the CLI package, whose deno.json maps `@/`.
+      findAliasRootFn: () => undefined
     })
   })
   assertEquals(exitCode, 2)
@@ -177,6 +183,85 @@ Deno.test('renderInit - missing basePath fails with recipe', async () => {
   // The discover hint surfaces the `@`-alias convention from
   // friction #24 so callers don't have to read the skill to know it.
   assertStringIncludes(errors[0], '@')
+  assertStringIncludes(errors[0], 'skmtc found no `@/` alias in tsconfig.json')
+})
+
+// Generated files import each other through `@/`, so the folder that alias
+// points to is the one right answer for basePath when the caller gives none.
+Deno.test('renderInit - with no basePath, the folder of the "@/" alias is the basePath', async () => {
+  const skmtcRoot = createMockSkmtcRoot(createMockManager(), { projects: [] })
+  const exits: (number | undefined)[] = []
+
+  const logs = await captureStdout(async () => {
+    const { exitCode } = await withCapturedExit(async () => {
+      await renderInit({
+        skmtcRoot,
+        projectName: 'my-api',
+        basePath: undefined,
+        jsonFlag: true,
+        findAliasRootFn: () => ({ path: 'app/src', from: 'tsconfig.json' })
+      })
+    })
+    exits.push(exitCode)
+  })
+
+  assertEquals(exits, [0])
+  assertEquals(skmtcRoot.toProjectNames(), ['my-api'])
+  assertEquals(JSON.parse(logs[0]), {
+    type: 'created',
+    projectName: 'my-api',
+    basePath: 'app/src',
+    basePathFrom: 'alias',
+    alias: { path: 'app/src', from: 'tsconfig.json', matches: true },
+    nextStep: 'skmtc install <generators...> my-api'
+  })
+})
+
+// The trap: a basePath that is not the alias folder generates files whose
+// imports of each other do not resolve, and nothing else reports it.
+Deno.test('printInitResult - a basePath that is not the alias folder gets a warning', () => {
+  const logs: string[] = []
+  const original = console.log
+  console.log = (msg: string) => logs.push(msg)
+  try {
+    printInitResult(
+      { type: 'created', projectName: 'my-api', basePath: 'src/generated' },
+      {
+        format: 'text',
+        basePathFrom: 'argument',
+        alias: { path: 'src', from: 'tsconfig.json', matches: false }
+      }
+    )
+  } finally {
+    console.log = original
+  }
+
+  assertStringIncludes(logs[1], 'basePath: src/generated')
+  assertStringIncludes(
+    logs[2],
+    'Warning: "@/" points to "src" (tsconfig.json), not to "src/generated".'
+  )
+  assertStringIncludes(logs[3], 'skmtc install <generators...> my-api')
+})
+
+Deno.test('printInitResult - a basePath that is the alias folder gets no warning', () => {
+  const logs: string[] = []
+  const original = console.log
+  console.log = (msg: string) => logs.push(msg)
+  try {
+    printInitResult(
+      { type: 'created', projectName: 'my-api', basePath: './src' },
+      {
+        format: 'text',
+        basePathFrom: 'argument',
+        alias: { path: 'src', from: 'tsconfig.json', matches: true }
+      }
+    )
+  } finally {
+    console.log = original
+  }
+
+  assertEquals(logs.length, 3)
 })
 
 Deno.test('validateBasePath - rejects absolute paths (friction #13)', () => {

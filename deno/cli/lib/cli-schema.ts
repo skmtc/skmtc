@@ -447,6 +447,11 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
         description: 'Watch schema for changes (incompatible with --json).'
       },
       {
+        flag: '--save',
+        description:
+          'Store the [schema] argument as `source` in the project config, so later runs need no schema argument.'
+      },
+      {
         flag: '--debug',
         description:
           'Run under the V8 inspector in source mode so a debugger can pause on breakpoints in generator code and inspect the live files map at each stop.'
