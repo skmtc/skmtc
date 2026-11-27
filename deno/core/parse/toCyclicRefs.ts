@@ -22,42 +22,56 @@ type RawRef = { $ref: string }
 /** A `$ref` inside a schema, and the key of the schema it points at. */
 type GraphEdge = { ref: RawRef; target: string }
 
-/** Every `$ref` object anywhere inside a raw schema. */
-const toSchemaRefs = (value: unknown): RawRef[] => {
+/** Every `$ref` object anywhere inside a raw schema, added to `found` in document order. */
+const toSchemaRefs = (value: unknown, found: RawRef[] = []): RawRef[] => {
   if (Array.isArray(value)) {
-    return value.flatMap(toSchemaRefs)
+    value.forEach(item => toSchemaRefs(item, found))
+
+    return found
   }
 
   if (!isPlainObject(value)) {
-    return []
+    return found
   }
 
-  const nested = Object.entries(value).flatMap(([key, child]) => {
+  if (isRef(value)) {
+    found.push(value)
+  }
+
+  Object.entries(value).forEach(([key, child]) => {
     if (DATA_KEYWORDS.includes(key) || key.startsWith('x-')) {
-      return []
+      return
     }
 
-    return SCHEMA_MAP_KEYWORDS.includes(key) && isPlainObject(child)
-      ? Object.values(child).flatMap(toSchemaRefs)
-      : toSchemaRefs(child)
+    if (SCHEMA_MAP_KEYWORDS.includes(key) && isPlainObject(child)) {
+      Object.values(child).forEach(member => toSchemaRefs(member, found))
+    } else {
+      toSchemaRefs(child, found)
+    }
   })
 
-  return isRef(value) ? [value, ...nested] : nested
+  return found
 }
 
-/** Every `$ref` object anywhere in a raw document. */
-const toDocumentRefs = (value: unknown): RawRef[] => {
+/** Every `$ref` object anywhere in a raw document, added to `found` in document order. */
+const toDocumentRefs = (value: unknown, found: RawRef[] = []): RawRef[] => {
   if (Array.isArray(value)) {
-    return value.flatMap(toDocumentRefs)
+    value.forEach(item => toDocumentRefs(item, found))
+
+    return found
   }
 
   if (!isPlainObject(value)) {
-    return []
+    return found
   }
 
-  const nested = Object.values(value).flatMap(toDocumentRefs)
+  if (isRef(value)) {
+    found.push(value)
+  }
 
-  return isRef(value) ? [value, ...nested] : nested
+  Object.values(value).forEach(child => toDocumentRefs(child, found))
+
+  return found
 }
 
 /** Whether a ref can point at a schema: not a remote one, and not one to another kind of component. */

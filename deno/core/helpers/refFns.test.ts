@@ -9,6 +9,7 @@ import {
   toModelName,
   toRawRefTarget,
   toRefParts,
+  toRefPathBucket,
   toRefPointer,
   toSchemaComponentRef
 } from './refFns.ts'
@@ -69,6 +70,31 @@ Deno.test('toRefParts - a remote ref keeps its file in refPath, so it is no plac
 Deno.test('toRefParts - does not throw for a ref that names nothing: its name is empty', () => {
   assertEquals(toRefParts({ $ref: '#/components/schemas/' }).refName, '')
   assertEquals(toRefParts({ $ref: '#' }), { refName: '', refPath: '#' })
+})
+
+Deno.test('toRefPathBucket - a path that is exactly a bucket of components gives the bucket', () => {
+  assertEquals(toRefPathBucket('#/components/schemas'), 'schemas')
+  assertEquals(toRefPathBucket('#/components/parameters'), 'parameters')
+  // A bucket core does not read is still a bucket.
+  assertEquals(toRefPathBucket('#/components/pathItems'), 'pathItems')
+})
+
+// The trap: the usual path is read with no split. A path that only starts
+// like a bucket must not take that way.
+Deno.test('toRefPathBucket - any other path gives undefined', () => {
+  assertEquals(toRefPathBucket('#/components/schemas/Pet/properties'), undefined)
+  assertEquals(toRefPathBucket('#/components/x-shared'), undefined)
+  assertEquals(toRefPathBucket('#/components/'), undefined)
+  assertEquals(toRefPathBucket('#/components'), undefined)
+  assertEquals(toRefPathBucket('#/paths/~1pets/get'), undefined)
+  assertEquals(toRefPathBucket('other.json#/components/schemas'), undefined)
+})
+
+// `~0` and `~1` are escapes of a JSON pointer: `schema~0s` is the key
+// `schema~s`, which is no bucket, and `~1` is a `/` inside one key.
+Deno.test('toRefPathBucket - a path with an escape is unescaped before it is compared', () => {
+  assertEquals(toRefPathBucket('#/components/schema~0s'), undefined)
+  assertEquals(toRefPathBucket('#/components/schemas~1Pet'), undefined)
 })
 
 Deno.test('isDefaultRefPath - only the bucket of the ref kind is a component path', () => {

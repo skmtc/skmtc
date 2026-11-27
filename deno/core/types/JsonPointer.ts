@@ -30,7 +30,7 @@ export type JsonPointer = Brand<string, 'JsonPointer'>
  * `/` → `~1`
  */
 export const escapeSegment = (segment: string): string =>
-  segment.replaceAll('~', '~0').replaceAll('/', '~1')
+  segment.includes('~') || segment.includes('/') ? segment.replaceAll('~', '~0').replaceAll('/', '~1') : segment
 
 /**
  * Unescape a single segment per RFC 6901 §4.
@@ -39,7 +39,7 @@ export const escapeSegment = (segment: string): string =>
  * `~0` → `~`
  */
 export const unescapeSegment = (segment: string): string =>
-  segment.replaceAll('~1', '/').replaceAll('~0', '~')
+  segment.includes('~') ? segment.replaceAll('~1', '/').replaceAll('~0', '~') : segment
 
 /**
  * Build a JSON Pointer from an array of unescaped segments.

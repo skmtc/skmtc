@@ -172,6 +172,16 @@ export const handlePropertyName = (name: string, parent: string): string => {
 const escapedCharacters = new Map<string, string>([['\\', '\\\\'], ["'", "\\'"], ...lineTerminatorEscapes])
 
 /**
+ * Any key of `escapedCharacters`. Each key is one code unit, so the class
+ * names it by its code. Most values have none, and `replace` then returns
+ * the value as it is, with no list of its characters.
+ */
+const escapable = new RegExp(
+  `[${Array.from(escapedCharacters.keys(), key => `\\u${key.charCodeAt(0).toString(16).padStart(4, '0')}`).join('')}]`,
+  'g'
+)
+
+/**
  * Any string as a TypeScript string literal: wrapped in single quotes, with
  * `\`, `'`, `\n`, `\r`, U+2028 and U+2029 escaped. Use it wherever a schema
  * string (a property name, a description, an enum value) is written into
@@ -186,8 +196,5 @@ const escapedCharacters = new Map<string, string>([['\\', '\\\\'], ["'", "\\'"],
  * toStringLiteral('a\nb') // "'a\\nb'"
  * ```
  */
-export const toStringLiteral = (value: string): string => {
-  const escaped = Array.from(value, character => escapedCharacters.get(character) ?? character)
-
-  return `'${escaped.join('')}'`
-}
+export const toStringLiteral = (value: string): string =>
+  `'${value.replace(escapable, character => escapedCharacters.get(character) ?? character)}'`
