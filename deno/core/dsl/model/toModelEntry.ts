@@ -1,3 +1,4 @@
+import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import type { RefParts } from '@/helpers/refFns.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
@@ -12,6 +13,12 @@ import type * as v from 'valibot'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
+  /**
+   * Every projection class this generator can insert: its own, and each one
+   * of another generator that it inserts. Core reads only their statics. See
+   * {@link DeclaredProjection}. Optional.
+   */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, ref, variant }: TransformModelArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedModelArgs) => boolean
@@ -34,6 +41,8 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
 export type ModelEntry<EnrichmentType = undefined> = {
   id: string
   type: 'model'
+  /** The projection classes the entry declared; absent when it declared none. See {@link DeclaredProjection}. */
+  projections?: readonly DeclaredProjection[]
   transform: ({ context, ref, variant }: TransformModelArgs) => void
   isSupported: (args: IsSupportedModelArgs) => boolean
   supportsVariant: () => boolean
@@ -109,6 +118,7 @@ export type ModelEntry<EnrichmentType = undefined> = {
  */
 export const toModelEntry = <EnrichmentType = undefined>({
   id,
+  projections,
   transform,
   isSupported,
   supportsVariant,
@@ -120,6 +130,7 @@ export const toModelEntry = <EnrichmentType = undefined>({
   return {
     id,
     type: 'model',
+    projections,
     transform,
     isSupported: isSupported ?? (() => true),
     supportsVariant: supportsVariant ?? (() => false),
