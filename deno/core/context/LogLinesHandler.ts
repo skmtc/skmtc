@@ -1,7 +1,7 @@
 import { type LevelName, LogLevels } from '@std/log/levels'
 import type { LogRecord } from '@std/log/logger'
 import { BaseHandler } from '@std/log/base-handler'
-import type { LogLine, LogLineLevel } from '@/types/LogLine.ts'
+import { type LogLine, LogLineIssueArg, type LogLineLevel } from '@/types/LogLine.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
 
 /** Configuration options for the {@link LogLinesHandler}. */
@@ -43,6 +43,7 @@ export class LogLinesHandler extends BaseHandler {
     // Taken now: the trail object changes after the subject's callback returns.
     const trail = this.#toTrail()
     const error = logRecord.args.find(arg => arg instanceof Error)
+    const issueArg = logRecord.args.find(arg => arg instanceof LogLineIssueArg)
 
     this.#lines.push({
       seq: this.#lines.length,
@@ -50,6 +51,7 @@ export class LogLinesHandler extends BaseHandler {
       ...(trail === undefined ? {} : { trail }),
       message: logRecord.msg,
       ...(error === undefined ? {} : { error: toSerializedError(error) }),
+      ...(issueArg === undefined ? {} : { issue: issueArg.issue }),
       time: logRecord.datetime.getTime()
     })
   }

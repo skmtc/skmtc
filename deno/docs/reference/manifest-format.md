@@ -317,11 +317,23 @@ type LogLine = {
   seq: number
   /** A CRITICAL record is recorded as 'ERROR' */
   level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
-  /** The trail of the subject that logged the line. Absent outside a subject */
+  /**
+   * The trail of the subject that logged the line, or of the generator on
+   * the line that a generator logs after it ran. Absent outside a generator
+   */
   trail?: string
   message: string
   /** The first Error that the line was logged with (see SerializedError above) */
   error?: SerializedError
+  /** The parse issue that the line reports */
+  issue?: {
+    type: string
+    level: 'error' | 'warning' | 'debug'
+    /** The issue's location, as in parseIssues */
+    location: string
+    /** The object around the issue, as JSON */
+    parent?: string
+  }
   /** Unix milliseconds */
   time: number
 }
@@ -334,7 +346,28 @@ The default is `'WARN'`. When a transform throws, the engine logs one
 When `silent` is `false`, the parse phase logs one line for each parse
 issue, at the level of the issue. An `error` issue gives an `ERROR`
 line, a `warning` issue gives a `WARN` line, and a `debug` issue gives
-a `DEBUG` line. These lines have no `trail`, and they record no result.
+a `DEBUG` line. The message of the line is `<TYPE> at <location>:
+<message>`. The location is the place in the document: a JSON Pointer
+such as `#/paths/~1owners/get` for OpenAPI, or a dotted path such as
+`Query.post.return` for GraphQL. The `issue` field holds the type, the
+level, the location as in `parseIssues`, and the parent object. These
+lines have no `trail`, and they record no result.
+
+When `silent` is `false`, the run also logs these `INFO` lines:
+
+| Line | Example | `trail` |
+| --- | --- | --- |
+| After parse | `parse: OpenAPI 3.0.3, 3 operations, 2 models, 0 errors, 1 warning, 0 debug, 12 ms` | none |
+| After each generator | `@skmtc/gen-zod: 2 of 2 models, 0 failed, 2 files, 4 ms` | the generator's |
+| After render | `render: 2 files, 1840 bytes, 3 ms` | none |
+| At the end | `toArtifacts: 2 generators, 2 files, 1840 bytes, 0 errors, 1 warning, 0 debug, 21 ms` | none |
+
+A generator's line counts each variant of a subject once. The first
+number is the subjects that its transform ran on, then all the
+subjects of its type, then the subjects that failed. The files are the
+files that the generator added. A file that an earlier generator added
+counts on the line of that generator. A generator that `settings.skip`
+names gives the line `<id>: skipped by settings.skip`.
 
 The CLI writes the lines to
 `.skmtc/<project>/.settings/logs.ndjson`, one JSON object on each line.

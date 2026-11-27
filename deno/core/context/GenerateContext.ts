@@ -11,7 +11,14 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
-import { isDefaultRefPath, isRemoteRefPath, toModelKey, toRefPointer, toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
+import {
+  isDefaultRefPath,
+  isRemoteRefPath,
+  toModelKey,
+  toRefPointer,
+  toSchemaComponentRef,
+  type RefParts
+} from '@/helpers/refFns.ts'
 import type { ComponentsEntry } from '@/oas/components/Components.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
@@ -43,7 +50,13 @@ import type {
   ToOperationSettingsArgs,
   ToWebhookSettingsArgs
 } from './generateTypes.ts'
-import type { ClientSettings, IncludeModelRefs, IncludePaths, SkipModelRefs, SkipPaths } from '@/types/Settings.ts'
+import type {
+  ClientSettings,
+  IncludeModelRefs,
+  IncludePaths,
+  SkipModelRefs,
+  SkipPaths
+} from '@/types/Settings.ts'
 import { isMethod, type Method } from '@/types/Method.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
@@ -76,6 +89,7 @@ import { JsonFile } from '@/dsl/JsonFile.ts'
 import { MarkdownFile } from '@/dsl/MarkdownFile.ts'
 import invariant from 'tiny-invariant'
 import type { GeneratorConfig, GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import { toCountPhrase } from '@/helpers/toCountPhrase.ts'
 import type {
   OasOperationSource,
   WebhookSource,
@@ -115,6 +129,38 @@ type ConstructorArgs = {
    * (tests, capture-less runs) `captureSink` is always `undefined`.
    */
   captureChannel?: CaptureChannel
+  /**
+   * Whether to leave out the INFO line each generator logs after it ran.
+   * Defaults to `true`, as `ParseContext`'s does.
+   */
+  silent?: boolean
+}
+
+/** What one generator did with its subjects, one count per subject variant. */
+type SubjectCounts = {
+  /** Every subject variant the generator was offered. */
+  offered: number
+  /** The ones its transform ran on: not unsupported, not skipped. */
+  transformed: number
+  /** The ones whose transform threw. */
+  failed: number
+}
+
+/** What one of a generator's subjects is called on its log line. */
+const toSubjectNoun = ({ type }: GeneratorConfig): string => {
+  switch (type) {
+    case 'oasOperation':
+    case 'gqlOperation':
+      return 'operation'
+    case 'webhook':
+      return 'webhook'
+    case 'model':
+      return 'model'
+    default: {
+      const _exhaustive: never = type
+      throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
 }
 
 /**
@@ -314,15 +360,23 @@ export class GenerateContext implements GenerateContextType {
   /** See {@link currentSubjectTrail}. */
   #currentSubjectTrail: StackTrail | undefined
 
+  /** Whether to leave out the line each generator logs after it ran. */
+  #silent: boolean
+
+  /** The counts of the generator {@link toArtifacts} is running. */
+  #subjectCounts: SubjectCounts = { offered: 0, transformed: 0, failed: 0 }
+
   constructor({
     document,
     settings,
     logger,
     captureCurrentResult,
     toGeneratorConfigMap,
-    captureChannel
+    captureChannel,
+    silent = true
   }: ConstructorArgs) {
     this.logger = logger
+    this.#silent = silent
     this.#files = new Map()
     this.#previews = {}
     this.document = document
@@ -397,8 +451,26 @@ export class GenerateContext implements GenerateContextType {
    */
   #failItem(error: unknown, stackTrail: StackTrail): void {
     this.#logError(error)
-    this.captureCurrentResult('error', stackTrail)
+    this.#captureSubjectResult('error', stackTrail)
     this.#failedItems.push({ trail: `${stackTrail}`, message: toSerializedError(error).message })
+  }
+
+  /**
+   * Captures the one result of a subject variant, and counts it for the
+   * generator's line.
+   */
+  #captureSubjectResult(result: ResultType, stackTrail: StackTrail): void {
+    this.captureCurrentResult(result, stackTrail)
+
+    this.#subjectCounts.offered += 1
+
+    if (result === 'success' || result === 'error') {
+      this.#subjectCounts.transformed += 1
+    }
+
+    if (result === 'error') {
+      this.#subjectCounts.failed += 1
+    }
   }
 
   /**
@@ -432,88 +504,28 @@ export class GenerateContext implements GenerateContextType {
 
     generators.forEach(generatorConfig => {
       stackTrail.trace(generatorConfig.id, st => {
-        // Whole-generator skip (string entry in `skip`). Silent no-op:
-        // no per-operation `skipped` results emitted.
+        // Whole-generator skip (string entry in `skip`). No per-operation
+        // `skipped` results emitted.
         if (this.settings?.skip?.includes(generatorConfig.id)) {
+          this.#logGeneratorLine(st, `${generatorConfig.id}: skipped by settings.skip`)
           return
         }
 
-        // `include` is per-generator, not document-global. A generator
-        // with a per-operation include slice runs in allow-list mode
-        // (only the listed operations); a generator absent from
-        // `include` is unaffected and runs default-on. There is
-        // therefore no whole-generator include gate here — the slice
-        // extracted below is applied per-operation in the run* arms.
-        // (Whole-generator opt-out is `skip`. A bare-string `include`
-        // entry carries no per-operation filter and is a no-op.)
+        const startedAt = performance.now()
+        const fileCountBefore = this.#files.size
+        this.#subjectCounts = { offered: 0, transformed: 0, failed: 0 }
 
-        // skmtc#330: every object entry for this generator, merged, not only the first one.
-        const skip = toGeneratorFilter(this.settings?.skip, generatorConfig.id)
+        this.#runGenerator(generatorConfig, st)
 
-        // Extract the per-generator include slice (if any). Same
-        // dispatch shape as skip: object entries get matched by key,
-        // string entries don't produce a per-op filter (they mean
-        // "everything from this generator is included", which is
-        // semantically equivalent to "no per-op filter" once the
-        // whole-generator gate above has admitted us).
-        const include = toGeneratorFilter(this.settings?.include, generatorConfig.id)
+        const { offered, transformed, failed } = this.#subjectCounts
+        const fileCount = this.#files.size - fileCountBefore
+        const milliseconds = Math.round(performance.now() - startedAt)
 
-        switch (generatorConfig.type) {
-          case 'oasOperation':
-            if (this.document.type !== 'oas') {
-              // Generator targets OAS; current document is GraphQL — skip silently.
-              return
-            }
-            this.#runOasOperationGenerator(
-              this.document.value,
-              generatorConfig,
-              toIncludePaths(include, generatorConfig.id),
-              toSkipPaths(skip, generatorConfig.id),
-              st
-            )
-            break
-          case 'webhook':
-            if (this.document.type !== 'oas') {
-              // Webhooks are an OAS 3.1 feature; current document is GraphQL —
-              // skip silently.
-              return
-            }
-            this.#runWebhookGenerator(
-              this.document.value,
-              generatorConfig,
-              toIncludePaths(include, generatorConfig.id),
-              toSkipPaths(skip, generatorConfig.id),
-              st
-            )
-            break
-          case 'gqlOperation':
-            if (this.document.type !== 'gql') {
-              // Generator targets GraphQL; current document is OAS — skip silently.
-              return
-            }
-            // GraphQL operations don't yet have skip/include support
-            // at the per-operation level. The whole-generator gate
-            // above does apply (so `include: ['my-gql-gen']` works as
-            // expected), but per-(rootKind, fieldName) filtering is a
-            // follow-up that needs the same dispatch shape added for
-            // GqlOperation. Tracked alongside the existing GQL-skip
-            // gap.
-            this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
-            break
-          case 'model':
-            this.#runModelGenerator(
-              this.document,
-              generatorConfig,
-              toIncludeModels(include, generatorConfig.id),
-              toSkipModels(skip, generatorConfig.id),
-              st
-            )
-            break
-          default: {
-            const _exhaustive: never = generatorConfig
-            throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
-          }
-        }
+        this.#logGeneratorLine(
+          st,
+          `${generatorConfig.id}: ${transformed} of ${toCountPhrase(offered, toSubjectNoun(generatorConfig))}, ` +
+            `${failed} failed, ${toCountPhrase(fileCount, 'file')}, ${milliseconds} ms`
+        )
       })
     })
 
@@ -541,6 +553,99 @@ export class GenerateContext implements GenerateContextType {
       files: this.#files,
       previews: this.#previews,
       enrichmentWarnings
+    }
+  }
+
+  /**
+   * Logs `message` at INFO with the generator's trail, unless silent. The
+   * count of files is of the files the generator added: a file another
+   * generator added first is counted on that generator's line.
+   */
+  #logGeneratorLine(generatorTrail: StackTrail, message: string): void {
+    if (this.#silent) {
+      return
+    }
+
+    this.withSubjectTrail(generatorTrail, () => this.logger.info(message))
+  }
+
+  /** Runs one generator over its subjects, which `settings.include` and `settings.skip` filter. */
+  #runGenerator(generatorConfig: GeneratorConfig, st: StackTrail): void {
+    // `include` is per-generator, not document-global. A generator
+    // with a per-operation include slice runs in allow-list mode
+    // (only the listed operations); a generator absent from
+    // `include` is unaffected and runs default-on. There is
+    // therefore no whole-generator include gate here — the slice
+    // extracted below is applied per-operation in the run* arms.
+    // (Whole-generator opt-out is `skip`. A bare-string `include`
+    // entry carries no per-operation filter and is a no-op.)
+
+    // skmtc#330: every object entry for this generator, merged, not only the first one.
+    const skip = toGeneratorFilter(this.settings?.skip, generatorConfig.id)
+
+    // Extract the per-generator include slice (if any). Same
+    // dispatch shape as skip: object entries get matched by key,
+    // string entries don't produce a per-op filter (they mean
+    // "everything from this generator is included", which is
+    // semantically equivalent to "no per-op filter" once the
+    // whole-generator gate above has admitted us).
+    const include = toGeneratorFilter(this.settings?.include, generatorConfig.id)
+
+    switch (generatorConfig.type) {
+      case 'oasOperation':
+        if (this.document.type !== 'oas') {
+          // Generator targets OAS; current document is GraphQL — skip silently.
+          return
+        }
+        this.#runOasOperationGenerator(
+          this.document.value,
+          generatorConfig,
+          toIncludePaths(include, generatorConfig.id),
+          toSkipPaths(skip, generatorConfig.id),
+          st
+        )
+        break
+      case 'webhook':
+        if (this.document.type !== 'oas') {
+          // Webhooks are an OAS 3.1 feature; current document is GraphQL —
+          // skip silently.
+          return
+        }
+        this.#runWebhookGenerator(
+          this.document.value,
+          generatorConfig,
+          toIncludePaths(include, generatorConfig.id),
+          toSkipPaths(skip, generatorConfig.id),
+          st
+        )
+        break
+      case 'gqlOperation':
+        if (this.document.type !== 'gql') {
+          // Generator targets GraphQL; current document is OAS — skip silently.
+          return
+        }
+        // GraphQL operations don't yet have skip/include support
+        // at the per-operation level. The whole-generator gate
+        // above does apply (so `include: ['my-gql-gen']` works as
+        // expected), but per-(rootKind, fieldName) filtering is a
+        // follow-up that needs the same dispatch shape added for
+        // GqlOperation. Tracked alongside the existing GQL-skip
+        // gap.
+        this.#runGqlOperationGenerator(this.document.value, generatorConfig, st)
+        break
+      case 'model':
+        this.#runModelGenerator(
+          this.document,
+          generatorConfig,
+          toIncludeModels(include, generatorConfig.id),
+          toSkipModels(skip, generatorConfig.id),
+          st
+        )
+        break
+      default: {
+        const _exhaustive: never = generatorConfig
+        throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
 
@@ -611,7 +716,11 @@ export class GenerateContext implements GenerateContextType {
         }
         case 'model': {
           const models = this.#schemaRefNames().filter(refName =>
-            generatorConfig.isSupported({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
+            generatorConfig.isSupported({
+              ref: toSchemaComponentRef(refName),
+              context: this,
+              variant: DEFAULT_VARIANT
+            })
           )
           out[generatorConfig.id] = { type: 'model', models }
           break
@@ -727,13 +836,21 @@ export class GenerateContext implements GenerateContextType {
           const models: ModelEnrichmentDefaults = {}
           for (const refName of this.#schemaRefNames()) {
             if (
-              !generatorConfig.isSupported({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
+              !generatorConfig.isSupported({
+                ref: toSchemaComponentRef(refName),
+                context: this,
+                variant: DEFAULT_VARIANT
+              })
             ) {
               continue
             }
 
             const leaf = this.#subjectDefaults(() =>
-              toDefaults({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
+              toDefaults({
+                ref: toSchemaComponentRef(refName),
+                context: this,
+                variant: DEFAULT_VARIANT
+              })
             )
             if (leaf === undefined) continue
 
@@ -822,7 +939,7 @@ export class GenerateContext implements GenerateContextType {
                   typeof generatorConfig?.isSupported === 'function' &&
                   !generatorConfig.isSupported({ operation, context: this, variant })
                 ) {
-                  this.captureCurrentResult('notSupported', st)
+                  this.#captureSubjectResult('notSupported', st)
                   return
                 }
 
@@ -846,7 +963,7 @@ export class GenerateContext implements GenerateContextType {
                     operation.method,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -864,7 +981,7 @@ export class GenerateContext implements GenerateContextType {
                     operation.method,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -885,7 +1002,7 @@ export class GenerateContext implements GenerateContextType {
                   generatorConfig.toPreviewModule?.({ context: this, operation, variant })
                 )
 
-                this.captureCurrentResult('success', st)
+                this.#captureSubjectResult('success', st)
               } catch (error) {
                 this.#failItem(error, st)
               }
@@ -929,7 +1046,7 @@ export class GenerateContext implements GenerateContextType {
                   typeof generatorConfig?.isSupported === 'function' &&
                   !generatorConfig.isSupported({ webhook, context: this, variant })
                 ) {
-                  this.captureCurrentResult('notSupported', st)
+                  this.#captureSubjectResult('notSupported', st)
                   return
                 }
 
@@ -952,7 +1069,7 @@ export class GenerateContext implements GenerateContextType {
                     webhook.method,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -970,7 +1087,7 @@ export class GenerateContext implements GenerateContextType {
                     webhook.method,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -991,7 +1108,7 @@ export class GenerateContext implements GenerateContextType {
                   generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
                 )
 
-                this.captureCurrentResult('success', st)
+                this.#captureSubjectResult('success', st)
               } catch (error) {
                 this.#failItem(error, st)
               }
@@ -1031,7 +1148,7 @@ export class GenerateContext implements GenerateContextType {
                   typeof generatorConfig.isSupported === 'function' &&
                   !generatorConfig.isSupported({ operation, context: this, variant })
                 ) {
-                  this.captureCurrentResult('notSupported', st)
+                  this.#captureSubjectResult('notSupported', st)
                   return
                 }
 
@@ -1052,7 +1169,7 @@ export class GenerateContext implements GenerateContextType {
                   generatorConfig.toPreviewModule?.({ context: this, operation, variant })
                 )
 
-                this.captureCurrentResult('success', st)
+                this.#captureSubjectResult('success', st)
               } catch (error) {
                 this.#failItem(error, st)
               }
@@ -1106,7 +1223,7 @@ export class GenerateContext implements GenerateContextType {
                   typeof generatorConfig.isSupported === 'function' &&
                   !generatorConfig.isSupported({ ref, context: this, variant })
                 ) {
-                  this.captureCurrentResult('notSupported', st)
+                  this.#captureSubjectResult('notSupported', st)
                   return
                 }
 
@@ -1123,7 +1240,7 @@ export class GenerateContext implements GenerateContextType {
                     refName,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -1133,7 +1250,7 @@ export class GenerateContext implements GenerateContextType {
                     refName,
                     variant
                   ])
-                  this.captureCurrentResult('skipped', st)
+                  this.#captureSubjectResult('skipped', st)
                   return
                 }
 
@@ -1154,7 +1271,7 @@ export class GenerateContext implements GenerateContextType {
                   generatorConfig.toPreviewModule?.({ context: this, ref, variant })
                 )
 
-                this.captureCurrentResult('success', st)
+                this.#captureSubjectResult('success', st)
               } catch (error) {
                 this.#failItem(error, st)
               }
@@ -1500,7 +1617,10 @@ export class GenerateContext implements GenerateContextType {
       return definition as InsertNormalizedModelReturn<V, Schema>
     }
 
-    const cachedDefinition = this.findDefinition({ name: fallbackName, exportPath: destinationPath })
+    const cachedDefinition = this.findDefinition({
+      name: fallbackName,
+      exportPath: destinationPath
+    })
 
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
@@ -1730,10 +1850,9 @@ export class GenerateContext implements GenerateContextType {
     switch (this.document.type) {
       case 'oas': {
         const document = this.document.value
-        const component =
-          isDefaultRefPath({ refPath, refType: 'schema' })
-            ? document.components?.schemas?.[refName]
-            : document.toRefTarget(toRefPointer({ refName, refPath }))
+        const component = isDefaultRefPath({ refPath, refType: 'schema' })
+          ? document.components?.schemas?.[refName]
+          : document.toRefTarget(toRefPointer({ refName, refPath }))
 
         // The parser keeps ref targets of every kind; a model is built only from a schema.
         if (component === undefined || !isSchemaEntry(component)) {
@@ -2031,33 +2150,48 @@ const isPathsFilter = (filter: PathsFilter | ModelsFilter): filter is PathsFilte
   Object.values(filter).every(value => !Array.isArray(value))
 
 const mergePathsFilters = (a: PathsFilter, b: PathsFilter): PathsFilter =>
-  Object.entries(b).reduce<PathsFilter>((merged, [path, methods]) => {
-    const existing = merged[path] ?? {}
-    const combined = Object.entries(methods).reduce<Partial<Record<Method, string[]>>>(
-      (acc, [method, variants]) => {
-        if (!isMethod(method) || variants === undefined) {
-          return acc
-        }
+  Object.entries(b).reduce<PathsFilter>(
+    (merged, [path, methods]) => {
+      const existing = merged[path] ?? {}
+      const combined = Object.entries(methods).reduce<Partial<Record<Method, string[]>>>(
+        (acc, [method, variants]) => {
+          if (!isMethod(method) || variants === undefined) {
+            return acc
+          }
 
-        const current = acc[method]
+          const current = acc[method]
 
-        return { ...acc, [method]: current === undefined ? variants : mergeVariants(current, variants) }
-      },
-      { ...existing }
-    )
+          return {
+            ...acc,
+            [method]: current === undefined ? variants : mergeVariants(current, variants)
+          }
+        },
+        { ...existing }
+      )
 
-    return { ...merged, [path]: combined }
-  }, { ...a })
+      return { ...merged, [path]: combined }
+    },
+    { ...a }
+  )
 
 const mergeModelsFilters = (a: ModelsFilter, b: ModelsFilter): ModelsFilter =>
-  Object.entries(b).reduce<ModelsFilter>((merged, [refName, variants]) => {
-    const current = merged[refName]
+  Object.entries(b).reduce<ModelsFilter>(
+    (merged, [refName, variants]) => {
+      const current = merged[refName]
 
-    return { ...merged, [refName]: current === undefined ? variants : mergeVariants(current, variants) }
-  }, { ...a })
+      return {
+        ...merged,
+        [refName]: current === undefined ? variants : mergeVariants(current, variants)
+      }
+    },
+    { ...a }
+  )
 
 /** Two filters of one generator, merged. Filters of two shapes cannot merge: the first stays. */
-const mergeFilters = (a: PathsFilter | ModelsFilter, b: PathsFilter | ModelsFilter): PathsFilter | ModelsFilter => {
+const mergeFilters = (
+  a: PathsFilter | ModelsFilter,
+  b: PathsFilter | ModelsFilter
+): PathsFilter | ModelsFilter => {
   if (isPathsFilter(a) && isPathsFilter(b)) {
     return mergePathsFilters(a, b)
   }

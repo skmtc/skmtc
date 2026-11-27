@@ -3,6 +3,7 @@ import * as v from "valibot";
 import type {
   Enrichments,
   GeneratorsMapContainer,
+  LogLine,
   ModelEntry,
   TransformModelArgs,
 } from "@skmtc/core";
@@ -259,8 +260,8 @@ Deno.test("POST /artifacts - returns the run's log lines beside the manifest", a
 
   assertEquals(res.status, 200);
   const body = await res.json();
-  const [line] = body.logs;
-  assertEquals(line.level, "ERROR");
+  // The parse line comes first, at INFO.
+  const line = body.logs.find((logLine: LogLine) => logLine.level === "ERROR");
   assertEquals(line.message, "modelGen failed");
   assertEquals(line.trail.endsWith(":generate:modelGen:User:variant:main"), true);
   assertEquals(line.error.stack.startsWith("Error: modelGen failed"), true);
@@ -353,6 +354,16 @@ Deno.test("POST /artifacts - returns parse issues at their own level, without de
   assertExists(errorLine);
   assertEquals(errorLine.level, "ERROR");
   assertEquals("trail" in errorLine, false);
+  assertEquals(
+    errorLine.message.startsWith("INVALID_SCHEMA at #/components/schemas/A"),
+    true,
+  );
+  assertEquals(errorLine.issue, {
+    type: "INVALID_SCHEMA",
+    level: "error",
+    location: body.manifest.parseIssues[0].location,
+    parent: '{"type":"string","minLength":"oops"}',
+  });
   const warningLine = toLineFor("UNEXPECTED_PROPERTY");
   assertExists(warningLine);
   assertEquals(warningLine.level, "WARN");
