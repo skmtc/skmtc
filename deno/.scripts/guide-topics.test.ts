@@ -1,5 +1,10 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { buildGuideTopics, findUnknownCommands, parseGuideSource } from './guide-topics.ts'
+import {
+  buildGuideTopics,
+  findCodeUses,
+  findUnknownCommands,
+  parseGuideSource
+} from './guide-topics.ts'
 
 const TASKS = `<!-- topic setup: Create a project and generate -->
 ## Setting up
@@ -49,6 +54,34 @@ Deno.test('a marker with a wrong shape is an error, not text of the topic before
   )
 })
 
+// The trap: an indented marker would be text of the topic before it, and the
+// topic it was meant to start would be missing with no error.
+Deno.test('an indented marker is an error', () => {
+  assertThrows(
+    () => parseGuideSource({ name: 'tasks.md', text: `${TASKS}\n <!-- topic deploy: Deploy -->\n## Deploy\n` }),
+    Error,
+    'tasks.md:11: a topic marker is'
+  )
+})
+
+Deno.test('a marker in a code block is an example, and text of its topic', () => {
+  const text = [
+    '<!-- topic authoring: How to write a topic -->',
+    '## Writing a topic',
+    '',
+    '```md',
+    '<!-- topic setup: Create a project -->',
+    '## Setting up',
+    '```',
+    ''
+  ].join('\n')
+
+  const topics = parseGuideSource({ name: 'concepts.md', text })
+
+  assertEquals(topics.map(topic => topic.id), ['authoring'])
+  assertEquals(topics[0].body.includes('<!-- topic setup: Create a project -->'), true)
+})
+
 Deno.test('a topic that does not start with a heading is an error', () => {
   assertThrows(
     () => parseGuideSource({ name: 'tasks.md', text: '<!-- topic setup: Set up -->\nRun it.\n' }),
@@ -92,11 +125,15 @@ Deno.test('a command in a code span or a code block that is not registered is fo
   ])
 })
 
+// The trap: a sentence wraps, and its next line starts with "skmtc ignores".
+// Read as a command, that fails the check for a guide with no fault.
 Deno.test('a placeholder, a flag and the word skmtc in a sentence are not commands', () => {
   const body = [
     '## Commands',
     '',
     'A skmtc project holds generators. Run `skmtc <cmd> -h` or `skmtc --help`.',
+    'When a project has both files,',
+    'skmtc ignores the old one.',
     '',
     '```json',
     '{ "nextStep": "skmtc install <generators...> my-api" }',
@@ -106,4 +143,25 @@ Deno.test('a placeholder, a flag and the word skmtc in a sentence are not comman
   const topics = [{ id: 'commands', group: 'concepts', title: 'Commands', summary: 'List', body }]
 
   assertEquals(findUnknownCommands({ topics, commands: [] }), [])
+})
+
+Deno.test('a code span that wraps to the next line is read', () => {
+  const text = 'A stack is deployed: `skmtc\ndeploy` stores a version. See `skmtc guide\noutput`.'
+
+  assertEquals(findCodeUses({ text, prefix: 'skmtc' }), ['deploy', 'guide'])
+  assertEquals(findCodeUses({ text, prefix: 'skmtc guide' }), ['output'])
+})
+
+Deno.test('a topic id is found in a code span and in a code block, and not in an error message', () => {
+  const text = [
+    'Read `skmtc guide contract` first.',
+    '',
+    '```',
+    '$ skmtc guide pin-source',
+    'skmtc guide setup',
+    'Example: skmtc guide nope',
+    '```'
+  ].join('\n')
+
+  assertEquals(findCodeUses({ text, prefix: 'skmtc guide' }), ['contract', 'pin-source', 'setup'])
 })

@@ -115,6 +115,7 @@ import {
 } from '../.scripts/plugin-digest.ts'
 import {
   buildGuideTopics,
+  findCodeUses,
   findUnknownCommands,
   readGuideSources,
   renderGuideTopics
@@ -1776,16 +1777,41 @@ if (guideTopics !== undefined) {
     )
   }
 
+  // Every place that can send a reader to a topic: the topics themselves, the
+  // docs tree, the skills, the pages outside the tree, and the CLI's own
+  // source, whose `doctor` hints name topics.
+  const cliSourcePaths: string[] = []
+  for (const directory of ['lib', 'commands']) {
+    for await (const entry of Deno.readDir(join(denoDir, 'cli', directory))) {
+      const isSource = /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)
+      if (entry.isFile && isSource) cliSourcePaths.push(`cli/${directory}/${entry.name}`)
+    }
+  }
+  const outsidePaths = [
+    '../README.md',
+    'docs/llms.md',
+    'docs/skills/README.md',
+    'cli/CLAUDE.md',
+    ...cliSourcePaths.sort()
+  ]
+
   const topicIds = guideTopics.map(topic => topic.id)
   const topicReferences: [string, string][] = [
     ...guideTopics.map((topic): [string, string] => [`cli/guide (topic ${topic.id})`, topic.body]),
     ...[...readerFileTexts].map(([path, text]): [string, string] => [`docs/${path}`, text]),
     ...[...skillTexts].map(([path, text]): [string, string] => [`docs/${path}`, text]),
-    ['README.md', await Deno.readTextFile(join(denoDir, '..', 'README.md'))]
+    ...(await Promise.all(
+      outsidePaths.map(
+        async (path): Promise<[string, string]> => [
+          path.replace(/^\.\.\//, ''),
+          await Deno.readTextFile(join(denoDir, path))
+        ]
+      )
+    ))
   ]
 
   for (const [place, text] of topicReferences) {
-    for (const [, topicId] of text.matchAll(/`skmtc guide ([a-z][a-z0-9-]*)/g)) {
+    for (const topicId of findCodeUses({ text, prefix: 'skmtc guide' })) {
       if (!topicIds.includes(topicId)) {
         guideFailures++
         fail(`cli guide: ${place} names \`skmtc guide ${topicId}\`, which is not a topic`)
@@ -1807,7 +1833,8 @@ if (guideTopics !== undefined) {
   if (guideFailures === 0) {
     pass(
       `cli guide: ${guideTopics.length} topics match topics.json, name only registered ` +
-        'commands, and every `skmtc guide <topic>` in the docs and skills is a topic'
+        `commands, and every \`skmtc guide <topic>\` in ${topicReferences.length} places ` +
+        '(topics, docs, skills, CLI source) is a topic'
     )
   }
 }

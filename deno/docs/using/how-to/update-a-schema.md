@@ -68,9 +68,14 @@ still resolve (operations that didn't change). If imports break
 due to removed operations, you'll need to update the consuming
 code — that's expected.
 
-Run `skmtc agent-context --json | jq '.projects[].lastGenerate'`
-to confirm the run was recent and produced the expected number
-of artifacts.
+To confirm when the run ended and how many files it wrote, read the
+manifest:
+
+```bash
+jq '{endAt, files: (.files | length)}' .skmtc/<project>/.settings/manifest.json
+```
+
+`endAt` is a Unix time in milliseconds.
 
 ## Troubleshooting
 

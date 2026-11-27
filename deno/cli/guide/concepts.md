@@ -147,7 +147,7 @@ outside, they render the root's `moduleName`. Nested roots are subpath
 exports (`@app/sdk/models`) that share the outer package's `@`. Config
 load rejects `..`, a repeated root and the workspace root; render
 fails on an outside import of a root with no `moduleName`. Task page:
-`docs/using/how-to/generate-into-multiple-packages.md`.
+[generate into multiple packages](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/generate-into-multiple-packages.md).
 
 Enrichment misaddressing never errors. When a customization does not
 land, read `manifest.enrichmentWarnings` (printed after `generate`,

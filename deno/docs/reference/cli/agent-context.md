@@ -108,12 +108,12 @@ config names".
 ### `commands`
 
 - `args` are usage patterns. You must give `<x>`, you can give `[x]`,
-  and `[x...]` takes one or more values.
+  and `[x...]` takes any number of values, or none.
 - `flags` are the flags of the command, as you type them.
 - `agentMode` says how the command works for an agent:
   - `full`: it has `--json` and `--no-input`.
   - `json-only`: it has `--json` and never prompts.
-  - `none`: it is interactive only.
+  - `none`: it has no `--json` (`dev` and `create`).
 
 A subcommand has a name with a space, such as `migrate config`.
 

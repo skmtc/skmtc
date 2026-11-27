@@ -14,7 +14,7 @@ import {
   toGuideTopicResult
 } from '@/lib/guide.ts'
 import { failWithInvalidArg, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import denoJson from '../deno.json' with { type: 'json' }
+import denoJson from '@/deno.json' with { type: 'json' }
 
 type RenderGuideArgs = {
   topicId?: string

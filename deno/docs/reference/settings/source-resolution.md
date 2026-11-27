@@ -267,9 +267,6 @@ spec on the server would see stale generated output until the cache
 invalidated. The trade-off (slower repeat runs) is acceptable
 because the CLI runs are infrequent (not per-build).
 
-`skmtc agent-context` reports `schema.lastFetched` for orientation,
-but that's metadata only — the CLI doesn't use it to skip fetches.
-
 ### External `$ref`s in OAS specs
 
 A spec may reference external files:

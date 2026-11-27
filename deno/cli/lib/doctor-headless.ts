@@ -366,7 +366,7 @@ const checkInstallLockfile = (denoVersion?: string): Check => {
             `lock alone re-resolves to the same older version whenever the ` +
             `newest release is under ${DEPENDENCY_AGE_WINDOW_HOURS}h old.`
           : '') +
-        ` See friction #16 in skmtc-cli skill §7.`,
+        ` \`skmtc guide doctor-checks\` describes this check.`,
       data: { lockPath, cliVersion, coreVersion }
     }
   } catch (error) {
@@ -657,8 +657,8 @@ const checkProjectCorePin = (
       message: `Project "${projectName}" pins @skmtc/core ${projectPin}; the CLI uses ${cliCorePin}. Major.minor mismatch.`,
       hint:
         `Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@${cliCorePin}" to match. ` +
-        `Stale pins are the root cause of "No matching export … SnippetBase" errors at bundle time ` +
-        `(friction #7 in skmtc-cli skill §6).`,
+        `Stale pins are the root cause of "No matching export … SnippetBase" errors at bundle time. ` +
+        `\`skmtc guide doctor-checks\` describes this check.`,
       data: { projectPin, cliCorePin }
     }
   }
@@ -817,7 +817,7 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
         id: `project-base-path/${projectName}`,
         status: 'warning',
         message: `Project "${projectName}" has skmtc.config.json but no settings.basePath.`,
-        hint: 'Set `settings.basePath` so generated files land in a known location. See the cli skill §1 mental-model table for the convention.'
+        hint: 'Set `settings.basePath` so generated files land in a known location. `skmtc guide model` gives the convention.'
       }
     }
     if (isAbsolute(basePath)) {
