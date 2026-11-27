@@ -593,16 +593,21 @@ export class GenerateContext implements GenerateContextType {
    * The file plan of a run of this context: which of `subjects` hold each
    * file, from the projection classes that the entries of the run declared.
    * An entry that declared none adds no file to the plan, and a generator
-   * that `settings.skip` names whole adds none either. Building the plan
+   * that `settings.skip` names whole adds none either, and a GraphQL
+   * document's plan knows no file. Building the plan
    * leaves the run as it is: its reads of enrichments are not recorded.
    */
   toFilePlan({ subjects, reach }: ToFilePlanArgs): FilePlan {
     const skipped = this.settings?.skip ?? []
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
-    const projections = generators
-      .filter(({ id }) => !skipped.includes(id))
-      .flatMap(generator => generator.projections ?? [])
+    // A GraphQL document has no reach (`toReach` reads only OpenAPI refs), so
+    // no subject would hold the files of the models it reaches. Its plan
+    // knows no file, and each file stays to the end.
+    const projections =
+      this.document.type === 'gql'
+        ? []
+        : generators.filter(({ id }) => !skipped.includes(id)).flatMap(generator => generator.projections ?? [])
 
     return this.#enrichmentAudit.withoutRecording(
       () =>

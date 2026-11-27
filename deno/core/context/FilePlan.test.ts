@@ -9,7 +9,7 @@ import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { ModelSubject, OasOperationSubject, type PlannedSubject } from '@/context/Subject.ts'
+import { GqlOperationSubject, ModelSubject, OasOperationSubject, type PlannedSubject } from '@/context/Subject.ts'
 import type { FilePlan } from '@/context/FilePlan.ts'
 import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
@@ -359,6 +359,37 @@ Deno.test('FilePlan - building the plan leaves the warnings of the run as they a
 
   assertEquals(toWarnings(planned.context), [{ type: 'UNKNOWN_GENERATOR_ID', path: ['peer'] }])
   assertEquals(toWarnings(planned.context), toWarnings(unplanned))
+})
+
+// A GraphQL document has no reach, so no subject holds the files of the
+// models it reaches. The plan knows no file, and gives none early.
+Deno.test('FilePlan - a GraphQL document plans no file', () => {
+  const logger = log.getLogger('file-plan-test')
+  const sdl = 'type User { id: String } type Post { author: User } type Query { post: Post }'
+  const parseContext = new ParseContext({ input: { type: 'gql', value: sdl }, logger, silent: true })
+  const parsed = parseContext.parse(new StackTrail(['test']))
+
+  if (parsed.type !== 'gql') {
+    throw new Error('The test document is GraphQL')
+  }
+
+  const entries = toEntries([operationFiles, modelFiles])
+  const context = new GenerateContext({
+    document: parsed,
+    logger,
+    captureCurrentResult: () => {},
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field
+    toGeneratorConfigMap: () => entries
+  })
+
+  const subjects: PlannedSubject[] = [
+    ...[...parsed.value.registry.toSchemasRefNames()].map(refName => new ModelSubject(toSchemaComponentRef(refName))),
+    ...parsed.value.operations.map(operation => new GqlOperationSubject(operation))
+  ]
+  const plan = context.toFilePlan({ subjects, reach: parseContext.toReach() })
+
+  assertEquals(subjects.flatMap(subject => plan.filesOf(subject)), [])
+  assertEquals(subjects.flatMap(subject => plan.finish(subject)), [])
 })
 
 // A projection that is only in a list is never inserted, so the run never
