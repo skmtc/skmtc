@@ -219,9 +219,10 @@ exception details. The host treats this as exit-code-1 territory.
 The protocol is intentionally minimal. There's no progress-streaming,
 no incremental artifact streaming, no bidirectional question-asking.
 Generation is a request/response, period. If a generator needs to
-report progress, it does so via `console.log` (which the Worker's
-stdout pipe routes to the host's stderr); structured progress
-reporting isn't part of the protocol.
+report progress, it does so via `console.error`. The Worker shares
+the host's stdout, so a `console.log` line lands in the CLI's result
+output and breaks `generate --json`. Structured progress reporting
+isn't part of the protocol.
 
 ## Sandbox API (the remote path)
 

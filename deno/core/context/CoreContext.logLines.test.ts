@@ -240,7 +240,7 @@ Deno.test('toArtifacts - at the WARN log level the INFO lines are left out', () 
 })
 
 Deno.test('toArtifacts - at the WARN log level a clean run prints nothing to the console', () => {
-  const logStub = stub(console, 'log')
+  const consoleStubs = [stub(console, 'log'), stub(console, 'error')]
 
   try {
     new CoreContext({ spanId: 's', silent: false }).toArtifacts({
@@ -251,9 +251,12 @@ Deno.test('toArtifacts - at the WARN log level a clean run prints nothing to the
       silent: false
     })
 
-    assertEquals(logStub.calls.length, 0)
+    assertEquals(
+      consoleStubs.map(consoleStub => consoleStub.calls.length),
+      [0, 0]
+    )
   } finally {
-    logStub.restore()
+    consoleStubs.forEach(consoleStub => consoleStub.restore())
   }
 })
 

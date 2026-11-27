@@ -10,6 +10,7 @@ import { LogLevels } from '@std/log/levels'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
+import { StderrConsoleHandler } from '@/context/StderrConsoleHandler.ts'
 import type { LogLineLevel } from '@/types/LogLine.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
@@ -309,7 +310,7 @@ export class CoreContext {
 
     return new log.Logger(spanId, 'DEBUG', {
       handlers: [
-        new log.ConsoleHandler('DEBUG', {
+        new StderrConsoleHandler('DEBUG', {
           formatter: logRecord => skmtcFormatter({ logRecord, stackTrail: this.#toLogTrail() }),
           useColors: true
         }),
