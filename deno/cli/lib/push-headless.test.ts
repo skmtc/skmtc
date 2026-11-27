@@ -260,6 +260,56 @@ Deno.test('pushHeadless - aborts when the overwrite confirm declines', async () 
   }
 })
 
+Deno.test('pushHeadless - a hub project holding only parse counts as existing config', async () => {
+  stubFetch({ getBody: { enrichments: [], include: [], skip: [], parse: { not: 'unknown' } } })
+  const { skmtcRoot } = makeRoot({
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
+  let asked = false
+
+  try {
+    const result = await pushHeadless({
+      skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test',
+      confirmOverwrite: () => {
+        asked = true
+        return Promise.resolve(true)
+      }
+    })
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.overwroteExistingConfig, true)
+    assertEquals(asked, true)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+Deno.test('pushHeadless - a hub project with an empty parse and nothing else holds no config', async () => {
+  stubFetch({ getBody: { enrichments: [], include: [], skip: [], parse: {} } })
+  const { skmtcRoot } = makeRoot({
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
+
+  try {
+    const result = await pushHeadless({
+      skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test'
+    })
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.overwroteExistingConfig, false)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 Deno.test('pushHeadless - an explicit --project is written back into client.json', async () => {
   stubFetch({ getBody: {}, putBody: { enrichments: [] } })
   const { skmtcRoot, wrote, contentsNow } = makeRoot({

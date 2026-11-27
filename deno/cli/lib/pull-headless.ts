@@ -10,7 +10,8 @@
  * fast-forward + structured 3-way merge on top later):
  *   - `enrichments`, `include`, `skip` and `parse` are REPLACED from the hub
  *     (the shared, hub-edited config). An empty hub value drops the local key,
- *     so a cleared filter doesn't leave `[]` / `{}` noise behind.
+ *     so a cleared filter doesn't leave `[]` / `{}` noise behind. A hub
+ *     response with no `parse` key keeps the local parse settings.
  *   - The hub's `parse` is written under the key the local file already uses:
  *     `system` for a project not yet migrated, otherwise `parse`. Only
  *     `skmtc migrate config` renames `system`.
@@ -213,10 +214,13 @@ export const pullHeadless = async ({
   applyHubKey(mergedSettings, 'enrichments', hubSettings.enrichments)
   applyHubKey(mergedSettings, 'include', hubSettings.include)
   applyHubKey(mergedSettings, 'skip', hubSettings.skip)
-  const parseKey = toParseKey(contents.settings)
-  applyHubKey(mergedSettings, parseKey, hubSettings.parse)
-  // Core reads `parse ?? system`: with `parse` dropped, a `system` left beside it would take effect.
-  if (parseKey === 'parse' && !isNonEmpty(hubSettings.parse)) delete mergedSettings.system
+  // The hub leaves `parse` out when it stores none: the local key then stays as it is.
+  if ('parse' in hubSettings) {
+    const parseKey = toParseKey(contents.settings)
+    applyHubKey(mergedSettings, parseKey, hubSettings.parse)
+    // Core reads `parse ?? system`: with `parse` dropped, a `system` left beside it would take effect.
+    if (parseKey === 'parse' && !isNonEmpty(hubSettings.parse)) delete mergedSettings.system
+  }
 
   // `-u`: an explicit --project is recorded so later pulls are bare `skmtc pull`.
   const withProject = projectFlag?.trim() ? { ...contents, project: destSpec } : contents

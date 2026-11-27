@@ -102,7 +102,7 @@ checkout:
 |---|---|
 | `settings.enrichments` | **replaced** from the hub |
 | `settings.include` / `settings.skip` | **replaced** from the hub |
-| `settings.parse` (or `settings.system`) | **replaced** from the hub's `parse`, under the key the file already uses |
+| `settings.parse` (or `settings.system`) | **replaced** from the hub's `parse`, under the key the file already uses; **preserved** when the hub sends no `parse` |
 | `settings.basePath` | **preserved** (where files land in this checkout) |
 | `settings.packages` | **preserved** |
 | `settings.inputDirs` | **preserved** (preview discovery dirs are local) |
@@ -117,7 +117,15 @@ project gets it under `settings.parse`. Only
 An **empty** hub value for `enrichments` / `include` / `skip` / `parse`
 clears the local key rather than writing an empty `[]` / `{}`. An empty
 `parse` clears both `settings.parse` and `settings.system` from a file
-that has both, so no old parse settings stay in effect. The merged result is
+that has both, so no old parse settings stay in effect.
+
+The hub leaves `parse` out of its response when it stores no parse
+settings, for example for a project last pushed by CLI 0.11.2 or earlier.
+When the response has no `parse` key, `pull` keeps the local
+`settings.parse` and `settings.system` as they are. Only an explicit
+empty `parse` (`{}`) clears them.
+
+The merged result is
 re-validated through `@skmtc/core`'s `skmtcClientConfig`, whose enrichment
 schema is opaque — generator-owned enrichment payloads pass through
 untouched.
