@@ -130,15 +130,30 @@ Deno.test('a command that writes config writes the file it read: Project.open cl
     await withConfigRoot({ pets: { [fileName]: legacyConfig } }, async ({ readFile }) => {
       const manager = createMockManager()
       await captureConsole(async () => {
-        await Project.open('pets', manager)
+        const project = await Project.open('pets', manager)
+        // A command that changes the config, as `pull -u` records a destination.
+        project.clientJson.updateContents({ project: '@acme/pets' })
         await Promise.all(manager.cleanupActions.map(action => action()))
       })
       const other = fileName === 'client.json' ? 'skmtc.config.json' : 'client.json'
 
       assertEquals(readFile('pets', other), undefined)
-      assertEquals(JSON.parse(readFile('pets', fileName) ?? '{}'), currentConfig)
+      assertEquals(JSON.parse(readFile('pets', fileName) ?? '{}'), { ...currentConfig, project: '@acme/pets' })
     })
   }
+})
+
+Deno.test('a command that only reads config leaves the file as it is, with settings.system', async () => {
+  await withConfigRoot({ pets: { 'client.json': legacyConfig } }, async ({ readFile }) => {
+    const before = readFile('pets', 'client.json')
+    const manager = createMockManager()
+    await captureConsole(async () => {
+      await Project.open('pets', manager)
+      await Promise.all(manager.cleanupActions.map(action => action()))
+    })
+
+    assertEquals(readFile('pets', 'client.json'), before)
+  })
 })
 
 Deno.test('doctor - lists the deprecations, in text and with --json', async () => {

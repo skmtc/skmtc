@@ -36,6 +36,11 @@ type ToPathArgs = {
 export class ClientJson {
   contents: SkmtcClientConfig | null
   path: string
+  /**
+   * The contents as last read from the file, serialized. A command that only
+   * reads the config leaves the file as it is, with its old names.
+   */
+  #readContents: string | undefined
 
   private constructor({ path, contents }: ConstructorArgs) {
     this.path = path
@@ -58,6 +63,7 @@ export class ClientJson {
       )
 
       this.contents = parsed
+      this.#readContents = JSON.stringify(parsed)
     } catch (error) {
       // A file that is missing or mid-write keeps the previous contents; a
       // file that parsed but fails the schema is a real error to surface.
@@ -88,15 +94,24 @@ export class ClientJson {
     reportConfigDeprecations({ projectPath, location: toConfigLocation(projectPath), config: json })
 
     const clientJson = new ClientJson({ path, contents: parsed })
+    clientJson.#readContents = JSON.stringify(parsed)
 
-    manager.cleanupActions.push(async () => await clientJson.write())
+    manager.cleanupActions.push(async () => await clientJson.writeIfChanged())
 
     return clientJson
+  }
+
+  /** Writes the config when the command changed it since it was read. */
+  async writeIfChanged() {
+    if (JSON.stringify(this.contents) !== this.#readContents) {
+      await this.write()
+    }
   }
 
   /** Writes the config to the file it was read from, with `settings.parse`, never `settings.system`. */
   async write() {
     await writeFileSafeDir(this.path, toConfigFileText(this.contents))
+    this.#readContents = JSON.stringify(this.contents)
   }
 
   static create({ path, basePath }: CreateArgs) {

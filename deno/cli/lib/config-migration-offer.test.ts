@@ -81,7 +81,13 @@ Deno.test('SkmtcRoot.open - on no, the command continues on the old names, with 
       globalThis.prompt = (message?: string) => (questions.push(message ?? ''), 'n')
 
       try {
-        const { value: root, stderr } = await captureConsole(() => SkmtcRoot.open(createMockManager()))
+        const manager = createMockManager()
+        const { value: root, stderr } = await captureConsole(async () => {
+          const opened = await SkmtcRoot.open(manager)
+          // The command ends: its cleanup runs, as every command's does.
+          await Promise.all(manager.cleanupActions.map(action => action()))
+          return opened
+        })
 
         assertEquals(root.findProject('pets').clientJson.path, join(settingsPath('pets'), 'client.json'))
         assertEquals(stderr.length, 2)

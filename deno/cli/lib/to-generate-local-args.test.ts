@@ -87,10 +87,11 @@ Deno.test('generate - a config written with settings.parse reaches the engine as
     async ({ tempRoot, readFile }) => {
       await Deno.writeTextFile(join(tempRoot, source), JSON.stringify(openapi))
 
-      // Any command's cleanup writes the config back with `parse`.
+      // A command that changes the config writes it back with `parse`.
       const manager = createMockManager()
       await captureConsole(async () => {
-        await Project.open('legacy', manager)
+        const project = await Project.open('legacy', manager)
+        project.clientJson.updateContents({ project: '@acme/legacy' })
         await Promise.all(manager.cleanupActions.map(action => action()))
       })
       assertStringIncludes(readFile('legacy', 'client.json') ?? '', '"parse"')
