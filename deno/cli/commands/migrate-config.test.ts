@@ -142,10 +142,12 @@ Deno.test('migrate config - --dry-run reports the change and writes nothing', as
 Deno.test('migrate config - --json prints one JSON result of the documented shape and never prompts', async () => {
   await withConfigRoot({ pets: { 'client.json': legacyConfig } }, async ({ readFile, settingsPath }) => {
     // A TTY, so only `--json` keeps the prompt away.
-    let stdout: string[] = []
+    const stdout: string[] = []
     await withFakeTty(async () => {
-      stdout = (await captureConsole(() => renderMigrateConfig({ projectName: 'pets', jsonFlag: true, ask: neverAsked })))
-        .stdout
+      const captured = await captureConsole(() =>
+        renderMigrateConfig({ projectName: 'pets', jsonFlag: true, ask: neverAsked })
+      )
+      stdout.push(...captured.stdout)
     })
 
     assertEquals(stdout.length, 1)
