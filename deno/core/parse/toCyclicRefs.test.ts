@@ -83,3 +83,13 @@ Deno.test('toCyclicRefs - a document with no components has no cyclic ref', () =
   assertEquals(toCyclicRefs({ openapi: '3.0.3', paths: { '/a': { get: { schema: ref } } } }).has(ref), false)
   assertEquals(toCyclicRefs(undefined).has(ref), false)
 })
+
+// A deep target is read only if the walk of the document finds a ref to it,
+// and here every such ref is inside a list.
+Deno.test('toCyclicRefs - a ref to a deep target inside a list of the document is found', () => {
+  const self = { $ref: '#/paths/~1a/get/parameters/0/schema' }
+  const parameters = [{ name: 'q', in: 'query', schema: { type: 'array', items: self } }]
+  const cyclic = toCyclicRefs({ openapi: '3.0.3', paths: { '/a': { get: { parameters } } } })
+
+  assertEquals(cyclic.has(self), true)
+})

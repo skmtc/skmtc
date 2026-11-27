@@ -79,8 +79,8 @@ Deno.test('toRefPathBucket - a path that is exactly a bucket of components gives
   assertEquals(toRefPathBucket('#/components/pathItems'), 'pathItems')
 })
 
-// The trap: the usual path is read with no split. A path that only starts
-// like a bucket must not take that way.
+// A path that only starts like a bucket gives no bucket. `isBucket` rejects
+// a name with `/` or `~` too, so this does not show which way a path is read.
 Deno.test('toRefPathBucket - any other path gives undefined', () => {
   assertEquals(toRefPathBucket('#/components/schemas/Pet/properties'), undefined)
   assertEquals(toRefPathBucket('#/components/x-shared'), undefined)
