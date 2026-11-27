@@ -9,6 +9,14 @@ import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { toGeneratorIds } from '@/lib/root-deno-json.ts'
 import { toWorker } from '@/lib/to-worker.ts'
 import { toWorkerModule } from '@/lib/stack-core.ts'
+import {
+  type BundleVersions,
+  isBundleCurrent,
+  removeBundleRecord,
+  toBundleInputs,
+  toCurrentVersions,
+  writeBundleRecord
+} from '@/lib/bundle-inputs.ts'
 
 /**
  * Build a project's bundle from its generated `worker.ts`.
@@ -26,6 +34,13 @@ import { toWorkerModule } from '@/lib/stack-core.ts'
 
 type CreateBundleArgs = {
   project: BundleProject
+  /**
+   * Skip the build when `bundle.js` was built from the inputs the project
+   * has now (see `@/lib/bundle-inputs.ts`). For `generate` and the first
+   * run of `dev`; `skmtc bundle` always builds.
+   */
+  reuse?: boolean
+  versions?: BundleVersions
 }
 
 /**
@@ -33,13 +48,24 @@ type CreateBundleArgs = {
  * it next. `deno bundle` writes to a temporary file under `.settings/`,
  * which is renamed over `bundle.js` only when the build succeeds, so a
  * command running at the same time never loads a missing or half-written
- * bundle. Returns the URL of the bundle to run.
+ * bundle. A build that succeeds and passes the graph check writes
+ * `.settings/bundle-inputs.json`, the record `reuse` compares with.
+ * Returns the URL of the bundle to run.
  */
-export const createBundle = async ({ project }: CreateBundleArgs): Promise<string> => {
+export const createBundle = async ({
+  project,
+  reuse = false,
+  versions = toCurrentVersions()
+}: CreateBundleArgs): Promise<string> => {
   const projectPath = project.toPath()
   const settingsPath = join(projectPath, '.settings')
 
   await project.createWorker()
+
+  const inputs = await toBundleInputs({ projectPath, versions })
+  if (reuse && (await isBundleCurrent({ projectPath, inputs }))) {
+    return toBundlePath(projectPath)
+  }
 
   const refusal = await toGraphRefusal({ projectName: project.name, projectPath })
   if (refusal !== undefined) {
@@ -72,7 +98,16 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     throw new Error(toBundleFailureMessage({ projectPath, errorLogsPath, stderr }))
   }
 
+  // The record goes before the rename and comes back after it, so it never
+  // describes a bundle.js other than the one on disk. It is read again
+  // after the build, which may have written deno.lock, and kept only when
+  // nothing else changed while the build ran.
+  await removeBundleRecord(projectPath)
   await Deno.rename(temporaryBundlePath, toBundleFsPath(projectPath))
+  const builtInputs = await toBundleInputs({ projectPath, versions })
+  if (builtInputs.type === 'fingerprinted' && builtInputs.sourceDigest === inputs.sourceDigest) {
+    await writeBundleRecord(projectPath, builtInputs.record)
+  }
 
   return toBundlePath(projectPath)
 }
@@ -124,7 +159,8 @@ export const createReadOnlyBundle = async ({
     `deno.json at ${denoJsonPath}`
   )
   const workerModule = toWorkerModule(imports)
-  const neededPins = workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
+  const neededPins =
+    workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
   const missingPins = neededPins.filter(name => imports?.[name] === undefined)
   if (missingPins.length > 0) {
     throw new Error(

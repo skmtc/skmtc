@@ -24,7 +24,7 @@ export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
 
   useEffect(() => {
     const run = async () => {
-      const bundlePath = await createBundle({ project })
+      const bundlePath = await createBundle({ project, reuse: true })
 
       taskDispatch({
         type: 'set-task-state',

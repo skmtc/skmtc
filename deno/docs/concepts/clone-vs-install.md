@@ -70,11 +70,12 @@ project with only installed generators still builds its `bundle.js`
 
 ### Bundle behavior when cloned
 
-Every `skmtc generate` (and `skmtc bundle`, `skmtc dev`) rebuilds
-`worker.ts` from `deno.json#imports` and runs
-`deno bundle worker.ts -o bundle.js`. The freshly built `bundle.js` is
-what runs; cloned source enters it by relative path instead of a
-`jsr:` specifier, so edits apply on the next `generate`.
+Every `skmtc generate` (and `skmtc bundle`, `skmtc dev`) writes
+`worker.ts` from `deno.json#imports`. `generate` runs
+`deno bundle worker.ts -o bundle.js` when an input of the build
+changed, and every file of a clone is an input. Cloned source enters
+the bundle by relative path instead of a `jsr:` specifier, so edits
+apply on the next `generate`.
 
 ## Customization seams in stock generators
 

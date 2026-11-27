@@ -121,18 +121,30 @@ The first non-undefined value wins.
 - Neither set in interactive mode → mounts the Ink prompt.
 - Neither set in strict mode → exits 2 with a recipe error.
 
-### The bundle is rebuilt on every run
+### The bundle is built when its inputs change
 
-A local project builds `bundle.js` before every generation, in every
-mode: `generate` writes `worker.ts` from `deno.json#imports`, runs
-`deno bundle` into a temporary file, renames it over `bundle.js`, and
-runs the bundle it just built. So a run always uses the pins in
-`deno.json` and the generator source on disk now, and a command running
-at the same time never loads a half-written bundle. After
-you change a pin or edit a cloned generator, run `skmtc generate`
-again. You do not need `skmtc bundle` first.
+A local project runs a `bundle.js` built from the pins and generator
+source it has now, in every mode. `generate` writes `worker.ts` from
+`deno.json#imports`, then compares a fingerprint of the build's inputs
+with `.settings/bundle-inputs.json`, the record of the last build. The
+inputs are `deno.json`, `deno.lock`, `worker.ts`, every file of each
+`deno.json#workspace` folder and local-path import (a cloned
+generator), the CLI version and the Deno version. When the fingerprint
+matches and `bundle.js` is there, `generate` runs that `bundle.js` and
+starts no `deno` subprocess.
 
-The build takes about 0.3 seconds with a warm Deno cache. The first
+In every other case it builds. It runs `deno bundle` into a temporary
+file and renames it over `bundle.js`. Then it writes the record and
+runs the new bundle. A command running at the same time never loads a
+half-written bundle.
+
+Some projects build on every run: a project with no `deno.lock`, and a
+project with a `jsr:` or `npm:` import that `deno.lock` does not hold.
+A version range can resolve to a new version with no file changed.
+After you change a pin or edit a cloned generator, run
+`skmtc generate` again. You do not need `skmtc bundle` first.
+
+The build takes about 0.4 seconds with a warm Deno cache. The first
 build after a pin change takes longer while Deno downloads the new
 packages.
 

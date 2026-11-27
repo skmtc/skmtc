@@ -13,7 +13,7 @@ schema source pinned in each project.
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
 | Schema pin | `<root>/.skmtc/<project>/.settings/skmtc.config.json` | `source` field — URL or path. Resolution: explicit schema arg → `skmtc.config.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
 | **basePath** | `skmtc.config.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
-| Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt before every run by `generate`/`dev`, and by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
+| Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Built by `generate`/`dev` when its inputs changed (recorded in `.settings/bundle-inputs.json`), and always by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
 | **Global state** | `~/.skmtc/` | `auth.json` (the hub login stored by `skmtc login`: its environment and token; `skmtc whoami` shows the account, environment and origin a hub command will use), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
@@ -114,13 +114,19 @@ the output is self-describing. The check-id catalogue, if you need to
 reason about a specific check: `skmtc guide doctor-checks`.
 
 <!-- topic bundle: When bundle.js is built, and what a build failure means -->
-## The bundle is rebuilt on every generate
+## The bundle is built when its inputs change
 
 Generation runs the compiled `bundle.js`, not generator source. For a
-local project, `generate` rebuilds `bundle.js` from `deno.json#imports`
-and the generator source on disk before every run, so pin changes and
-edits to cloned source apply on the next `generate` — no `skmtc bundle`
-step. `dev` builds the same way; `describe`, `status` and `clean` build
+local project, `generate` builds `bundle.js` from `deno.json#imports`
+and the generator source on disk when one of its inputs changed since
+the last build: `deno.json`, `deno.lock`, `worker.ts`, a file of a
+cloned or local generator, the CLI version or the Deno version.
+`.settings/bundle-inputs.json` records the inputs of the last build;
+when they match and `bundle.js` is there, `generate` runs it without a
+build. A project with no `deno.lock`, or with a `jsr:`/`npm:` import
+the lock does not hold, builds on every run. So pin changes and edits
+to cloned source apply on the next `generate` — no `skmtc bundle`
+step. `dev` does the same at its start and builds on every change after it; `describe`, `status` and `clean` build
 a read-only copy in a temporary directory (`deno bundle --frozen`), so
 after a pin change run `generate` once before them. A build failure exits 1 with the
 `deno bundle` error; a module graph with two copies of `@skmtc/core`

@@ -161,13 +161,16 @@ bundle either as a `jsr:` specifier (installed) or a relative path
 (cloned / locally authored); `deno bundle` resolves both through the
 project's import map.
 
-### The bundle is rebuilt on every run
+### The bundle is built when its inputs change
 
 `worker.ts` and `bundle.js` are derived from `deno.json#imports` and
-the generator source. `generate` rebuilds both before every run, so
-a hand-edited `deno.json`, a changed pin or an edited clone applies
-on the next `generate` with no separate step. The build refuses a
-module graph with two copies of `@skmtc/core`.
+the generator source. `generate` writes `worker.ts` before every run.
+It builds `bundle.js` again when an input of the build changed. So a
+hand-edited `deno.json`, a changed pin or an edited clone applies on
+the next `generate`, with no separate step.
+The inputs and the record of them are in
+[`skmtc generate`](../reference/cli/generate.md#the-bundle-is-built-when-its-inputs-change).
+The build refuses a module graph with two copies of `@skmtc/core`.
 
 ## The structured-clone boundary
 

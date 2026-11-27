@@ -114,11 +114,11 @@ The compiled output of `deno bundle worker.ts -o bundle.js`. This is
 what the Skmtc Worker actually loads at generate time.
 
 **Built for every project**, including remote-only ones (all
-generators installed from JSR). `skmtc generate` deletes and
-rebuilds the project-local `bundle.js` before every run, regardless
-of where the generator source comes from, so it always matches the
-current `deno.json` and generator source. Nothing runs a
-`bundle.js` it did not build in the same command.
+generators installed from JSR). `skmtc generate` builds the
+project-local `bundle.js` again when an input of the build changed,
+so it always matches the current `deno.json` and generator source.
+`.settings/bundle-inputs.json` records the inputs of the last build.
+See [`skmtc generate`](../reference/cli/generate.md#the-bundle-is-built-when-its-inputs-change).
 
 ### `.settings/skmtc.config.json`
 
