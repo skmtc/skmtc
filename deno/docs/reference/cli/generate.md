@@ -9,7 +9,7 @@ the manifest.
 ## Synopsis
 
 ```
-skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--debug [--auto]] [--json] [--no-input]
+skmtc generate <project> [schema] [--save] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--debug [--auto]] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -30,6 +30,22 @@ If neither is set:
 - Strict mode → exits with code 2 and a recipe error
 
 ## Options
+
+### `--save`
+
+Store the `[schema]` argument as the top-level `source` of the
+project's config file. Later runs then need no schema argument.
+
+- The command stores the value as you typed it: a URL, or a path from
+  the folder that holds `.skmtc/`.
+- The command stores the source after it reads the schema and before
+  the run. A run that then fails keeps the stored source for the next
+  try.
+- No other key of the config changes. A project on `client.json`
+  keeps that file.
+- `--save` with no `[schema]` exits with code 2 and a recipe error.
+- A project with no config file exits with code 1 and generates
+  nothing. Run `skmtc init` first.
 
 ### `-w, --watch`
 
@@ -232,6 +248,11 @@ The manifest is overwritten on every run. See
     "type": "passed",
     "tsconfig": ".../tsconfig.json",
     "filesChecked": 42
+  },
+  "savedSource": {                         // only present with --save
+    "source": "./schema.json",
+    "configPath": ".../.skmtc/my-api/.settings/skmtc.config.json",
+    "changed": true                        // false when it was already stored
   }
 }
 ```
@@ -313,6 +334,13 @@ informational.
 
 ```bash
 skmtc generate my-api ./schema.json
+```
+
+### First run: generate and store the schema source
+
+```bash
+skmtc generate my-api ./schema.json --save
+skmtc generate my-api                      # the next run
 ```
 
 ### Agent / CI invocation

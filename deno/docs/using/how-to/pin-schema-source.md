@@ -18,7 +18,17 @@ argument instead.
 
 ## Steps
 
-### Set `source` in skmtc.config.json
+### Pass the schema once with `--save`
+
+```bash
+skmtc generate <project> https://api.example.com/openapi.json --save
+```
+
+`--save` writes the schema you pass as `source` in the project's
+config and changes no other key. To change the source later, run the
+command again with the new schema.
+
+### Or set `source` in skmtc.config.json
 
 Edit `.skmtc/<project>/.settings/skmtc.config.json`:
 

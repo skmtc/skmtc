@@ -343,6 +343,10 @@ generator.
 With `--typecheck`, gains a `typecheck` field (`{ type: "passed" | "failed" | "no-tsconfig" | "tsc-error" | "skipped", ... }`).
 A `failed` typecheck → exit 1; generated files stay on disk.
 
+With `--save`, gains a `savedSource` field (`{ source, configPath, changed }`):
+the schema argument, the config file it was written to, and `changed: false`
+when that source was already stored.
+
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing
 both → exit 2 with a recipe error.

@@ -619,17 +619,18 @@ upfront with a recipe error.
 
 ## Editing workflows
 
-`skmtc.config.json` is intended for direct user editing. The CLI doesn't
-expose subcommands like `skmtc set source ./schema.json` —
-hand-editing is the recommended approach.
+`skmtc.config.json` is intended for direct user editing. The CLI has
+no command that sets a key by name. One flag writes one key:
+`skmtc generate <project> <schema> --save` stores `source`.
 
 Some workflows that touch `skmtc.config.json`:
 
 - **`skmtc init`** writes the initial minimal version
 - **`skmtc migrate config`** renames `client.json` and moves
   `settings.system` to `settings.parse`
-- Everything else is manual: enrichments, include/skip, source
-  pinning. `install`, `clone`, `create`, and `remove` do **not**
+- **`skmtc generate --save`** writes `source` from its schema argument
+- Everything else is manual: enrichments, include/skip. `install`,
+  `clone`, `create`, and `remove` do **not**
   modify `skmtc.config.json` — they only mutate `deno.json#imports` (and
   delete local source dirs in the case of `remove`).
 

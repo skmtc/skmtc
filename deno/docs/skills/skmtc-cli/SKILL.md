@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.6.0
+version: 0.6.1
 description: |
   Run the Skmtc CLI: create a project, install or clone generators
   from JSR, set the schema source and enrichments, and generate code
@@ -19,7 +19,7 @@ allowed-tools:
   - Edit
 metadata:
   describes:
-    '@skmtc/cli': '0.12'
+    '@skmtc/cli': '0.13'
 ---
 
 # Skmtc CLI

@@ -44,8 +44,9 @@ skmtc init petstore src/generated
 # Add a generator from JSR
 skmtc install @skmtc/gen-zod petstore
 
-# Run the pipeline against a schema URL or local path
-skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
+# Run the pipeline against a schema URL or local path.
+# --save stores it, so the next run is `skmtc generate petstore`.
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json --save
 ```
 
 ### Example generator code

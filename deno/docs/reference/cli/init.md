@@ -35,7 +35,10 @@ recipe error. `init` does not create the directory at `basePath` —
 it just records the value; the directory is created lazily by the
 first `generate` run.
 
-Required in strict mode.
+In strict mode you can leave `basePath` out when a file of the app
+states the `@/` alias. `init` then uses the folder that the alias
+points to. See [The `@/` alias](#the--alias). With no such file, you
+must give `basePath`.
 
 ## Options
 
@@ -89,7 +92,7 @@ the pin appears.
 }
 ```
 
-`source` is intentionally absent — set it after `init` to pin a
+`source` is intentionally absent — `skmtc generate <project> <schema> --save` writes it, or set it after `init` to pin a
 schema, or pass the schema positionally to `generate`.
 
 `client.json` is the old, deprecated name of this file. It still
@@ -132,9 +135,17 @@ machines or CI environments.
   "type": "created",
   "projectName": "my-api",
   "basePath": "./src",
+  // "argument", or "alias" when you gave no basePath.
+  "basePathFrom": "argument",
+  // Only when a file of the app states the `@/` alias.
+  "alias": { "path": "src", "from": "tsconfig.json", "matches": true },
   "nextStep": "skmtc install <generators...> my-api"
 }
 ```
+
+`alias.matches` is `false` when `basePath` is not the folder that `@/`
+points to. The text output then has a `Warning:` line with the two
+folders and how to make them one.
 
 ### On existing
 
@@ -200,17 +211,34 @@ At runtime the bundler resolves `@/...` to the alias root. On disk,
 Skmtc writes to `<basePath>/forms/CreateUserForm.generated.tsx`. For
 these to match, the two paths must point at the same directory.
 
-The CLI doesn't verify the alignment — it can't read the consumer's
-bundler config. The check is the user's responsibility, with help
-from `skmtc doctor`'s `project-base-path/<project>` check (which
-catches obvious mistakes like missing or absolute paths).
+## The `@/` alias
+
+`init` and `skmtc doctor` read the alias from the first of these files
+that states one, in the folder that holds `.skmtc/`:
+
+| File | Where the alias is |
+|---|---|
+| `tsconfig.json`, `tsconfig.app.json`, `jsconfig.json` | `compilerOptions.paths["@/*"]`, read from `baseUrl` |
+| `deno.json`, `deno.jsonc` | `imports["@/"]` |
+
+- With no `basePath` argument, the folder of the alias is the
+  `basePath`.
+- With a `basePath` that is another folder, `init` creates the project
+  and warns. `skmtc doctor` reports the same as
+  `project-alias/<project>`.
+- With no alias in those files, `init` has nothing to compare and says
+  nothing.
+
+The CLI does not read a bundler config (`vite.config.ts`,
+`webpack.config.js`) or a tsconfig's `extends`. For an alias that only
+those state, the match is yours to check.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Success — project created OR already existed |
-| `2` | Required argument missing OR `basePath` was absolute |
+| `2` | Required argument missing (`basePath` with no `@/` alias to read) OR `basePath` was absolute |
 
 ## See also
 

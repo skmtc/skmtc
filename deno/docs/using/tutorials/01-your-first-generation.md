@@ -76,15 +76,20 @@ command does in detail.
 Pass the project and the spec:
 
 ```bash
-skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json --save
 ```
 
 The engine fetches the spec, runs `gen-zod` against each schema
 component, and writes the artifacts to `src/generated/`.
 
-For a local file, pass its path: `skmtc generate petstore ./openapi.json`.
-If the remote fetch fails (offline, proxy), download the spec to a
-file and pass that path.
+`--save` stores the spec as `source` in
+`.skmtc/petstore/.settings/skmtc.config.json`. The next run is then
+`skmtc generate petstore`, with no spec. The next tutorials use this
+short form.
+
+For a local file, pass its path:
+`skmtc generate petstore ./openapi.json --save`. If the remote fetch
+fails (offline, proxy), download the spec to a file and pass that path.
 
 ## Step 5: Read the output
 
@@ -109,12 +114,19 @@ app, `basePath` is the folder that your bundler's `@` alias points to.
 The [init reference](../../reference/cli/init.md) shows the
 alignment for Vite and Next.js.
 
-## Step 6: Pin the schema source
+Some apps state the alias in a tsconfig or a `deno.json`. There you
+can leave the folder out: `skmtc init petstore` uses the folder of the
+alias. With another folder, `init` warns, and `skmtc doctor` reports
+the mismatch as `project-alias/petstore`.
 
-`generate` does not save the spec you passed. To make
-`skmtc generate petstore` enough for the next run, add a top-level
-`source` to `.skmtc/petstore/.settings/skmtc.config.json`, beside the
-`basePath` that `init` wrote:
+## Step 6: Run it again
+
+```bash
+skmtc generate petstore
+```
+
+The output is the same. `--save` in step 4 wrote the spec to the
+config, which now reads:
 
 ```jsonc
 {
@@ -124,15 +136,6 @@ alignment for Vite and Next.js.
   }
 }
 ```
-
-For a local file, use a relative path: `"source": "./openapi.json"`
-(resolved against the workspace root). Then run:
-
-```bash
-skmtc generate petstore
-```
-
-The output is the same. The next tutorials use this short form.
 
 ## What just happened
 
