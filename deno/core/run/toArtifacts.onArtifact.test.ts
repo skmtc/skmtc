@@ -702,6 +702,10 @@ Deno.test('toArtifacts - a webhook generator that is listed before an operation 
 
   const plain = toAll(false)
 
-  assert(plain.indexOf('route__ping') < plain.indexOf('hook_pinged'), plain)
+  const route = plain.indexOf('route_ping')
+  const hook = plain.indexOf('hook_pinged')
+
+  assert(route >= 0 && hook >= 0, plain)
+  assert(route < hook, plain)
   assertEquals(toAll(true), plain)
 })
