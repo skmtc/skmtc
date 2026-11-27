@@ -78,7 +78,8 @@ Deno.test('generate - writes logs.ndjson beside manifest.json, and removes it wi
 Deno.test('generate - counts tokens only with countTokens', async () => {
   const settingsPath = Deno.makeTempDirSync()
   const manifestPath = join(settingsPath, 'manifest.json')
-  const response = { artifacts: { [join(settingsPath, 'a.ts')]: 'export const a = 1\n' }, manifest }
+  // No artifacts, so nothing is written: the count is then 0, still a number.
+  const response = { artifacts: {}, manifest }
 
   try {
     const uncounted = await generateWith(manifestPath, response)
