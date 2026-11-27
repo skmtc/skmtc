@@ -532,7 +532,7 @@ loads, so defer on `suspended || inCycle`, not on `suspended` alone:
 
 ```ts
 override toString(): string {
-  // SLOT(lazy) in the skmtc-model skeleton's MyLibRef
+  // SLOT(lazy) in the skmtc-generator skeleton's MyLibRef
   return this.deferred
     ? applyModifiers(`z.lazy(() => ${this.name})`, this.modifiers)
     : applyModifiers(this.name, this.modifiers)
@@ -571,7 +571,7 @@ The projection, after it builds its value, calls
 `isReferencedBack({ context, settings })` and sets the type
 annotation if the result is true.
 
-The `skmtc-model` skill's skeleton (`MyLibRef.ts`,
+The `skmtc-generator` skill's skeleton (`MyLibRef.ts`,
 `MyLibProjection.ts`) is a tested example of these steps, with a
 self-recursive model and a cycle of two models.
 

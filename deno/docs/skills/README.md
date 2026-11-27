@@ -8,20 +8,23 @@ subdirectory containing:
 - `design.md` — design document describing what the skill should contain,
   rationale for content boundaries, content-source mapping, and open questions
 - `commands/` — optional slash command files for explicit invocation
+- `references/` — optional pages that `SKILL.md` routes to, read only when the
+  work reaches them
+- `scripts/` — optional tools the skill tells the agent to run
 
 This directory is the canonical home for skills. The previous location
 `skmtc-platform/packages/skmtc-*-skill/` is legacy and has been superseded.
 
 ## The skill ecosystem
 
-Five skills are **published**: installable by anyone with a skills-capable
+Two skills are **published**: installable by anyone with a skills-capable
 agent, listed in `.claude-plugin/marketplace.json`, and rendered on skmtc.dev.
 The rest are **internal** — they stay in this directory, carry
 `metadata.internal: true` in frontmatter so `npx skills` hides them, and the
 plugin manifests do not list them.
 
 The published skills ship as two Claude Code plugins. `skmtc` (this folder's
-`.claude-plugin/plugin.json`) carries the four generator-authoring skills and
+`.claude-plugin/plugin.json`) carries the generator-authoring skill and
 is the plugin submitted to the Claude directory. `skmtc-cli` is a plugin of its
 own: a `marketplace.json` entry whose source is the `skmtc-cli/` folder, with no
 `plugin.json`. It stays out of `skmtc` because its CI deploy steps read
@@ -37,15 +40,28 @@ of `skmtc` depends on nothing. Both plugins share one version, which
 
 | Skill | Purpose | Version |
 | --- | --- | --- |
-| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.16.1 |
-| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.3.3 |
-| [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.3.2 |
-| [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.4 |
+| [`skmtc-generator/`](skmtc-generator/) | Writing and editing generators: producers, what Skmtc already does, the steps, and the finish pass, with references and a skeleton | 0.17.0 |
 | [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.4 |
 
-Pairing rule: `skmtc-generator` carries the engine rules and is always loaded
-first; a lang skill carries the emitted language; a shape skill
-(`skmtc-model` or `skmtc-operation`) carries the per-subject guidance.
+`skmtc-generator` is one skill, so an author loads one thing. Its
+`SKILL.md` holds what every path needs: what a producer is, the table of what
+Skmtc already does, the steps, what to do when a case does not fit, the rules
+and the done list. It routes to the rest by path:
+
+| File | Holds | Before 0.17.0 |
+| --- | --- | --- |
+| `references/producers.md` | How to split output into producers, with the wrong and right form of each rule | new |
+| `references/engine.md` | The cache, peers, variants, enrichments, options | `skmtc-generator` sections 2 and 4 to 7 |
+| `references/typescript.md` | The TypeScript layer; `verify-docs` holds it to the lang package | the `skmtc-lang-typescript` skill |
+| `references/model.md` | Model generators and the skeleton's slots | the `skmtc-model` skill |
+| `references/operation.md` | Operation generators | the `skmtc-operation` skill |
+| `references/finish.md` | The last step: measure, read the diff for named patterns, check, report | new |
+| `scripts/complexity.ts` | Cyclomatic complexity of each function, with a limit of 10 | new |
+| `skeleton/` | A model generator to copy, tested against the engine | `skmtc-model/skeleton/` |
+
+The split rule: what every path needs, and what an agent gets wrong when it
+does not read it, is in `SKILL.md`. A page that only some paths reach, or that
+is looked up, is a reference.
 
 ### Internal
 
@@ -59,10 +75,11 @@ first; a lang skill carries the emitted language; a shape skill
 | [`skmtc-retro-review/`](skmtc-retro-review/) | Aggregate friction logs into patterns and priorities | Internal feedback tooling |
 | [`docs-writing/`](docs-writing/) | Documentation craft — Diátaxis, style rules, page templates | Internal authoring tooling |
 
-The published five are the v3 line plus the CLI skill, under names that carry
-no version: the public name is the stable identity, and `version` frontmatter
-plus git history carry the generation. The v1/v2 skills they displaced were
-removed in the same change; git keeps their history.
+The published names carry no version: the public name is the stable
+identity, and `version` frontmatter plus git history carry the generation.
+`skmtc-lang-typescript` (last 0.3.3), `skmtc-model` (last 0.3.2) and
+`skmtc-operation` (last 0.1.4) were published skills until `skmtc-generator`
+0.17.0 took their content as references; git keeps their history.
 
 **Versioning rule: a `version` belongs to the public name and only ever moves
 forward.** Replacing the content behind a name continues that name's line
@@ -81,14 +98,14 @@ authority and acted on without checking. Every guard below runs in
 
 | Guard | What it catches | Where |
 | --- | --- | --- |
-| Fact-anchor sync | An `llms.md` fact clause missing from `skmtc-generator` | `verify-docs` |
-| Lang source↔skill sync | An identifier factory or value-protocol guard the lang skill never mentions, or an entity-kind count that moved (Kotlin and TypeScript) | `verify-docs` |
+| Fact-anchor sync | An `llms.md` fact clause missing from `skmtc-generator` (its `SKILL.md` and its references) | `verify-docs` |
+| Lang source↔skill sync | An identifier factory or value-protocol guard the lang page never mentions, or an entity-kind count that moved (the Kotlin skill, and `skmtc-generator/references/typescript.md`) | `verify-docs` |
 | CLI reference sync | A `cli/mod.ts` command missing from the reference pages, in both directions | `verify-docs` |
 | Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin manifest membership disagreeing with the others | `verify-docs` |
 | Generated-appendix coverage | An export missing from the appendix, because it was not regenerated after the API moved | `verify-docs` (names, not formatting — `deno doc`'s layout shifts between patch releases; `generate-skill-api-appendix.ts --check` does the exact comparison locally) |
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
 | Public-API-surface sync | An export of `@skmtc/core` or `@skmtc/lang-typescript` added, removed or re-shaped while the package minor stayed put — the change declared-version sync cannot see. Blind spot: a factory that returns an anonymous class (`toModelProjectionBase` and siblings, the lang veneers) has no return type in `deno doc`, so the class it returns (the insert wrappers, `register`, `this.options`) is outside the digest; those exports are listed as `unresolved` in the record | `verify-docs` (per-export digests in `.scripts/api-surface.json`; fix with `deno task bump <package> --minor`, which hands the reread to declared-version sync, then `deno task record-api-surface`) |
-| Doc-test | A renamed export breaking a fenced `ts` block a skill quotes | `doc-test` |
+| Doc-test | A renamed export breaking a fenced `ts` block a skill or one of its references quotes | `doc-test` |
 | Worked-example pins | The Kotlin skill's example, and the model skeleton, no longer producing what they promise | `deno test` |
 | Plugin-version freshness | A published skill edited without bumping the plugin version, so no installed plugin ever sees it | `verify-docs` (digest of the published skills and the plugin manifest; fix with `deno task bump-plugin`) |
 | One install source | A second copy of the install lines, which drifts from the canonical one | `verify-docs` |

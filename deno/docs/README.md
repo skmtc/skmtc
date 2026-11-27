@@ -230,7 +230,7 @@ If you are a coding assistant, read [`llms.md`](llms.md) — a primer optimized 
 
 ### Agent skills
 
-Five skills ship from this repo, at the same commit as the code they describe: `skmtc-generator` (engine rules), `skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and `skmtc-operation` (the two generator shapes), and `skmtc-cli`.
+Two skills ship from this repo, at the same commit as the code they describe: `skmtc-generator` (writing and editing generators: one entry, with references for model generators, operation generators, the engine and the TypeScript layer) and `skmtc-cli`.
 
 To install them, see [Install the agent skills](https://github.com/skmtc/skmtc#install-the-agent-skills) in the repo README — the install lines live there and nowhere else, so there is no second copy to go stale.
 

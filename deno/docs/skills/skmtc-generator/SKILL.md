@@ -1,306 +1,271 @@
 ---
 name: skmtc-generator
-version: 0.16.1
+version: 0.17.0
 description: >
-  Author and edit Skmtc generators — packages that project an OpenAPI
-  domain model into application code. Method: clone the nearest stock
-  generator, then apply the engine rules imitation can't teach. Assumes
-  zero prior Skmtc knowledge. Use when asked to "write a skmtc
-  generator", "author/clone/customize gen-x", "add a field type",
-  "change export paths", "add enrichment options", or when editing
-  generator source. ALWAYS pair with the target language's skill
-  (skmtc-lang-typescript).
+  Write and edit Skmtc generators: packages that turn an OpenAPI
+  document into application code as a tree of producer classes. Use
+  before you write or change any generator source: a new generator, a
+  cloned one, a schema type or an operation kind it does not render
+  yet, names and export paths, enrichments, another generator's
+  output, or an edge case it renders wrongly.
 metadata:
   describes:
     '@skmtc/core': '0.48'
+    '@skmtc/lang-typescript': '0.15'
 ---
 
-# Authoring Skmtc generators
+# Write a Skmtc generator
 
-## 1. What Skmtc is
+Skmtc derives application code from an OpenAPI document. A **generator**
+is a small package that the engine runs over every **model** (a schema,
+by its `ref`) and every **operation** (`path` + `method`) of the
+document. The engine writes every generated file again on each run, so
+you change the generator and never its output.
 
-Skmtc derives application code from an OpenAPI document treated as a
-domain model. A **stack** of **generators** (small, opinionated,
-cloneable packages) is run by a deterministic engine that sweeps every
-subject of the schema — each **model** (component schema, by `refName`)
-and each **operation** (`path` + `method`) — through each generator.
-Outputs are regenerated wholesale every run: never hand-edit generated
-files; customize the generator. Generators compose: a React-Query
-generator reuses the Zod generator's schemas through the engine's cache.
+## A generator is a tree of producers
 
-## 2. The method: start from a stock generator
+A **producer** is a class with a constructor and a `toString()`.
 
-Generator source code is the customization surface: stock generators
-hardcode their export paths and peer imports on purpose, so the fastest
-reliable route to a correct generator is imitation of a published one —
-clone the structure, swap the target syntax. Pick the nearest exemplar:
+- The constructor takes one part of the document and stores what that
+  part is made of as fields: other producers, and plain facts such as a
+  name, a method or a flag.
+- `toString()` arranges those fields into target code. It reads its own
+  fields and nothing else.
 
-| Need | Clone |
-|---|---|
-| model → validator/schema value | load **skmtc-model** and copy its engine-tested skeleton (fill-in slots; gen-zod is its pattern source) |
-| model → type declaration | `@skmtc/gen-typescript` |
-| operation → client hook/SDK/form, consuming a model generator | load **skmtc-operation** (decomposition + peer-consumption rules; gen-tanstack-query-fetch-zod is its canonical instance) |
-| many subjects → one shared file (accumulator) | `@skmtc/gen-msw`, `@skmtc/gen-express` |
-| Kotlin | `@skmtc/gen-kotlin-jackson` (current lang-kotlin API; the older gen-kotlin-* were retired) |
+A **projection** is a producer that owns one named definition in a file.
+A **snippet** is a producer for a part inside a definition. Your code
+builds producers while the engine generates. The engine calls
+`toString()` once for each file, at the end.
 
-Fetch source from JSR: `https://jsr.io/@skmtc/<name>/meta.json` → pick
-version → fetch files (or `deno doc jsr:@skmtc/<name>`). Keep the
-package convention as cloned, with one exception: declare `@skmtc/*`
-dependencies as caret ranges (`^x.y.z`), even where the clone source
-pins them exactly — an exact core pin puts a second copy of core in the
-bundle as soon as the project pins a different core:
+`@skmtc/gen-effect-http` writes this for `POST /search`:
 
-```
-gen-x/  deno.json (name @scope/gen-*, caret-range @skmtc/* pins (^x.y.z),
-        lint plugin jsr:@skmtc/lint-plugin)
-        mod.ts            → re-exports + `export { entry as default }`
-        src/mod.ts        → the entry: toModelEntry / toOasOperationEntry
-        src/base.ts       → identity statics via the lang base factory
-        src/enrichments.ts→ enrichment schema (emptyEnrichmentSchema opt-out)
-        src/XProjection.ts→ constructor builds the value tree
-        src/<router>.ts   → schema-type → snippet dispatch
+```ts
+export const createApiSearch = (body: typeof SearchRequest.Type) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient;
+    const request = yield* HttpClientRequest.post("/search").pipe(
+      HttpClientRequest.schemaBodyJson(SearchRequest)(body),
+    );
+    const response = yield* client.execute(request);
+    return yield* HttpClientResponse.schemaBodyJson(CreateApiSearchResponse)(response);
+  });
 ```
 
-What you adapt: the identity policy in `base.ts` (names, export paths,
-identifier kind) and the router's per-type snippets (your target
-syntax). What you keep: everything else — the shape is the point.
+These producers build it:
 
-## 3. The one law: your code never writes output text
+```
+EffectEndpoint                       the function            projection
+├─ parameters   List<TypedParameter> (body: typeof … .Type)
+├─ request      EffectRequest        const request = … ;
+│  └─ steps     List<UrlParamsStep | HeadersStep | BodyStep>
+│                                    one line inside .pipe( … )
+└─ response     ResponseRead | ResponseVoid
+                                     the last two lines
+```
 
-Three phases: parse → **generate** (your code runs here) → render
-(`toString()` runs once per file, only here). During generate the output
-does not exist; your generator builds **object trees** the engine can
-walk, attribute, deduplicate, and settle imports from.
+```ts
+// EffectEndpoint
+override toString(): string {
+  return `${this.parameters} =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient;
+    ${this.request}
+    ${this.response}
+  })`
+}
+```
 
-**The trap**: template strings full of target syntax
-(`` `export const ${name} = ...` ``) compile, render — and silently break
-imports (never settled into the header), reuse (text is invisible to the
-cache → duplicates), composition (peers can't reference text), and
-provenance. Lint rules `skmtc/no-template-imports` and
-`skmtc/no-adhoc-tostring` catch the worst mechanically; keep them wired.
+Each part that a reader of the output can name is a class. Each field
+is a thing in the output: `parameters`, `request`, `response`. A new
+kind of step is a new class and one line in `EffectRequest`. No function
+in the package returns code, and the mean complexity of its functions is
+1.5 (`scripts/complexity.ts` in this skill measures it).
 
-**Litmus, applied at the keystroke**: target-language punctuation inside
-a string that will be STORED on an object → stop, build the object.
-Strings are legitimate as *leaves*: identifier names, export paths,
-module specifiers, literals, a cached peer *name*, and final syntax
-assembled **inside a `toString()` body** from already-structured fields.
-Prefer composing even render-time syntax inside `toString()` over helper
-functions that return strings — helpers drift.
+## Why producers
 
-## 4. What imitation can't teach: the engine rules
+Code that builds output from functions and joined strings is correct for
+the common cases and wrong for the rest. Text has no imports, the engine
+cannot reuse it, and another generator cannot refer to it. A function
+that inspects or rewrites a schema does the parser's work a second time,
+and takes one more branch for each case it meets.
 
-- **Identity before construction.** `toIdentifierName` / `toIdentifierType`
-  / `toExportPath` are statics computed from `(subject, enrichments,
-  variant)` WITHOUT constructing the projection. This is the invariant
-  everything rests on: cheap cache probes, and peers knowing where your
-  artifact *will* live. Never make a name depend on construction.
-- **Coordination is memoization.** No plugin registry, no dependency
-  graph, no topological sort — the cache is the file map, keyed
-  `(identifier.name, exportPath)`, and every producer creates its own
-  dependencies. Generator order does not affect output; never propose
-  ordering, priorities, or a pre-generation pass. On a peer reference the Driver probes
-  `findDefinition`; hit → reuse (constructor never runs) + auto-stitched
-  import; miss → construct recursively. A reference back to a model whose
-  projection is still being constructed (a cycle) goes through
-  `toModelRef` (see skmtc-model). So: never hardcode a peer's name
-  or path — insert and read the result, minding the two return shapes:
-  `insertModel(Peer, ref)` returns an **Inserted handle** (name via
-  `.toName()`, definition via `.definition`), while
-  `insertNormalizedModel(Peer, { schema, fallbackName })` returns the
-  **definition itself** (name via `.identifier.name`). Never hand-write
-  peer imports; never import a peer's naming helpers (ask
-  `context.toModelContentSettings` if you need identity without
-  materializing). Key collision under different generators throws
-  `Registered definition mismatch`.
-- **Two composition shapes.** Projection (one definition per subject —
-  entry calls `insertModel`/`insertOperation`) and accumulator (many
-  subjects append into one definition — entry does
-  `context.findDefinition(...) ?? defineAndRegister(context, {...})`
-  then mutates the container value; the sanctioned exception to "no
-  methods beyond constructor and toString"). `defineAndRegister` is a
-  **lang-package free function** (import it from your lang package) —
-  there is no `context.defineAndRegister`; that API was deleted.
-- **Peers have exactly two doors**: the insert machinery, or an API the
-  peer package explicitly exports. Never call another generator's
-  identity statics (`toIdentifierName`/`toExportPath`/`toEnrichments`)
-  yourself, and never fabricate a ref — a `refName` or `refPath` you
-  built from a string of your own points at a schema that does not
-  exist, and attribution, enrichment routing, and recursion tracking are
-  all keyed by REAL refs; the fabrication survives only until something
-  resolves it.
-  If the sanctioned call cannot express what you need, do NOT settle
-  for a degraded render — a widened type (`Map<String, Any?>` for a
-  known shape) is capitulation, not a solution. Treat the situation as
-  a solved problem you haven't found yet: research how other code
-  generators handle this exact edge case — the stock lineup, retired
-  in-house generators (git history is a design archive), and mature
-  external tools (OpenAPI Generator, Fabrikt). The answer is almost
-  always to SYNTHESIZE a named declaration and reference it by name
-  (`findDefinition` probe + your lang package's `defineAndRegister`).
-  The synthesized NAME derives from the schema's own `stackTrail` — a
-  pure function from position to name, computed at the point of need
-  (`components/schemas/Order/properties/metadata` → `OrderMetadata`;
-  an operation-rooted trail reuses `toMethodVerb` naming →
-  `CreateApiOrdersBody`). Never thread a naming hint as a parameter:
-  position-derived names are deterministic, collision-free (distinct
-  positions → distinct trails), and reach EVERY construction path —
-  including values built through `insertNormalizedModel`'s contract,
-  which cannot pass a hint. Two rules: anchor on the document landmarks
-  (`components`/`paths`), never absolute indices — the trail's head
-  carries per-run tracing frames (`trace-*`/`span-*`/`parse`); and
-  throw on an unrecognized or empty trail rather than invent a name
-  (the throw fails the run, and its message names that subject). Worked example:
-  `toSynthesizedName.ts` in the kotlin-debug rig's gen-kotlin-jackson
-  (verified end-to-end 2026-08-04, compiler-clean).
-  Only when the known solution needs machinery the engine genuinely
-  lacks have you found an ENGINE GAP — name it in your summary and
-  raise it; never silently ship the degraded form as if it were the
-  answer. Never re-create engine machinery inside a generator — a
-  faithful-looking counterfeit passes every automated check and breaks,
-  far from the cause, on the next engine change.
-- **When in doubt, make it a producer.** The cost asymmetry is one-way:
-  a producer that never needed to be one costs a few lines; a string
-  that later needed to be a producer severs the chain for everything
-  built on it. Assume your value will be built upon.
-- **A choice's field has the union of the snippets it can pick.** A
-  class or a function that picks one snippet of several types its
-  result as the union of those classes, not as the lang package's
-  snippet base: `statement: SentRequest | IncludingResponse`, not
-  `statement: TsSnippet`. The field then shows each case; the compiler
-  checks that the choice returns only those; and a new case changes
-  the type where each consumer sees it. A consumer refers to the
-  choice's field by indexed access (`SentRequestChoice['statement']`),
-  so the union is written once. Keep the base type only where any
-  snippet is correct by design: a wrapper whose inner value can be
-  any field snippet, another wrapper too.
-- **The variant axis fans out at the engine, not the generator.** One
-  subject can produce N definitions via named variants declared in
-  enrichments; `'main'` is always present. Thread the variant:
-  `transform({ context, operation, variant })` →
-  pass `variant` through to `insertOperation`, and fold it into names
-  with `withVariant`. Dropping it collides every variant onto `'main'`.
-- **Enrichments are the settings your generator needs that the
-  document cannot supply; the consumer provides them; options are
-  the caller's.** Declare them as a valibot three-scope umbrella
-  (`subject`/`generator`/`stack`) in `enrichments.ts` — that schema is
-  the whole contract the consumer's `client.json` can fill; the
-  opt-out is
-  `export const toEnrichmentSchema = () => emptyEnrichmentSchema` — a
-  FUNCTION returning the schema, required in both the entry config and
-  the base-factory config. Read via
-  `this.settings.enrichments.subject?...`; the run-constant scopes
-  (`client.json` keys `[id]._generator` and `._stack`, umbrella
-  members `generator` and `stack` — no underscore in generator code)
-  are read outside a projection with `toGeneratorEnrichment` /
-  `toStackEnrichment`. Declare every scope you read: a scope left
-  `v.undefined()` rejects any value at its key (so `_stack` needs
-  every generator in the run to declare `stack`; check each
-  generator's `enrichments.ts` — most stock ones declare `subject` only).
-  A wrong-typed value fails the run, and the message names its place in
-  `client.json`; keys the schema drops and
-  routing paths nothing read land on `manifest.enrichmentWarnings`.
-  Options come from the CALLING generator, on the insert:
-  `this.insertModel(Peer, ref, { options: { suffix: 'Input' } })`.
-  A projection declares its options type on its base factory (the
-  veneer's second type parameter: `toTsModelProjectionBase<E, Options>`);
-  the Driver hands them to `toIdentifierName` / `toExportPath` and the
-  constructor, and the instance stores them as `this.options`. Options
-  are identity: fold them into `toIdentifierName` whenever the output
-  depends on them, or a second insertion with different options throws
-  `Registered definition mismatch`. The call surface follows the
-  declaration — `{ options }` is required when the peer declares
-  options and a type error when it does not; declare `T | undefined`
-  to make it optional. Pass a fresh object per insertion. Module state
-  is never a channel: it breaks determinism.
-- **Naming**: models from `ref.refName` casing (core's `camelCase`,
-  `capitalize`, `decapitalize`); operations from **method + path** via
-  core's `toEndpointName` (post→Create, put→Update). **Never**
-  `operationId` — spec-author-controlled; no stock generator reads it.
-- **A model is a `ref`, never a bare name.** `ref` is `{ refName,
-  refPath }` (`RefParts`): `refName` is the last segment of the pointer,
-  `refPath` the pointer before it — `#/components/schemas` for a
-  component, something deeper for a ref into a `$defs` entry, a property
-  or `#/paths/…`. An `OasRef` fits it as it is. Every model API takes the
-  `ref`: `insertModel(Peer, ref)`, `toModelRef({ …, ref })`,
-  `context.resolveSchemaRefOnce(ref)`, `toIdentifierType(ref, context)`,
-  and the `ref` key of `toIdentifierName` / `toExportPath` /
-  `isSupported` / `transform` / the projection constructor (stored as
-  `this.ref`). Pass the `ref` on whole; there is no `refName`-only
-  call to get wrong. Core keys a deep ref's model by its whole pointer;
-  the name is yours, and `ref.refName` alone repeats across positions
-  (two `…/properties/disk`). Holding only a component's name (from
-  `toSchemasRefNames()`)? `toSchemaComponentRef(refName)` gives its `ref`.
-- **Registration at construction; `toString()` is a prototype method**
-  reading precomputed fields (an arrow-function `toString` field breaks
-  provenance wrapping). A throw fails the run: the engine records
-  `error` on that subject, runs the others so the `RUN_FAILED` issue
-  lists every failure, and writes no files. Parse tolerates faults in
-  the schema; generate does not tolerate a bug in a generator or a
-  wrong enrichment value.
+A producer handles its case once. Each place that has the part gets it,
+with its imports. A new case is a new class and one case in the router.
+The classes that exist do not change.
 
-## 5. Verify against the run
+## What Skmtc already does
 
-**Never guess a signature.** Skmtc has almost no training-data presence;
-your recalled API shapes are unreliable. Exact signatures for core
-contracts (`Oas*` classes, `Inserted`, `ContentSettings`,
-`TypeSystemArgs`, entry configs) are one command away:
-`deno doc jsr:@skmtc/core@<pinned-version> <SymbolName>` — read it
-instead of guessing, and instead of casting around a type error. In
-particular `OasSchema` is a union type, not a class hierarchy: every
-variant implements `.isRef()` returning `false`, and `OasRef` is a
-sibling with `.isRef()` returning `true`. An `allOf` is merged at parse,
-except a `$ref` that closes a cycle: that schema is an `OasIntersection`
-(`type: 'intersection'`), and the kept refs are in its `members`.
+Most of a generator's hard problems are solved before your code runs.
+**Before you write a function that reads the document, find its job in
+this table.** If the job is here, use what does it.
 
-Render does not run Prettier or Biome — no formatter runs inside the
-engine, so read the raw output as the generator produced it and format
-as a post-generation step.
+| Job | Use | What it gives you |
+|---|---|---|
+| Merge an `allOf`, read `oneOf` and `anyOf` as a union, resolve each `$ref`, remove what a broken `$ref` holds | The parser. A `settings.system` key (`allOf`, `anyOf`, `intersections`, `danglingRefs`) changes how it reads | A schema you render as it is, with no code that inspects, repairs, merges or compares schemas |
+| Choose the code for a schema type | Your **router**: one `switch (schema.type)` with a `never` default, which returns a producer | Each class reads typed fields from a narrowed schema. A new type is a compile error until it has a case and a class |
+| Build a model once, wherever it is used | `insertModel`, `toModelRef` | One definition and one import for each model. You hold its name |
+| Give an inline schema (a body, a parameters object, a response) a definition | `insertNormalizedModel` with a `fallbackName` | The model generator renders it. You hold its name |
+| Find a cycle, and the reference that must be lazy | `toModelRef` (`suspended`, `inCycle`) and `isReferencedBack` | No walk of the document and no set of visited schemas |
+| Write the imports of a file | `this.register({ imports })` for a library. Nothing for an insert | Imports that match what the file uses |
+| Know a name or a path before anything is built | The base's statics, `toIdentifierName` and `toExportPath`, in `base.ts`. Other files read `settings.identifier` and `settings.exportPath` | One place to change a name. Other generators find your definition |
+| Read an operation's parameters, body and response | `toParams`, `toParametersObject`, `toRequestBody`, `toSuccessResponse` on the operation | The path item's parameters merged in, the JSON media type chosen, a `$ref` resolved |
+| Join a list and leave out absent items | `List`, built in the constructor | Separators and brackets in one place |
+| Put a string from the document into code | `handleKey`, `sanitizeIdentifier`, `toStringLiteral`, `toPathTemplate` (`references/typescript.md`) | Correct quotes and escapes for any character |
+| Make more than one definition from one subject | Variants. Pass `variant` on | Names and files that stay apart |
+| Take a setting from the consumer | Enrichments, declared as a schema | A wrong value fails the run and names its place in `client.json` |
+| Catch two definitions that claim one name | The engine: `Registered definition mismatch` | Nothing to write |
+| Report a fault in the document | The parser: issues in the manifest | Nothing to write |
 
-Generation is sub-second — run it after every meaningful change. Read in
-order: (1) manifest — expected definitions at expected paths? parse
-issues? per-item errors? (2) one golden artifact — **import header
-first** (missing import = a string swallowed a snippet), then the body;
-(3) `deno lint`; (4) if you consume a peer: their definition exists once
-and your file imports it. Never "fix" missing output by concatenating
-the text into a template.
+Four jobs are yours, and each has one place:
 
-## 6. Pitfalls
-
-| Symptom | Fix |
+| Your decision | Its one place |
 |---|---|
-| Import missing / appears mid-file | Declare via `register`, never in templates |
-| Duplicate definitions of a shared model | Reference peers via `insertModel`, not by name |
-| `Registered definition mismatch` | Thread `variant`; or two generators claim one (name, path) |
-| `Registered definition mismatch` naming `Cached options` | The peer's output depends on its options but its name ignores them — fold options into `toIdentifierName` |
-| Peer output name wrong | Read `.identifier.name` off the insert result |
-| Works once, breaks on recursion/refs | Build tree in constructor; refs via the ref snippet/Driver |
-| Enrichment ignored | Umbrella routing key mismatch — check warnings |
-| Output edits vanish | You edited generated files; customize the generator |
-| Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
-| `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
-| `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
-| A `ref` built from a string of your own | Fabricated ref — go through a peer's two doors, never its statics |
-| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing (no component has its name, or its `$ref`s loop), and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
-| Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
+| Which producer renders a part that has kinds (a response with a body, a response with none) | The constructor of the producer that holds the part |
+| A name you derive from the identifier (an alias, a suffix) | A function in `base.ts`, beside the statics |
+| Optional and nullable | The modifiers, applied once where the value renders |
+| A fact that several producers read | One plain class, named after what it reads from the document |
 
-## 7. The lang layer
+## Read first
 
-The engine is language-blind; the import graph declares the language —
-a generator imports its projection-base factories and snippet base from
-its language package, and the Drivers read the language off the
-projection class. Everything concrete — base-factory names, snippet
-classes, File/Import/Definition, identifier factories, emitted-language
-import rules, sanitization — lives in that package and its skill.
-Load `skmtc-lang-typescript` before writing code (the Kotlin layer has
-its own skill, not yet published). Lang skill wins on language
-specifics; this skill wins on engine semantics. Two SHAPE skills carry the per-shape guidance — load the
-one matching your subject: `skmtc-model` (fill-in skeleton, model
-edge cases: refs, recursion, visibility) or `skmtc-operation`
-(operation decomposition, peer-consumption rules). Shape-specific
-guidance lives there, not here.
+1. **Your twin.** A stock generator already does the nearest job. Open
+   it before you write a line, and copy its shape, names and order.
 
-Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
-exists (`toGqlOperationEntry`, subject routing by
-`[rootKind][fieldName]`) and the engine rules here apply to it
-unchanged, but the GraphQL specifics — the entry, the enrichment
-routing, the companion base factories — are not covered here.
+   | You write | Start from |
+   |---|---|
+   | A model generator: each schema becomes a validator, a schema value or a type | `skeleton/` in this skill. Copy it and fill its slots |
+   | An operation generator that builds a function: a client call, a handler | `@skmtc/gen-effect-http`: `EffectEndpoint.ts` and the nine classes beside it |
+   | An operation generator for a hook over a model generator | `@skmtc/gen-tanstack-query-fetch-zod` |
+   | A form or other UI for each operation | `@skmtc/gen-shadcn-form` |
+   | Many operations in one file (an accumulator) | `@skmtc/gen-msw`, `@skmtc/gen-express` |
+   | A class for one schema type | The class for that type in `skeleton/src/` or `@skmtc/gen-effect-schema` |
+
+   Get the source with `skmtc clone <project> -g @skmtc/<name>`, or read
+   it at `https://jsr.io/@skmtc/<name>`.
+
+2. **The reference for your path** (next section).
+
+3. **Signatures.** Skmtc has almost no presence in training data, so
+   read a signature and never recall one:
+   `deno doc jsr:@skmtc/core@<pinned version> <Symbol>`. Read it in
+   place of a cast around a type error too.
+
+## Pick your path
+
+1. **A new model generator.** Read
+   [references/model.md](references/model.md).
+2. **A new operation generator.** Read
+   [references/operation.md](references/operation.md).
+3. **A change to a generator that exists**, yours or a clone. Find the
+   job in the tables above, open the file that holds it, and read the
+   reference for that generator's shape.
+
+Every path uses these when the work reaches them:
+
+- [references/producers.md](references/producers.md): how to split
+  output into producers, with the wrong form and the right form of each
+  rule. Read it before you write the first class.
+- [references/engine.md](references/engine.md): read it before you use
+  another generator's output, add an enrichment or an option, pass a
+  variant on, or write many subjects into one file.
+- [references/typescript.md](references/typescript.md): read it before
+  you register an import, choose an identifier kind, or put a string
+  from the document into code.
+
+Every path ends with [references/finish.md](references/finish.md).
+
+## Steps
+
+1. **Write the output by hand** for two subjects that differ: an
+   operation with a body and one without, or an object and a union.
+   Done when each file would compile in the target project.
+2. **Name the parts.** Mark each part of that output that a reader can
+   name. List one producer for each, with its fields. Done when every
+   line of the hand-written output belongs to one producer in the list,
+   and every field names a thing in the output.
+3. **Give each need its owner.** List each thing in that output that is
+   not fixed text: a name, an import, another schema's code, a list, a
+   lazy reference, a value from the consumer. Beside each, write the row
+   of "What Skmtc already does" that supplies it. Done when every item
+   has a row, or is one of your producers.
+4. **Write identity first**: `base.ts`, with the name and the export
+   path of each definition. Done when no other file builds a name or a
+   path.
+5. **Build the producers from the leaves up.** Run the generator after
+   each one. Read the import header of an output file first, then the
+   body. Done when the output matches what you wrote in step 1.
+6. **Finish** with [references/finish.md](references/finish.md).
+
+## When a case does not fit
+
+An edge case shows that a decision has no place yet. Give it its place:
+
+1. **A part renders wrongly for some subjects.** The part needs its own
+   producer, or a second producer for the other kind. Add the class, and
+   choose between the two in one place.
+2. **A schema type or a keyword has no rendering.** Add a case to the
+   router and a class for it.
+3. **A name is wrong or clashes.** Change the static in `base.ts`.
+4. **You need the code or the name of another schema.** Insert it.
+5. **The document is ambiguous or broken.** Render what the parser
+   gives. If your target has no form for it, throw from the router case
+   and name the schema's pointer and the `settings.system` key that
+   changes the parse. Code that detects, repairs, merges or compares
+   schemas is the parser's.
+6. **None of these fits.** The engine lacks something. Stop, and report
+   the case and what you need from the engine.
+
+Three signs that you have left this path: a function that takes a schema
+and returns a schema or a yes or no about it; the same condition in two
+places; a second function written to correct the first.
+
+## Rules for every path
+
+- **Two methods.** A producer has a constructor and `toString()`. The
+  one exception is the method that adds to an accumulator
+  (`references/engine.md`).
+- **A field is a part or a fact.** `summary`, `options` and `action`
+  are parts. `chain`, `parts` and `lines` hold everything and name
+  nothing.
+- **Target code is written in `toString()`**, as one template over the
+  fields, in the shape of the output.
+- **`List` is for a real list**: items of one kind, in a number the
+  document sets. A fixed set of different parts is a template over named
+  fields.
+- **Only `undefined` and `null` are absent.** `0`, `false`, `''` and
+  `[]` are values, and they render.
+- **Name an operation from its method and path**, with core's
+  `toEndpointName`. `operationId` is the document author's and changes
+  without notice.
+- **Read the document through its methods**: `isRef()`, `resolve()`,
+  `toParams()`, `toRequestBody()`. Do the same thing the same way as
+  the code around you.
+- **A function outside a class needs a reason a class cannot give**:
+  the router, the config of the entry and of the base, an identity
+  function in `base.ts`, a type guard on raw input.
+- **Complexity of 10 or less for each function.** The router is exempt.
+  A constructor above 10 holds two concepts.
+- **Generate only what the document changes.** Code that is the same
+  for every document is a hand-written file in the project.
+- **Render does not run Prettier or Biome.** No formatter runs in the
+  engine. Read the raw output, and format after generation.
+
+## When you're done
+
+1. **Generate from a real document**, not only from fixtures. Read the
+   manifest: the definitions you expect, at the paths you expect, with
+   no errors.
+2. **Lint.** `deno lint`, with `jsr:@skmtc/lint-plugin` in the
+   generator's `deno.json`. No findings.
+3. **Measure.**
+   `deno run --allow-read --allow-env <this skill>/scripts/complexity.ts <generator>/src`
+   exits 0.
+4. **Test.** Run the generator's tests and type-check the generated
+   output in the target project.
+5. **Do the finish pass** in
+   [references/finish.md](references/finish.md) on your diff.
+6. **Report** each command with its exit code, what you could not
+   check, each function you wrote for a job that the table gives to
+   Skmtc, each thing the engine lacked, and each place where this skill
+   or the docs were wrong or silent. `skmtc feedback` sends the last two
+   to the Skmtc team as a public issue, so put no tokens or personal
+   data in it.
