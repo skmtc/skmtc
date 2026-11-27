@@ -9,7 +9,7 @@ type SchemaObject = OpenAPIV3.SchemaObject
 type ReferenceObject = OpenAPIV3.ReferenceObject
 type SchemaOrReference = SchemaObject | ReferenceObject
 
-/** The refs that `system.intersections` keeps out of a merge. */
+/** The refs that `parse.intersections` keeps out of a merge. */
 export type KeptRefs = {
   /** Whether a merge keeps this `$ref` object as a ref. */
   has: (ref: ReferenceObject) => boolean
@@ -23,7 +23,7 @@ export type KeptRefs = {
 
 type ToKeptRefsArgs = {
   documentObject: OpenAPIV3.Document
-  /** `client.json` `system.intersections`. */
+  /** `skmtc.config.json` `parse.intersections`. */
   setting: 'merge' | 'cycles' | 'all' | undefined
 }
 

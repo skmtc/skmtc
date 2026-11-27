@@ -1,5 +1,5 @@
 /**
- * `system.intersections`: which refs stay refs where the merge would inline
+ * `parse.intersections`: which refs stay refs where the merge would inline
  * their target. Each document is parsed under a time and heap bound.
  */
 

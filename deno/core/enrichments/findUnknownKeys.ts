@@ -13,7 +13,7 @@
  * gives correct "did you mean …?" suggestions — the intended key is in
  * the schema's entries even when it is optional and absent from the
  * parsed value. This is deliberately a warning layer, not
- * `v.strictObject`: a shared client.json paired with an older generator
+ * `v.strictObject`: a shared skmtc.config.json paired with an older generator
  * version stays survivable under version skew instead of hard-failing.
  *
  * The walk is fail-open: unions, intersections, loose objects, and any

@@ -2,7 +2,7 @@
  * Engine-level pin for generated-suffix injection.
  *
  * `GenerateContext.to*ContentSettings` applies
- * `client.json#settings.generatedSuffix` (default `'.generated'`) to
+ * `skmtc.config.json#settings.generatedSuffix` (default `'.generated'`) to
  * every projection `toExportPath` result when it is stored into
  * `ContentSettings`, and `#addPreview` applies the same treatment to
  * hand-assembled preview export paths. Generators therefore declare

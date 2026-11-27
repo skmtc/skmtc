@@ -649,7 +649,7 @@ export class GenerateContext implements GenerateContextType {
    * document — the *values* counterpart of {@link toSupportedSubjects}. For
    * every generator that advertises `toEnrichmentDefaults`, calls it over the
    * subjects the generator supports and keeps the non-`undefined` subject-scope
-   * leaves, keyed by the `client.json#settings.enrichments` routing:
+   * leaves, keyed by the `skmtc.config.json#settings.enrichments` routing:
    * `[id][path][method]['main']` for operations, `[id][refName]['main']` for
    * models. Seeding targets the `'main'` variant; a generator that advertises
    * no defaults (or whose every subject returns `undefined`) is omitted.
@@ -1192,7 +1192,7 @@ export class GenerateContext implements GenerateContextType {
    * an engine path — the value stored into `ContentSettings.exportPath`:
    *
    * 1. Injects the project's generated-file suffix
-   *    (`client.json#settings.generatedSuffix`, default `'.generated'`)
+   *    (`skmtc.config.json#settings.generatedSuffix`, default `'.generated'`)
    *    before the extension. Idempotent, so generators that still
    *    hardcode the suffix are unaffected.
    * 2. For an ejected file (`settings.ejected`), stores the ejected

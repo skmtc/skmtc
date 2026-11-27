@@ -38,7 +38,7 @@ export const hasParentSegment = (path: string): boolean =>
 
 /**
  * Whether a path is absolute on either host: a POSIX root, a Windows drive
- * (`C:\`, `C:/`) or a UNC share. Checked on every host, so a client.json
+ * (`C:\`, `C:/`) or a UNC share. Checked on every host, so a skmtc.config.json
  * written on Windows is rejected the same way on Linux.
  */
 export const isAbsolutePath = (path: string): boolean =>

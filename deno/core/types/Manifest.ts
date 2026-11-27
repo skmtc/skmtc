@@ -163,7 +163,7 @@ export type ManifestEntry = {
   characters: number
   destinationPath: string
   /**
-   * True when the file is ejected (`client.json#settings.ejected`) —
+   * True when the file is ejected (`skmtc.config.json#settings.ejected`) —
    * the user owns it. The item still generated in memory (its content
    * is drift detection's input) but the CLI did not write it to disk
    * and will never delete it. Annotated by the CLI writer, not the

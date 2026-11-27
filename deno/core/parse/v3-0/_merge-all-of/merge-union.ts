@@ -55,7 +55,7 @@ type MergeCrossProductArgs = {
 }
 
 /**
- * The `system` a member's own `allOf` merges under: the `client.json`
+ * The `system` a member's own `allOf` merges under: the `skmtc.config.json`
  * setting, also in the first pass over a cross product's pairs.
  */
 export const toOwnSystem = (system: MergeSystem): MergeSystem => ({
@@ -80,13 +80,13 @@ type MergePairsArgs = {
  * collections say `result` is an object or a string, then an array.
  *
  * The first pass is strict between the two members of a pair only. A
- * member's own `allOf` merges under the `client.json` setting
+ * member's own `allOf` merges under the `skmtc.config.json` setting
  * ({@link toOwnSystem}). Inside an outer first pass under `latestWins`, a
  * cross product with no pair that merges fails its pair: the outer pass then
  * leaves the pair out, or lets the later member win.
  *
  * A `$ref` that names nothing is not a contradiction, so its pair is not left
- * out for it: the `DanglingRefError` is thrown on, and `system.danglingRefs`
+ * out for it: the `DanglingRefError` is thrown on, and `parse.danglingRefs`
  * decides (`allOfMember`).
  */
 const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference[] => {

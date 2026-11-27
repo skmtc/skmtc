@@ -228,7 +228,7 @@ type ConstructorArgs = {
    * this; adding more is additive.
    */
   options?: { gql?: GqlParseOptions }
-  /** `client.json#settings.system`: how the OpenAPI parsers treat what they cannot read faithfully. */
+  /** `skmtc.config.json#settings.parse`: how the OpenAPI parsers treat what they cannot read faithfully. */
   system?: SystemSettings
 }
 
@@ -247,7 +247,7 @@ export class ParseContext {
 
   /**
    * How the OpenAPI parsers treat what they cannot read faithfully
-   * (`client.json#settings.system`). Each setting left out is `strict`.
+   * (`skmtc.config.json#settings.parse`). Each setting left out is `strict`.
    */
   system: SystemSettings
 
@@ -329,7 +329,7 @@ export class ParseContext {
     return this.protocol.documentObject
   }
 
-  /** The refs of the document that a merge keeps as refs (`system.intersections`); `undefined` under `merge`. */
+  /** The refs of the document that a merge keeps as refs (`parse.intersections`); `undefined` under `merge`. */
   get keptRefs(): KeptRefs | undefined {
     this.#keptRefs ??= {
       value: toKeptRefs({ documentObject: this.documentObject, setting: this.system.intersections })
@@ -830,8 +830,8 @@ export class ParseContext {
    *
    * - A ref that names nothing logs `DANGLING_REF`: no component has its
    *   name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
-   *   `B` to `A`), which never reaches a component. When `client.json`
-   *   `system.danglingRefs` lists its kind, it is a warning: the ref stays,
+   *   `B` to `A`), which never reaches a component. When `skmtc.config.json`
+   *   `parse.danglingRefs` lists its kind, it is a warning: the ref stays,
    *   and resolving it throws `DanglingRefError` for the generator to handle.
    *   Otherwise (the default, `[]`, lists none) it is an error, and what holds
    *   the ref is removed, with what uses that.
@@ -866,7 +866,7 @@ export class ParseContext {
         } else if (this.system.danglingRefs?.includes(ref.refType)) {
           this.logIssueNoKey({
             level: 'warning',
-            message: `${error.message}. It is kept (system.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
+            message: `${error.message}. It is kept (parse.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
             parent: { $ref: ref.$ref },
             stackTrail: consumer,
             type: 'DANGLING_REF'
@@ -878,7 +878,7 @@ export class ParseContext {
             refTarget,
             error,
             type: 'DANGLING_REF',
-            message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in system.danglingRefs.`
+            message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in parse.danglingRefs.`
           })
         }
       }
@@ -955,7 +955,7 @@ export class ParseContext {
    * What a merge reads in place of a `$ref` that names nothing: an `allOf`
    * member, or in a `oneOf` or `anyOf`, a member's own `allOf` member or a
    * member merged with the keywords beside the union. When
-   * `system.danglingRefs` lists `allOfMember`, it is `{}`, which
+   * `parse.danglingRefs` lists `allOfMember`, it is `{}`, which
    * adds nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF`
    * warning at `stackTrail`: the model has no properties from that member.
    * Otherwise it throws `DanglingRefError`, and what holds the `allOf` is
@@ -969,7 +969,7 @@ export class ParseContext {
 
     this.logIssueNoKey({
       level: 'warning',
-      message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`,
+      message: `${error.message}. It is left out of the allOf merge (parse.danglingRefs lists 'allOfMember').`,
       parent: { $ref: error.ref },
       stackTrail,
       type: 'DANGLING_REF'

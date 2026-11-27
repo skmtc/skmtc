@@ -92,9 +92,9 @@ Deno.test('parseEnrichmentUmbrella - stack scope is exempt from unknown-key dete
   assertEquals(context.warnings, [])
 })
 
-const FIX_LINE = `Enrichments for '${GENERATOR_ID}' do not match its enrichment schema. Fix them in client.json (settings.enrichments):`
+const FIX_LINE = `Enrichments for '${GENERATOR_ID}' do not match its enrichment schema. Fix them in skmtc.config.json (settings.enrichments):`
 
-Deno.test('parseEnrichmentUmbrella - a wrong-typed value throws, naming its place in client.json', () => {
+Deno.test('parseEnrichmentUmbrella - a wrong-typed value throws, naming its place in skmtc.config.json', () => {
   assertThrows(
     () =>
       parseFor({
