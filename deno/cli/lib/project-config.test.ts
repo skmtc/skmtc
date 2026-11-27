@@ -63,6 +63,13 @@ Deno.test('toMovedSettings - system moves to parse in its place; beside parse it
 
   assertEquals(beside.settings, { parse: { not: 'strict', allOf: 'strict' } })
   assertEquals(beside.conflicts, ['not'])
+
+  // The same `danglingRefs` in another order is not a conflict.
+  const reordered = toMovedSettings({
+    system: { danglingRefs: ['schema', 'parameter'] },
+    parse: { danglingRefs: ['parameter', 'schema'] }
+  })
+  assertEquals(reordered.conflicts, [])
 })
 
 Deno.test('reportConfigDeprecations - one warning per old name per run, on stderr; stdout stays clean', async () => {

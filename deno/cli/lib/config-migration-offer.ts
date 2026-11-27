@@ -113,8 +113,15 @@ export const offerConfigMigrations = async ({ projectNames, ask = askYesNo }: Of
       continue
     }
 
-    const { projects } = await migrateConfigHeadless({ projectName })
+    try {
+      const { projects } = await migrateConfigHeadless({ projectName })
 
-    projects.flatMap(toMigrateConfigLines).forEach(line => console.log(line))
+      projects.flatMap(toMigrateConfigLines).forEach(line => console.log(line))
+    } catch (error) {
+      // A failed write (a read-only .settings/, say) keeps the old names: the command goes on.
+      console.error(
+        `Warning: ${projectName} was not migrated: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
   }
 }

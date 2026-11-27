@@ -240,7 +240,7 @@ export const toMovedSettings = (settings: Record<string, unknown>): MovedSetting
   if ('parse' in settings) {
     const parse = isRecord(settings.parse) ? settings.parse : {}
     const conflicts = isRecord(system)
-      ? Object.keys(system).filter(key => JSON.stringify(system[key]) !== JSON.stringify(parse[key]))
+      ? Object.keys(system).filter(key => toComparable(system[key]) !== toComparable(parse[key]))
       : []
 
     return {
@@ -286,6 +286,10 @@ export const toEngineSettings = (settings: ClientSettings | undefined): ClientSe
 
   return { ...rest, system: parse }
 }
+
+/** A parse setting as text to compare: a list (`danglingRefs`) in any order is the same. */
+const toComparable = (value: unknown): string =>
+  JSON.stringify(Array.isArray(value) ? [...value].map(item => JSON.stringify(item)).sort() : value)
 
 /** The text a command writes to a config file. */
 export const toConfigFileText = (config: unknown): string =>

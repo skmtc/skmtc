@@ -23,8 +23,7 @@
  * variant axis.
  */
 
-import { toConfigFileText, toConfigPath } from '@/lib/project-config.ts'
-import { join } from '@std/path/join'
+import { reportConfigDeprecations, toConfigFileText, toConfigLocation } from '@/lib/project-config.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
 const HTTP_METHODS: ReadonlySet<string> = new Set([
@@ -132,12 +131,14 @@ export const migrateVariantsHeadless = async ({
   projectName: string
 }): Promise<MigrateVariantsResult> => {
   const projectPath = toProjectPath(projectName)
-  const clientJsonPath = toConfigPath(projectPath)
+  const location = toConfigLocation(projectPath)
+  const clientJsonPath = location.path
 
   const source = await Deno.readTextFile(clientJsonPath)
   const beforeBytes = new TextEncoder().encode(source).length
   // deno-lint-ignore no-explicit-any — JSON shape is validated downstream
   const data = JSON.parse(source) as any
+  reportConfigDeprecations({ projectPath, location, config: data })
 
   const settings = data?.settings as Record<string, unknown> | undefined
   if (!settings) {

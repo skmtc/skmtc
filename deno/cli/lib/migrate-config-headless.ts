@@ -9,7 +9,7 @@
  */
 
 import { existsSync } from '@std/fs/exists'
-import { toProjectPath } from '@/lib/to-project-path.ts'
+import { isProjectName, toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toConfigPaths, toMovedSettings } from '@/lib/project-config.ts'
 
@@ -194,9 +194,12 @@ export const migrateConfigHeadless = async ({
   confirm
 }: MigrateConfigArgs = {}): Promise<MigrateConfigResult> => {
   const projectNames = projectName === undefined ? toProjectNames() : [projectName]
-  // A project named on the command line must have a config; one found by listing `.skmtc/` may not.
-  const plans = projectNames.flatMap(
-    name => planProject({ projectName: name, dryRun }) ?? (projectName === undefined ? [] : [toMissingPlan(name, dryRun)])
+  // A project named on the command line must be a project under `.skmtc/` and
+  // have a config; one found by listing `.skmtc/` may have none.
+  const plans = projectNames.flatMap(name =>
+    projectName !== undefined && !isProjectName(name)
+      ? [toMissingPlan(name, dryRun)]
+      : (planProject({ projectName: name, dryRun }) ?? (projectName === undefined ? [] : [toMissingPlan(name, dryRun)]))
   )
   const changes = plans.filter(plan => plan.text !== undefined)
 
