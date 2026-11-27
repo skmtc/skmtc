@@ -1,6 +1,5 @@
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { ResultsItem, ResultType } from '@skmtc/core/Results'
-import { countTokens } from 'gpt-tokenizer'
 
 /**
  * Arguments for generating comprehensive statistics from the build manifest and artifacts.
@@ -10,14 +9,16 @@ type GenerationStatsArgs = {
   manifest: ManifestContent
   /** Generated artifacts as a map of file paths to content */
   artifacts: Record<string, string>
+  /** Count the GPT tokens of the artifacts (`generate --count-tokens`). */
+  countTokens?: boolean
 }
 
 /**
  * Comprehensive generation statistics extracted from build artifacts and manifest.
  */
 export type GenerationStats = {
-  /** Total number of GPT tokens in generated content */
-  tokens: number
+  /** Total number of GPT tokens in generated content. Present only when counted. */
+  tokens?: number
   /** Total number of lines generated */
   lines: number
   /** Total generation time in milliseconds */
@@ -29,119 +30,31 @@ export type GenerationStats = {
 }
 
 /**
- * Generates comprehensive statistics about the code generation process.
+ * Summarizes a generation run: lines, time, error paths and file count from
+ * the manifest and artifacts. The GPT token count is made, and `tokens` set,
+ * only when `countTokens` is `true`.
  *
- * This function analyzes the generation manifest and produced artifacts to create
- * detailed statistics including token counts, lines of code, timing information,
- * error tracking, and file counts. It's used for performance monitoring, debugging,
- * and reporting on generation runs.
- *
- * The function combines multiple analysis methods to provide a complete picture
- * of the generation process, including tokenization analysis for cost estimation,
- * error path extraction for debugging, and timing analysis for performance optimization.
- *
- * @param args - Generation analysis configuration
- * @param args.manifest - The generation manifest with metadata and results
- * @param args.artifacts - Map of file paths to generated content
- * @returns Comprehensive generation statistics object
- *
- * @example Basic usage
+ * @example
  * ```typescript
- * import { toGenerationStats } from '@skmtc/core';
+ * const stats = await toGenerationStats({ manifest, artifacts })
+ * // { lines: 230, totalTime: 45000, errors: [], files: 2 }
  *
- * const stats = toGenerationStats({
- *   manifest: {
- *     startAt: 1672531200000,
- *     endAt: 1672531245000,
- *     files: {
- *       './models.ts': { lines: 150, characters: 4500 },
- *       './types.ts': { lines: 80, characters: 2100 }
- *     },
- *     results: { }
- *   },
- *   artifacts: {
- *     './models.ts': 'export interface User { id: string; name: string; }',
- *     './types.ts': 'export type Status = "active" | "inactive";'
- *   }
- * });
- *
- * console.log(stats);
- * // {
- * //   tokens: 250,
- * //   lines: 230,
- * //   totalTime: 45000,
- * //   errors: [],
- * //   files: 2
- * // }
- * ```
- *
- * @example Performance monitoring
- * ```typescript
- * class GenerationMonitor {
- *   analyzeGeneration(manifest: ManifestContent, artifacts: Record<string, string>) {
- *     const stats = toGenerationStats({ manifest, artifacts });
- *
- *     console.log(`Generation completed in ${stats.totalTime}ms`);
- *     console.log(`Generated ${stats.files} files with ${stats.lines} lines`);
- *     console.log(`Token usage: ${stats.tokens} tokens`);
- *
- *     if (stats.errors.length > 0) {
- *       console.warn(`Found ${stats.errors.length} errors:`);
- *       stats.errors.forEach((errorPath, index) => {
- *         console.warn(`  ${index + 1}. ${errorPath.join(' -> ')}`);
- *       });
- *     }
- *
- *     return stats;
- *   }
- * }
- * ```
- *
- * @example Cost estimation
- * ```typescript
- * function estimateGenerationCost(stats: GenerationStats): number {
- *   const tokensPerDollar = 1000000; // Example rate
- *   const estimatedCost = stats.tokens / tokensPerDollar;
- *
- *   console.log(`Estimated cost: $${estimatedCost.toFixed(4)}`);
- *   console.log(`Efficiency: ${stats.lines / stats.tokens} lines per token`);
- *
- *   return estimatedCost;
- * }
- * ```
- *
- * @example Build reporting
- * ```typescript
- * function generateBuildReport(stats: GenerationStats): string {
- *   const efficiency = stats.totalTime / stats.files;
- *   const successRate = ((stats.files - stats.errors.length) / stats.files * 100).toFixed(1);
- *
- *   return `
- * Build Report:
- * -----------
- * Files Generated: ${stats.files}
- * Total Lines: ${stats.lines.toLocaleString()}
- * Token Count: ${stats.tokens.toLocaleString()}
- * Generation Time: ${(stats.totalTime / 1000).toFixed(2)}s
- * Average per File: ${efficiency.toFixed(0)}ms
- * Success Rate: ${successRate}%
- * Errors: ${stats.errors.length}
- *   `.trim();
- * }
+ * const counted = await toGenerationStats({ manifest, artifacts, countTokens: true })
+ * // { tokens: 250, lines: 230, totalTime: 45000, errors: [], files: 2 }
  * ```
  */
-export const toGenerationStats = ({
+export const toGenerationStats = async ({
   manifest,
-  artifacts
-}: GenerationStatsArgs): GenerationStats => {
-  const tokens = toManifestTokens(artifacts)
+  artifacts,
+  countTokens = false
+}: GenerationStatsArgs): Promise<GenerationStats> => {
   const lines = toManifestLines(manifest)
   const totalTime = toTotalTime(manifest)
   const errors = toManifestErrors(manifest.results)
   const files = Object.keys(artifacts).length
 
   return {
-    tokens,
+    ...(countTokens ? { tokens: await toManifestTokens(artifacts) } : {}),
     lines,
     totalTime,
     errors,
@@ -150,34 +63,18 @@ export const toGenerationStats = ({
 }
 
 /**
- * Calculates the total number of GPT tokens in all generated artifacts.
+ * Counts the GPT tokens of all generated artifacts.
  *
- * This function uses GPT tokenization to count the total number of tokens
- * across all generated code artifacts. This is useful for cost estimation
- * when using token-based pricing models and for understanding the size
- * and complexity of generated content.
+ * `gpt-tokenizer` is imported here, not at module scope: loading it costs
+ * about 70 ms, and a run pays for it only when the count is asked for.
  *
  * @param artifacts - Map of file paths to generated content strings
  * @returns Total number of GPT tokens across all artifacts
- *
- * @example
- * ```typescript
- * const artifacts = {
- *   './models.ts': 'export interface User { id: string; name: string; }',
- *   './types.ts': 'export type Status = "active" | "inactive";'
- * };
- *
- * const tokens = toManifestTokens(artifacts);
- * console.log(tokens); // e.g., 24 tokens
- * ```
  */
-export const toManifestTokens = (artifacts: Record<string, string>): number => {
-  const { tokens } = Object.values(artifacts).reduce(
-    (acc, artifact) => ({ tokens: acc.tokens + countTokens(artifact) }),
-    { tokens: 0 }
-  )
+export const toManifestTokens = async (artifacts: Record<string, string>): Promise<number> => {
+  const { countTokens } = await import('gpt-tokenizer')
 
-  return tokens
+  return Object.values(artifacts).reduce((total, artifact) => total + countTokens(artifact), 0)
 }
 
 /**

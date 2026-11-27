@@ -267,7 +267,7 @@ Deno.test('toSupportedSubjects and toEnrichmentDefaults - the failure names the 
     },
     stackTrail: new StackTrail(['TEST'])
   }
-  const consoleStub = stub(console, 'log')
+  const consoleStub = stub(console, 'error')
 
   try {
     const subjectIssues = context.toSupportedSubjects(args).parseIssues
@@ -300,7 +300,7 @@ Deno.test('toSupportedSubjects and toEnrichmentDefaults - write and close the lo
     toGeneratorConfigMap: operationGenerators,
     stackTrail: new StackTrail(['TEST'])
   }
-  const consoleStub = stub(console, 'log')
+  const consoleStub = stub(console, 'error')
 
   try {
     new CoreContext({ spanId: 'subjects', logsPath, silent: true }).toSupportedSubjects(args)

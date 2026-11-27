@@ -59,6 +59,7 @@ export const ViewManager = () => {
           project={view.project}
           schemaSourceString={view.schemaSourceString}
           watchMode={view.watchMode}
+          countTokens={view.countTokens}
         />
       )
     }

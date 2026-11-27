@@ -59,10 +59,10 @@ const runWith = (
     stackTrail: new StackTrail(['TEST'])
   })
 
-/** Runs `fn` and returns what it printed with `console.log`. */
+/** Runs `fn` and returns what it printed with `console.error`. */
 const captureConsole = <T>(fn: () => T): { value: T; printed: string[] } => {
   const printed: string[] = []
-  const consoleStub = stub(console, 'log', (...args: unknown[]) => {
+  const consoleStub = stub(console, 'error', (...args: unknown[]) => {
     printed.push(args.map(String).join(' '))
   })
 
@@ -394,7 +394,7 @@ Deno.test('toArtifacts - a critical line in a transform is one ERROR line and an
 })
 
 Deno.test('toArtifacts - two runs started together return only their own lines', async () => {
-  const consoleStub = stub(console, 'log')
+  const consoleStub = stub(console, 'error')
 
   const [first, second] = await Promise.all([
     Promise.resolve().then(() => runThrowing('first')),
