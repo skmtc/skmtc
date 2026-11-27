@@ -11,6 +11,7 @@
 import { existsSync } from '@std/fs/exists'
 import { basename } from '@std/path/basename'
 import { join } from '@std/path/join'
+import type { ClientSettings } from '@skmtc/core/Settings'
 
 /** The name of a project's config file. */
 export const CONFIG_FILE_NAME = 'skmtc.config.json'
@@ -254,6 +255,22 @@ export const toWrittenConfig = <Config>(config: Config): Config => {
   }
 
   return { ...config, settings: toMovedSettings(config.settings).settings }
+}
+
+/**
+ * The settings as the CLI hands them to a project's worker or stack server:
+ * the parse settings under `system`, the key every core reads. A worker that
+ * pins a core older than 0.49 reads only `system`; core 0.49 and later read
+ * `parse ?? system`. When both are set, `parse` is sent, as core would pick it.
+ */
+export const toEngineSettings = (settings: ClientSettings | undefined): ClientSettings | undefined => {
+  if (settings?.parse === undefined) {
+    return settings
+  }
+
+  const { parse, system: _system, ...rest } = settings
+
+  return { ...rest, system: parse }
 }
 
 /** The text a command writes to a config file. */
