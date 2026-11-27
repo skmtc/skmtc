@@ -40,13 +40,17 @@ Deno.test('generateSwitch - strict mode without a resolvable schema fails with a
     })
   })
 
+  // The fixture is a real project, which may still use client.json: its
+  // deprecation warning goes to stderr too, so count only the errors.
+  const recipeErrors = errors.filter(error => !error.startsWith('Warning:'))
+
   assertEquals(exitCode, 2)
-  assertEquals(errors.length, 1)
-  assertStringIncludes(errors[0], 'missing required argument: <schema>')
-  assertStringIncludes(errors[0], 'skmtc.config.json')
+  assertEquals(recipeErrors.length, 1)
+  assertStringIncludes(recipeErrors[0], 'missing required argument: <schema>')
+  assertStringIncludes(recipeErrors[0], 'skmtc.config.json')
   // The schema source is the config's top-level `source` key.
-  assertStringIncludes(errors[0], 'set `source` in')
-  assertEquals(errors[0].includes('settings.source'), false)
+  assertStringIncludes(recipeErrors[0], 'set `source` in')
+  assertEquals(recipeErrors[0].includes('settings.source'), false)
 })
 
 Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2', async () => {
