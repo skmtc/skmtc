@@ -120,8 +120,10 @@ source is its bound API.
 
 ## Overwrite behavior
 
-`push` **overwrites** the hub project's config. When the destination
-already holds config:
+`push` **overwrites** the hub project's config. The destination holds
+config when it has at least one enrichment, `include` or `skip` entry,
+or non-empty `parse` settings. When the destination already holds
+config:
 
 - **Interactive (TTY, no `--force`):** a confirmation prompt — the
   warning. Decline to abort with no change.

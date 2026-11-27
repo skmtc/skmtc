@@ -7,7 +7,7 @@ import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 
 export const description =
-  'Pull this project\'s config (enrichments, filters and parse settings) from its skmtc-hub project into the local skmtc.config.json. The destination is the `project: "@account/slug"` field in skmtc.config.json (or --project). Replaces the local enrichments/include/skip/parse (under `system` in a project not yet migrated); preserves local basePath/packages/source. The project must already exist on the hub.'
+  'Pull this project\'s config (enrichments, filters and parse settings) from its skmtc-hub project into the local skmtc.config.json. The destination is the `project: "@account/slug"` field in skmtc.config.json (or --project). Replaces the local enrichments/include/skip/parse (under `system` in a project not yet migrated; kept when the hub sends no parse settings); preserves local basePath/packages/source. The project must already exist on the hub.'
 
 type RenderPullArgs = {
   skmtcRoot?: SkmtcRoot

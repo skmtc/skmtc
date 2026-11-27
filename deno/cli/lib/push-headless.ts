@@ -130,7 +130,8 @@ const hasConfigData = (payload: unknown): boolean =>
   isObject(payload) &&
   (arrayLength(payload, 'enrichments') > 0 ||
     arrayLength(payload, 'include') > 0 ||
-    arrayLength(payload, 'skip') > 0)
+    arrayLength(payload, 'skip') > 0 ||
+    (isObject(payload.parse) && Object.keys(payload.parse).length > 0))
 
 export const pushHeadless = async ({
   skmtcRoot,

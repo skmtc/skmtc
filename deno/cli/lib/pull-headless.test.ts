@@ -100,10 +100,42 @@ Deno.test('pullHeadless - a hub parse into a file with parse and system is writt
   assertEquals(written, { basePath: 'src', parse: { not: 'unknown' }, system: { not: 'strict' } })
 })
 
-Deno.test('pullHeadless - a missing hub parse drops the local system', async () => {
+Deno.test('pullHeadless - a hub response with no parse key keeps the local parse', async () => {
+  const written = await pullInto({
+    local: { basePath: 'src', parse: { not: 'unknown' } },
+    hub: { include: ['/pets'] }
+  })
+
+  assertEquals(written, { basePath: 'src', parse: { not: 'unknown' }, include: ['/pets'] })
+})
+
+Deno.test('pullHeadless - a hub response with no parse key keeps the local system', async () => {
   const written = await pullInto({
     local: { basePath: 'src', system: { not: 'unknown' } },
-    hub: {}
+    hub: { include: ['/pets'] }
+  })
+
+  assertEquals(written, { basePath: 'src', system: { not: 'unknown' }, include: ['/pets'] })
+})
+
+Deno.test('pullHeadless - a hub response with no parse key keeps both keys in a file with parse and system', async () => {
+  const written = await pullInto({
+    local: { basePath: 'src', parse: { not: 'unknown' }, system: { not: 'strict' } },
+    hub: { include: ['/pets'] }
+  })
+
+  assertEquals(written, {
+    basePath: 'src',
+    parse: { not: 'unknown' },
+    system: { not: 'strict' },
+    include: ['/pets']
+  })
+})
+
+Deno.test('pullHeadless - an empty hub parse drops the local system', async () => {
+  const written = await pullInto({
+    local: { basePath: 'src', system: { not: 'unknown' } },
+    hub: { parse: {} }
   })
 
   assertEquals(written, { basePath: 'src' })
