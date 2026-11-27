@@ -53,11 +53,13 @@ export type Subject<Entry, Filter> = {
   readonly enrichmentPath: string[]
   /** What a message calls it. */
   readonly label: string
-  isSupported(args: AskArgs<Entry>): boolean
+  // Function-typed properties, not methods: method parameters are checked
+  // bivariantly, which would let an entry of one kind run subjects of another.
+  isSupported: (args: AskArgs<Entry>) => boolean
   /** Whether a filter of `settings.include` or `settings.skip` names this variant of it. */
   matches(filter: Filter | undefined, variant: string): boolean
-  transform(args: AskArgs<Entry>): void
-  toPreviewModule(args: AskArgs<Entry>): PreviewModule | undefined
+  transform: (args: AskArgs<Entry>) => void
+  toPreviewModule: (args: AskArgs<Entry>) => PreviewModule | undefined
   toSource(args: ToSourceArgs): OasOperationSource | WebhookSource | GqlOperationSource | ModelSource
 }
 
