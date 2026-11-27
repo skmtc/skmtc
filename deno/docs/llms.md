@@ -205,7 +205,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
 | Phase | Location | Action |
 |---|---|---|
-| **Bootstrap** | `cli/commands/generate-switch.ts` | Load skmtc.config.json; locate schema; rebuild `bundle.js` (refuses two copies of `@skmtc/core`) |
+| **Bootstrap** | `cli/commands/generate-switch.ts` | Load skmtc.config.json; locate schema; build `bundle.js` when its inputs changed (refuses two copies of `@skmtc/core`) |
 | **Pre-parse** | `cli/lib/generate-worker.ts:62` | OAS → v3 (clone-safe); GraphQL stays SDL string |
 | **Spawn worker** | `cli/lib/generate-worker.ts:43-51` | `new Worker(bundle, { permissions: {...} })` |
 | **Message protocol** | `cli/lib/generate-worker.ts:83-122` | `READY` → `GENERATE` → `RESULT` (+ `ERROR` on throw) |
@@ -281,7 +281,7 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 - `skmtc clone <project> -g @skmtc/gen-x` copies source into `.skmtc/<project>/gen-x/`. The `-g` flag is repeatable to clone multiple generators in one invocation.
 - `deno.json#imports` entry becomes a local path.
-- Every `skmtc generate` regenerates `worker.ts` and runs `deno bundle worker.ts -o bundle.js`, so edits apply on the next run.
+- Every `skmtc generate` regenerates `worker.ts`. It runs `deno bundle worker.ts -o bundle.js` when an input changed. Each file of a clone is an input, so edits apply on the next run.
 - The generator is now editable TypeScript.
 
 ### Customization seams in stock generators

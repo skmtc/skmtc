@@ -121,18 +121,40 @@ The first non-undefined value wins.
 - Neither set in interactive mode → mounts the Ink prompt.
 - Neither set in strict mode → exits 2 with a recipe error.
 
-### The bundle is rebuilt on every run
+### The bundle is built when its inputs change
 
-A local project builds `bundle.js` before every generation, in every
-mode: `generate` writes `worker.ts` from `deno.json#imports`, runs
-`deno bundle` into a temporary file, renames it over `bundle.js`, and
-runs the bundle it just built. So a run always uses the pins in
-`deno.json` and the generator source on disk now, and a command running
-at the same time never loads a half-written bundle. After
-you change a pin or edit a cloned generator, run `skmtc generate`
-again. You do not need `skmtc bundle` first.
+A local project runs a `bundle.js` built from the pins and generator
+source it has now, in every mode. `generate` writes `worker.ts` from
+`deno.json#imports`, then compares a fingerprint of the build's inputs
+with `.settings/bundle-inputs.json`, the record of the last build. The
+inputs are `deno.json`, `deno.lock`, `worker.ts`, the CLI version and
+the Deno version. They also include every file of each workspace folder
+and local-path import (a cloned generator), and each local file of the
+last build's module graph. The record also holds a digest of the
+`bundle.js` it describes. When the fingerprint matches and `bundle.js`
+is that file, `generate` runs it and starts no `deno` subprocess.
 
-The build takes about 0.3 seconds with a warm Deno cache. The first
+In every other case it builds. It runs `deno bundle` into a temporary
+file and renames it over `bundle.js`. Then it runs the new bundle. A
+command running at the same time never loads a half-written bundle.
+It writes the record only when it can fingerprint the inputs.
+
+The first build of a new project writes `deno.lock` and then the
+record, so the next run can reuse the bundle. These projects build on
+every run:
+
+- a project without `deno.lock` after the build, for example with
+  `"lock": false`;
+- a project with a `jsr:` or `npm:` import that `deno.lock` does not
+  hold, because that range can change;
+- a project that sets `importMap`, `scopes`, `links` or `patch`;
+- a project with a `workspace` pattern, or a workspace `deno.jsonc`.
+
+Do not commit `.settings/bundle-inputs.json`.
+After you change a pin or edit a cloned generator, run
+`skmtc generate` again. You do not need `skmtc bundle` first.
+
+The build takes about 0.4 seconds with a warm Deno cache. The first
 build after a pin change takes longer while Deno downloads the new
 packages.
 

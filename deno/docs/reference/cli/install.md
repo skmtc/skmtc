@@ -85,8 +85,8 @@ the shape, then type the keys into
 The CLI builds the bundle after the install — remote-only and
 hybrid projects alike — to check that the new generator bundles and
 that the project still resolves one copy of `@skmtc/core`.
-`generate` rebuilds the bundle on every run, so it always includes
-the new generator.
+`generate` builds the bundle again when `deno.json` changed, so it
+always includes the new generator.
 
 ### Verification
 
