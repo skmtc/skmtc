@@ -34,37 +34,44 @@ a Projection that nobody asks for is never constructed.
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`)
 iterates the configured generators in order. For each one, it
-routes by `type` to one of three per-generator loops:
+routes by `type` to one loop, `#runSubjects`, with the items of that
+kind:
 
-- `#runOasOperationGenerator` (line 376) — over `oasDocument.operations`
-- `#runGqlOperationGenerator` (line 437) — over `gqlDocument.operations`
-- `#runModelGenerator` (line 472) — over schema refNames
+- `oasOperation` — over `oasDocument.operations`
+- `webhook` — over `oasDocument.webhooks`
+- `gqlOperation` — over `gqlDocument.operations`
+- `model` — over schema refNames
 
-Each loop is a nested `forEach` — over items, then over each item's
-variants — that calls `transform` per `(item, variant)`:
+Each item is a subject (`core/context/Subject.ts`). A subject holds
+what is different for its kind. That is its place in the trail, the
+location of its enrichments and the filter that names it. It also
+holds how the loop calls the entry with it. The
+loop is a nested `forEach` — over subjects, then over each subject's
+variants — that calls `transform` per `(subject, variant)`:
 
 ```ts
-// core/context/GenerateContext.ts (OAS variant, simplified)
-oasDocument.operations.forEach(operation => {
-  const variants = toVariantList({ context: this, id, operation })
-  variants.forEach(variant => {
-    stackTrail.trace(`${operation.path}:${operation.method}`, st => {
-      try {
-        if (!isSupported(...)) {
-          this.captureCurrentResult('notSupported', st)
-          return
+// core/context/GenerateContext.ts (#runSubjects, simplified)
+subjects.forEach(subject => {
+  stackTrail.trace(subject.trail, subjectTrail => {
+    const variants = toVariantList({ opEnrichments, generatorId: entry.id, operationLabel: subject.label })
+    variants.forEach(variant => {
+      subjectTrail.trace(['variant', variant], st => {
+        try {
+          if (!subject.isSupported({ entry, context: this, variant })) {
+            this.#captureSubjectResult('notSupported', st)
+            return
+          }
+          if (filteredByInclude || filteredBySkip) {
+            this.#captureSubjectResult('skipped', st)
+            return
+          }
+          subject.transform({ entry, context: this, variant })
+          // ... preview hook
+          this.#captureSubjectResult('success', st)
+        } catch (error) {
+          this.#failItem(error, st)
         }
-        if (filteredByInclude || filteredBySkip) {
-          this.captureCurrentResult('skipped', st)
-          return
-        }
-        generatorConfig.transform({ context: this, operation, variant })
-        // ... preview/mapping hooks
-        this.captureCurrentResult('success', st)
-      } catch (error) {
-        this.logger.error(error)
-        this.captureCurrentResult('error', st)
-      }
+      })
     })
   })
 })

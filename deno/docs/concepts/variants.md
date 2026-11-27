@@ -68,9 +68,8 @@ The variant flows through:
 
 - **Enrichment routing** — variant names are the keys one level
   deeper than the pre-variants leaf (both operation and model arms).
-- **The engine's per-item dispatch** — `#runOasOperationGenerator`,
-  `#runGqlOperationGenerator`, and `#runModelGenerator` each contain
-  a nested `reduce` over the variants declared for that item.
+- **The engine's per-item dispatch** — `#runSubjects` has a nested
+  `forEach` over the variants of each item.
 - **`ContentSettings.variant`** — every Projection's settings bag
   carries the variant it was constructed for.
 - **`toIdentifierName`, `toExportPath`, `toEnrichments`,
@@ -169,7 +168,7 @@ would let both round-trip to the same PascalCase suffix.
 For an operation with enrichment `{ main: {…}, customer: {…} }`
 under `gen-shadcn-form`:
 
-1. **Engine** (`GenerateContext.#runOasOperationGenerator`) reads
+1. **Engine** (`GenerateContext.#runSubjects`) reads
    `enrichments[id][path][method]`, computes the variant list via
    `toVariantList` (`['main', 'customer']`), and runs an inner
    `forEach` over them.
@@ -197,7 +196,7 @@ under `gen-shadcn-form`:
    a 4-segment string with the variant as the trailing segment.
 
 The model arm is structurally identical with two substitutions:
-`#runModelGenerator` reads `enrichments[id][refName][variant]`,
+`#runSubjects` reads `enrichments[id][refName][variant]`,
 `context.toModelContentSettings({ref, projection, variant})`
 builds the settings, and the registered `generatorKey` is
 `toModelGeneratorKey({generatorId, ref, variant})` — a 3-segment

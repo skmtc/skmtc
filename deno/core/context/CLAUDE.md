@@ -5,8 +5,8 @@ The engine lives here. Three context classes, one per pipeline phase:
 - **`ParseContext`** — OpenAPI/GraphQL JSON → OAS / GQL objects.
 - **`GenerateContext`** — OAS / GQL → in-memory `File` map. Owns the
   per-generator dispatch loop. The variant fan-out happens in
-  `#runOasOperationGenerator` / `#runGqlOperationGenerator` /
-  `#runModelGenerator`; the helper `toVariantList`
+  `#runSubjects`, one loop for the four kinds of subject (`Subject.ts`);
+  the helper `toVariantList`
   (`@/helpers/toVariantList.ts`) enumerates variant keys and
   enforces the `'main'`-must-be-present rule.
 - **`RenderContext`** — `File` map → `{ path: content }` artifacts.
@@ -14,17 +14,20 @@ The engine lives here. Three context classes, one per pipeline phase:
 
 **Variant axis touchpoints in this directory:**
 
-- `GenerateContext.#runOasOperationGenerator` / `#runGqlOperationGenerator`
-  / `#runModelGenerator` — per-item dispatch reducers that fan out
-  over variants.
+- `GenerateContext.#runSubjects` — the per-item dispatch that fans out
+  over variants, for an OpenAPI operation, a webhook, a GraphQL
+  operation or a model. What differs by kind is in `Subject.ts`:
+  `OasOperationSubject`, `WebhookSubject`, `GqlOperationSubject`,
+  `ModelSubject`.
 - `GenerateContext.toOperationContentSettings` /
   `toModelContentSettings` — thread `variant` into the Projection's
   static methods and into `new ContentSettings`.
 - `GenerateContext.insertOperation` / `insertModel` — `variant`
   defaults to `'main'` when callers omit it.
-- `toOasOperationSource` / `toGqlOperationSource` / `toModelSource`
-  — Source descriptors in the manifest carry the variant.
-- `matchesPathFilter` / `matchesRefFilter` — sibling helpers that
+- `toOasOperationSource` / `toWebhookSource` / `toGqlOperationSource` /
+  `toModelSource` (in `Subject.ts`) — Source descriptors in the
+  manifest carry the variant.
+- `matchesPathFilter` / `matchesRefFilter` (in `Subject.ts`) — sibling helpers that
   match operation- and model-shaped skip/include entries against the
   per-variant tuple.
 

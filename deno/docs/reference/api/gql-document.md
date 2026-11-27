@@ -128,8 +128,8 @@ for cross-type references.
 
 ### `toSchemasRefNames()`
 
-Returns the registered type names. Used by the model dispatcher
-(`#runModelGenerator` in `GenerateContext`) to iterate types. The
+Returns the registered type names. Used by the model dispatch
+(`#runSubjects` in `GenerateContext`) to iterate types. The
 matching `OasComponents.toSchemasRefNames` exists on the OAS side
 — the protocol-neutral model dispatch reads whichever one
 applies based on `document.type`.

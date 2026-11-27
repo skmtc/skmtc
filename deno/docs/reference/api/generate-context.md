@@ -400,7 +400,7 @@ not a coordination surface).
 
 ### What happens if `transform` throws?
 
-`#runOasOperationGenerator` (and the GQL/model variants) catches
+`#runSubjects` catches
 the throw, marks the per-item result as `'error'` in the manifest,
 and continues to the next operation. The error doesn't propagate
 to the caller — generator errors are per-item isolated. The engine

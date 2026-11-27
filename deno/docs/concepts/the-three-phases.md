@@ -225,17 +225,18 @@ generators.forEach(generatorConfig => {
     if (/* include filter excludes this generator */) return
 
     switch (generatorConfig.type) {
-      case 'oasOperation': this.#runOasOperationGenerator(...)
-      case 'gqlOperation': this.#runGqlOperationGenerator(...)
-      case 'model':        this.#runModelGenerator(...)
+      case 'oasOperation': this.#runSubjects(generatorConfig, operationSubjects, filters, st)
+      case 'webhook':      this.#runSubjects(generatorConfig, webhookSubjects, filters, st)
+      case 'gqlOperation': this.#runSubjects(generatorConfig, gqlOperationSubjects, filters, st)
+      case 'model':        this.#runSubjects(generatorConfig, modelSubjects, filters, st)
     }
   })
 })
 ```
 
-Inside each `#run*Generator`, the per-item loop iterates operations or refNames
-(and each item's variants), applies item-level filters, calls the generator's
-`isSupported({ operation })` capability gate, then calls
+`#runSubjects` iterates the subjects (operations, webhooks or refNames) and
+the variants of each. For each variant, it calls the generator's
+`isSupported({ operation })` capability gate, applies item-level filters, then calls
 `generatorConfig.transform({ context, operation, variant })`. The transform is
 where the generator produces its output — but not by returning strings (it
 returns `void`). Instead, the transform calls
@@ -449,7 +450,7 @@ host-side, but GraphQL parsing happens worker-side. See
 
 **What happens if I throw in a generator's `transform`?**
 
-`#runOasOperationGenerator` (`core/context/GenerateContext.ts`) catches
+`#runSubjects` (`core/context/GenerateContext.ts`) catches
 it, logs an error, and marks the operation as `'error'` in the manifest. The
 other operations still run, so the manifest records every failure. When every
 generator has run, any error fails the run: a `RUN_FAILED` issue at
@@ -460,7 +461,7 @@ your own code and configuration, so an error in them is a bug to fix.
 **What happens if I throw in a Projection's _constructor_?**
 
 The throw propagates up through the Driver, then up through `insertOperation` in
-the calling generator's `transform`. The catch in `#runOasOperationGenerator`
+the calling generator's `transform`. The catch in `#runSubjects`
 handles it. So a constructor failure becomes an operation-level error in the
 same way a transform-level failure does.
 
