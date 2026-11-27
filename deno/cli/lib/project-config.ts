@@ -179,7 +179,21 @@ export const reportConfigDeprecations = ({
     reported.deprecations.push(deprecation)
     console.error(toDeprecationWarning(projectName, deprecation))
   })
+
+  // The CLI hands the engine one key (`toEngineSettings`), so core's own
+  // warning for both keys never fires in a CLI run: give it here.
+  const settings = toSettingsRecord(config)
+  const bothKey = `bothParseKeys:${projectPath}`
+
+  if (settings && 'parse' in settings && 'system' in settings && !reported.keys.has(bothKey)) {
+    reported.keys.add(bothKey)
+    console.error(toBothParseKeysWarning(projectName, toMovedSettings(settings).conflicts))
+  }
 }
+
+const toBothParseKeysWarning = (projectName: string, conflicts: string[]): string =>
+  `Warning: ${projectName} sets settings.parse and settings.system: settings.parse is used and settings.system is ignored.` +
+  (conflicts.length > 0 ? ` settings.system has another value for: ${conflicts.join(', ')}.` : '')
 
 /** The deprecations this run has reported, for the `deprecations` array of a JSON result. */
 export const toReportedDeprecations = (): ConfigDeprecation[] => [...reported.deprecations]

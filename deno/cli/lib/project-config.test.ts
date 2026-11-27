@@ -97,6 +97,22 @@ Deno.test('reportConfigDeprecations - one warning per old name per run, on stder
   })
 })
 
+Deno.test('reportConfigDeprecations - with parse and system, says system is ignored and names the keys that differ', async () => {
+  const config = { settings: { parse: { allOf: 'strict', not: 'unknown' }, system: { allOf: 'latestWins', not: 'unknown' } } }
+
+  await withConfigRoot({ pets: { 'skmtc.config.json': config } }, async ({ tempRoot }) => {
+    const projectPath = join(tempRoot, '.skmtc', 'pets')
+    const { stderr } = await captureConsole(() => {
+      reportConfigDeprecations({ projectPath, location: toConfigLocation(projectPath), config })
+      reportConfigDeprecations({ projectPath, location: toConfigLocation(projectPath), config })
+    })
+
+    const both = stderr.filter(line => line.includes('settings.system is ignored'))
+    assertEquals(both.length, 1)
+    assertStringIncludes(both[0], 'settings.system has another value for: allOf.')
+  })
+})
+
 Deno.test('Project.open - a project on the new names prints no warning, and its JSON result has no deprecations', async () => {
   await withConfigRoot({ pets: { 'skmtc.config.json': currentConfig } }, async () => {
     const { stderr } = await captureConsole(() => Project.open('pets', createMockManager()))
