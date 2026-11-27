@@ -61,7 +61,7 @@ export type PlannedSubject = {
   toExportPath(args: ToExportPathArgs): string | undefined
   /**
    * The keys of the models it names: for a model, its own key; for any other
-   * subject, the models its `$ref`s give (`Reach.namedBy`). It can get to
+   * subject, the models its `$ref`s give (`Reach.namedByOperation`, `Reach.namedByWebhook`). It can get to
    * each of them, and to what each reaches.
    */
   toNamedModels(reach: Reach): readonly string[]

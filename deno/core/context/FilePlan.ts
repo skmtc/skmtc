@@ -76,7 +76,9 @@ export class FilePlan {
     this.#toFilePath = toFilePath
 
     subjects.forEach(subject => {
-      const files = this.#toFiles(subject)
+      // A model names itself, so its own files are among the files behind
+      // its key; asking for them here too would answer each projection twice.
+      const files = subject.type === 'model' ? [] : this.#toFiles(subject)
       const models = subject.toNamedModels(reach)
 
       files.forEach(file => {

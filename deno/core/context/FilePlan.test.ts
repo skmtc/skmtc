@@ -250,6 +250,26 @@ Deno.test('FilePlan - a projection whose static throws is left out for that subj
   assertEquals(plan.filesOf(operation('/ping')), [operationFile('/ping')])
 })
 
+Deno.test('FilePlan - a model projection whose static throws is counted one time', () => {
+  const throwsForTag: DeclaredProjection = {
+    id: 'models',
+    type: 'model',
+    toEnrichments: () => undefined,
+    toExportPath: ({ ref }) => {
+      if (ref.refName === 'Tag') {
+        throw new Error('no path for Tag')
+      }
+
+      return `@/models/${ref.refName}.ts`
+    }
+  }
+
+  const { plan, model } = toPlanned({ operationProjections: [operationFiles, throwsForTag] })
+
+  assertEquals(plan.unanswered, 1)
+  assertEquals(plan.filesOf(model('Tag')), [modelFile('Tag')])
+})
+
 // The run runs each variant on its own, so a variant whose static throws
 // leaves out its own file and not the files of the other variants.
 Deno.test('FilePlan - a variant whose static throws is left out, and the other variants are planned', () => {
