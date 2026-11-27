@@ -44,6 +44,9 @@ Deno.test('generateSwitch - strict mode without a resolvable schema fails with a
   assertEquals(errors.length, 1)
   assertStringIncludes(errors[0], 'missing required argument: <schema>')
   assertStringIncludes(errors[0], 'skmtc.config.json')
+  // The schema source is the config's top-level `source` key.
+  assertStringIncludes(errors[0], 'set `source` in')
+  assertEquals(errors[0].includes('settings.source'), false)
 })
 
 Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2', async () => {
@@ -256,7 +259,8 @@ Deno.test('generateSwitch - in interactive mode, asks to migrate an old-name pro
     settings: { basePath: 'src', system: { not: 'unknown' } }
   }
 
-  await withConfigRoot({ pets: { 'client.json': config } }, async ({ tempRoot, readFile }) => {
+  // shop is on the old names too, but generate pets asks only about pets.
+  await withConfigRoot({ pets: { 'client.json': config }, shop: { 'client.json': config } }, async ({ tempRoot, readFile }) => {
     await Deno.writeTextFile(join(tempRoot, 'openapi.json'), JSON.stringify({ openapi: '3.0.0', info: { title: 'p', version: '1' }, paths: {} }))
     const questions: string[] = []
     const settingsSeen: unknown[] = []
@@ -289,7 +293,10 @@ Deno.test('generateSwitch - in interactive mode, asks to migrate an old-name pro
 
     assertEquals(questions.length, 1)
     assertStringIncludes(questions[0], 'pets uses client.json / settings.system')
+    assertEquals(questions[0].includes('shop'), false)
     assertEquals(readFile('pets', 'client.json'), undefined)
+    assertEquals(readFile('shop', 'client.json') === undefined, false)
+    assertEquals(readFile('shop', 'skmtc.config.json'), undefined)
     assertEquals(settingsSeen, [{ basePath: 'src', parse: { not: 'unknown' } }])
   })
 })

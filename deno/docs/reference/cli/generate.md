@@ -109,7 +109,7 @@ agent contexts).
 Resolution order:
 
 1. Explicit `[schema]` argument on the command line
-2. `skmtc.config.json#settings.source` field
+2. `skmtc.config.json#source` field
 3. Interactive prompt (TTY only — strict mode fails with recipe)
 
 The first non-undefined value wins.
