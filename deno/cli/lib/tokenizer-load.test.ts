@@ -13,6 +13,7 @@ type GraphModule = {
 }
 
 type ModuleGraph = {
+  roots: string[]
   modules: GraphModule[]
   redirects: Record<string, string>
 }
@@ -20,6 +21,8 @@ type ModuleGraph = {
 const isModuleGraph = (value: unknown): value is ModuleGraph =>
   typeof value === 'object' &&
   value !== null &&
+  'roots' in value &&
+  Array.isArray(value.roots) &&
   'modules' in value &&
   Array.isArray(value.modules) &&
   'redirects' in value &&
@@ -48,19 +51,23 @@ const toModuleGraph = async (root: string): Promise<ModuleGraph> => {
 }
 
 /**
- * Specifiers of the code `root` loads. With `followDynamic: false`, only the
- * static imports: what loading the module loads before any of it runs.
+ * Specifiers of the code the graph's root loads. With `followDynamic: false`,
+ * only the static imports: what loading the module loads before any of it runs.
+ *
+ * The walk starts from the root `deno info` names, which on Windows can differ
+ * from `import.meta.resolve` in the drive letter's case.
  */
-const toLoadedSpecifiers = (
-  graph: ModuleGraph,
-  root: string,
-  followDynamic: boolean
-): Set<string> => {
+const toLoadedSpecifiers = (graph: ModuleGraph, followDynamic: boolean): Set<string> => {
   const modules = new Map(graph.modules.map(module => [module.specifier, module]))
   const resolve = (specifier: string) => graph.redirects[specifier] ?? specifier
-  const rootSpecifier = import.meta.resolve(root)
-  const loaded = new Set<string>([rootSpecifier])
-  const pending = [rootSpecifier]
+  const [rootSpecifier] = graph.roots
+
+  if (rootSpecifier === undefined || !modules.has(resolve(rootSpecifier))) {
+    throw new Error(`deno info has no module for its root ${rootSpecifier}`)
+  }
+
+  const loaded = new Set<string>([resolve(rootSpecifier)])
+  const pending = [resolve(rootSpecifier)]
 
   while (pending.length > 0) {
     const specifier = pending.pop()
@@ -97,7 +104,7 @@ for (const root of roots) {
   Deno.test(`${root} - loads gpt-tokenizer only through a dynamic import`, async () => {
     const graph = await toModuleGraph(root)
 
-    assertEquals(loadsTokenizer(toLoadedSpecifiers(graph, root, false)), false)
+    assertEquals(loadsTokenizer(toLoadedSpecifiers(graph, false)), false)
   })
 }
 
@@ -106,5 +113,5 @@ Deno.test('generationStats.ts - reaches gpt-tokenizer when dynamic imports are f
   const root = '@/lib/generationStats.ts'
   const graph = await toModuleGraph(root)
 
-  assertEquals(loadsTokenizer(toLoadedSpecifiers(graph, root, true)), true)
+  assertEquals(loadsTokenizer(toLoadedSpecifiers(graph, true)), true)
 })
