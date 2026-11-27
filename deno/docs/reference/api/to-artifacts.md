@@ -130,7 +130,8 @@ down.
 #### `logsPath`
 
 When set, structured logs are written to this path during the run. When unset,
-logs are written via console only.
+logs are written to the console only. The console lines go to stderr, so
+stdout stays free for the host's own output.
 
 The CLI sets `logsPath` to a per-invocation directory under the project's
 `.skmtc/logs/`. Direct callers typically omit it.

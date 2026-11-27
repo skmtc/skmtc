@@ -5,6 +5,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { ResultType } from '@/types/Results.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
+import { stub } from '@std/testing/mock'
 
 // Helper function to create minimal OpenAPI document
 const createMinimalDocument = (): OpenAPIV3.Document => ({
@@ -121,14 +122,23 @@ Deno.test('CoreContext - constructor sets up logger handlers', () => {
   assert(context.logger.handlers.length > 0)
 })
 
-Deno.test('CoreContext - logger includes console handler', () => {
+Deno.test('CoreContext - the console handler writes log lines to stderr, not stdout', () => {
   const context = createTestContext({ spanId: 'console-test' })
+  const errorStub = stub(console, 'error')
+  const logStub = stub(console, 'log')
 
-  const hasConsoleHandler = context.logger.handlers.some(
-    handler => handler.constructor.name === 'ConsoleHandler'
-  )
+  try {
+    context.logger.warn('a warning')
 
-  assertEquals(hasConsoleHandler, true)
+    assertEquals(
+      errorStub.calls.some(({ args }) => String(args[0]).includes('a warning')),
+      true
+    )
+    assertEquals(logStub.calls.length, 0)
+  } finally {
+    errorStub.restore()
+    logStub.restore()
+  }
 })
 
 Deno.test({

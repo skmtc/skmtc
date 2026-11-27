@@ -94,6 +94,12 @@ debugger to attach.
 Write a single structured JSON object to stdout. Implies `--no-input`.
 Mutually exclusive with `--watch`.
 
+The engine writes its log lines, such as a `[WARN]` line for a parse
+warning, to stderr, so you can pipe stdout to `jq`. The parse issues
+are also in the object's `parseIssues`. A generator that writes to
+stdout (`console.log`) breaks this, because the Worker shares the
+CLI's stdout (see [Where warnings go](#where-warnings-go)).
+
 ### `--no-input`
 
 Disable interactive prompts. Required arguments must be provided up
@@ -205,6 +211,17 @@ After the worker returns, the CLI writes:
 
 The manifest is overwritten on every run. See
 [manifest-format](../manifest-format.md).
+
+### Where warnings go
+
+The engine writes its log lines to stderr in every mode. A parse
+warning is one `[WARN]` line, and a parse error is one `[ERROR]` line.
+On stdout the engine writes only the result: the summary and the
+`Parse issues` list in text mode, or the JSON object with `--json`.
+
+The Worker runs in the CLI process, so a generator's `console.log`
+also goes to the CLI's stdout, and with `--json` it breaks the JSON.
+A generator that prints its own lines must use `console.error`.
 
 ## JSON output
 
