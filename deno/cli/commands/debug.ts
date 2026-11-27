@@ -72,7 +72,10 @@ export const renderDebug = async ({
   // Build the schema document host-side exactly as `generate` does — load the
   // schema, convert Swagger 2 → 3.0 (3.0, 3.1 and 3.2 pass through) and make a
   // clone-safe document.
-  const schemaContents = await toSchemaContents(source)
+  const schemaContents = await toSchemaContents(source).catch(error => {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+    return Deno.exit(1)
+  })
   const document = await toDocumentInput(schemaContents.contents, schemaContents.fileType)
   const clientSettings = project.clientJson.contents?.settings
 
