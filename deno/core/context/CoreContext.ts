@@ -84,7 +84,8 @@ type GenerateArgs = {
   document: SkmtcParsedDocument
   settings: ClientSettings | undefined
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  captureChannel: CaptureChannel
+  /** The run's capture channel, or `undefined` for a run that captures no render. */
+  captureChannel: CaptureChannel | undefined
 }
 
 type CoreContextArgs = {
@@ -100,7 +101,7 @@ type RenderArgs = {
   previews: Record<string, Preview>
   basePath: string | undefined
   attribution: AttributionState | undefined
-  captureChannel: CaptureChannel
+  captureChannel: CaptureChannel | undefined
 }
 
 /**
@@ -133,9 +134,10 @@ export type ToArtifactsArgs = {
   /** Whether to suppress console output */
   silent: boolean
   /**
-   * Optional attribution (gen-maps) **emission** config. Capture is
-   * always on; when `postPass` is set, the pipeline emits sidecars + a
-   * generation map alongside the usual artifacts. See
+   * Optional attribution (gen-maps) **emission** config. Location
+   * capture is always on; when `postPass` is set, the run's snippets wrap
+   * their `toString` and the pipeline emits sidecars + a generation map
+   * alongside the usual artifacts. See
    * {@link AttributionState}.
    */
   attribution?: AttributionState
@@ -473,8 +475,12 @@ export class CoreContext {
       // The shared attribution capture channel: snippets constructed
       // during generate hold the GenerateContext, whose `captureSink`
       // reads this slot; RenderContext flips it around the one capturing
-      // render. One object per run wires the two phases together.
-      const captureChannel: CaptureChannel = { sink: undefined }
+      // render. One object per run wires the two phases together. A run
+      // with no `attribution.postPass` has no capturing render, so it has
+      // no channel, and its snippets install no `toString` wrapper.
+      const captureChannel: CaptureChannel | undefined = attribution?.postPass
+        ? { sink: undefined }
+        : undefined
 
       const { files, previews, inspection, enrichmentWarnings } = stackTrail.trace(
         'generate',
@@ -603,13 +609,12 @@ export class CoreContext {
 
       const subjects = stackTrail.trace('generate', () => {
         this.#phaseName = 'generate'
-        // Capability probing never renders, so the capture interval never
-        // opens — a throwaway channel satisfies the wiring.
+        // Capability probing never renders, so it has no capture channel.
         const generatePhase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
           settings,
-          captureChannel: { sink: undefined }
+          captureChannel: undefined
         })
         this.#phase = generatePhase
 
@@ -671,13 +676,12 @@ export class CoreContext {
 
       const enrichmentDefaults = stackTrail.trace('generate', () => {
         this.#phaseName = 'generate'
-        // Seeding never renders, so the capture interval never opens — a
-        // throwaway channel satisfies the wiring.
+        // Seeding never renders, so it has no capture channel.
         const generatePhase = this.#setupGeneratePhase({
           toGeneratorConfigMap,
           document: parsedDocument,
           settings,
-          captureChannel: { sink: undefined }
+          captureChannel: undefined
         })
         this.#phase = generatePhase
 

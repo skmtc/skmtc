@@ -126,7 +126,8 @@ type ConstructorArgs = {
    * Shared attribution capture channel — the slot `RenderContext` flips to
    * open/close the capture interval. Snippets read it through this
    * context's {@link GenerateContext.captureSink}. Optional: when omitted
-   * (tests, capture-less runs) `captureSink` is always `undefined`.
+   * (tests, capture-less runs) `captureSink` is always `undefined` and
+   * `capturesRender` is false, so no snippet installs a `toString` wrapper.
    */
   captureChannel?: CaptureChannel
   /**
@@ -437,6 +438,15 @@ export class GenerateContext implements GenerateContextType {
    */
   get captureSink(): CaptureSink | undefined {
     return this.#captureChannel?.sink
+  }
+
+  /**
+   * Whether this run has a capturing render: it was given a capture
+   * channel. A `SnippetBase` instance installs its `toString` wrapper only
+   * then.
+   */
+  get capturesRender(): boolean {
+    return this.#captureChannel !== undefined
   }
 
   /** Logs a caught error with its message, keeping the error for the line's `error` field. */

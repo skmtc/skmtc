@@ -1,6 +1,6 @@
 /**
  * End-to-end test: pipeline emits sidecars + generation map when a
- * post-pass config is supplied (capture itself is always on).
+ * post-pass config is supplied (location capture itself is always on).
  *
  * Wires a minimal model generator against a one-schema OpenAPI doc
  * and asserts the post-pass output (sidecars keyed by file path,
@@ -15,6 +15,7 @@ import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
+import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 const ModelBase = toTsModelProjectionBase({
@@ -36,12 +37,16 @@ class ModelProjection extends ModelBase {
 // `gen-zod`) supply those. For this test the fixture model produces
 // a constant body, so the static-shape check is the only blocker —
 // cast through the test boundary.
+/** The Definitions the fixture generator inserted, in the order of the runs. */
+const insertedDefinitions: SnippetBase[] = []
+
 const modelEntry = toModelEntry({
   id: '@test/gen-model',
   toEnrichmentSchema: () => emptyEnrichmentSchema,
   transform: ({ context, ref }) => {
     // deno-lint-ignore no-explicit-any
-    context.insertModel(ModelProjection as any, ref)
+    const inserted = context.insertModel(ModelProjection as any, ref)
+    insertedDefinitions.push(inserted.definition)
   }
 })
 
@@ -101,6 +106,32 @@ Deno.test('toArtifacts - attribution without postPass → still no sidecars (cap
   assertEquals(result.generationMap, undefined)
   // The standard artifacts are still produced normally.
   assert(Object.keys(result.artifacts).length > 0)
+})
+
+Deno.test('toArtifacts - only a run with postPass wraps its snippets toString', () => {
+  const run = (attribution: Parameters<typeof toArtifacts>[0]['attribution']): SnippetBase => {
+    insertedDefinitions.length = 0
+    toArtifacts({
+      traceId: 't',
+      spanId: 's',
+      document: { type: 'oas', value: oasDoc },
+      settings: undefined,
+      toGeneratorConfigMap: buildGenerators,
+      startAt: Date.now(),
+      silent: true,
+      stackTrail: new StackTrail(['test']),
+      attribution
+    })
+    assertEquals(insertedDefinitions.length, 1)
+    return insertedDefinitions[0]
+  }
+
+  assertEquals(Object.hasOwn(run(undefined), 'toString'), false)
+  assertEquals(Object.hasOwn(run({}), 'toString'), false)
+  assertEquals(
+    Object.hasOwn(run({ postPass: { parser: oxcAdapter, schemaSrc: 'openapi.json' } }), 'toString'),
+    true
+  )
 })
 
 Deno.test('toArtifacts - attribution + postPass → sidecars emitted per File', () => {

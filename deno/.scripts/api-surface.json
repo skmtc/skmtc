@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.51",
+    "minor": "0.52",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -59,8 +59,8 @@
       "FindDefinitionArgs": "1619b53f8b0dd10d",
       "FindDefinitionsQuery": "c8f87bc0306f199f",
       "GENERATOR_ENRICHMENT_KEY": "0e3c47b2d008bb38",
-      "GenerateContext": "7ee0cfef74309abe",
-      "GenerateContextType": "6a9cf68e9c8bdf2c",
+      "GenerateContext": "3ac98bbf8002a3c4",
+      "GenerateContextType": "0a958fdac7064269",
       "GeneratePhase": "9c6db0829ae64934",
       "GenerateResult": "634b987a8b21d1c2",
       "GeneratedDefinition": "393d9141b2c3dd50",

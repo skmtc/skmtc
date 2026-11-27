@@ -358,7 +358,7 @@ Detail: [`concepts/the-manifest.md`](../../concepts/the-manifest.md),
 
 ## 9. Provenance — the attribution / gen-maps subsystem
 
-`core/anchors/` is the **provenance layer**. Capture is always on;
+`core/anchors/` is the **provenance layer**. Location capture is always on;
 **emission is opt-in**: pass `attribution: { postPass: {...} }` to
 `toArtifacts` (the engine-level `AttributionState` has no `enabled`
 field — the `skmtc.config.json#settings.anchors.enabled` switch is the

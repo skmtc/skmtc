@@ -617,11 +617,8 @@ export type GenerateContextType = {
   pendingStack: PendingDefinition[]
   document: SkmtcParsedDocument
   /**
-   * Attribution (gen-maps) state. When set, every `SnippetBase`
-   * instance wraps its `toString` to record parent/child edges in a
-   * module-level render stack, so the post-render span resolver can
-   * attribute byte ranges to producers. When omitted, the wrap is
-   * skipped entirely — zero cost.
+   * Attribution (gen-maps) state. It does not decide whether a
+   * `SnippetBase` wraps its `toString`: {@link capturesRender} does.
    */
   attribution?: AttributionState
   /**
@@ -629,10 +626,18 @@ export type GenerateContextType = {
    * capture interval. Read by every `SnippetBase` instance's `toString`
    * wrapper; `RenderContext` opens/closes the interval through the shared
    * {@link import('@/anchors/CaptureSink.ts').CaptureChannel} that
-   * `CoreContext` wires into both contexts. Bare test mocks read
-   * `undefined` and take the pass-through path.
+   * `CoreContext` wires into both contexts. In a run with no capturing
+   * render (`capturesRender` false, as in a bare test mock) no snippet
+   * has a wrapper, so nothing reads it.
    */
   captureSink: CaptureSink | undefined
+  /**
+   * Whether the run has a capturing render (attribution emission is
+   * configured). Read once by every `SnippetBase` instance, at
+   * construction: it installs its `toString` wrapper only when this is
+   * true.
+   */
+  capturesRender: boolean
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   registerMarkdown: ({ destinationPath, markdown }: RegisterMarkdownArgs) => void
