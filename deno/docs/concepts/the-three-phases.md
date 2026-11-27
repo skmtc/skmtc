@@ -257,7 +257,8 @@ generator of that kind.
 
 A file plan tells the run which subjects hold a file. The plan comes from
 the `projections` that each entry lists, and from the `$ref`s that the
-parser read. The files and their bytes are the same in both orders. See
+parser read. The two orders write the same files. If two generators write
+to one file, the definitions in it can be in a different order. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle

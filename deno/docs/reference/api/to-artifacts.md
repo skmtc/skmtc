@@ -168,11 +168,12 @@ With `onArtifact`:
 - `artifacts` of the result is empty. The host has every file from the
   calls. `manifest.files` has every file.
 - For an OpenAPI document, the run gives a file when no later subject can
-  write to it or read it. The run then lets the file go. The files and
-  their bytes are the same as without `onArtifact`.
+  write to it or read it. The run then lets the file go. The files are the
+  same as without `onArtifact`.
 - The run goes subject by subject: for one model or operation, every
   generator. Without `onArtifact`, one generator runs all its subjects, then
-  the next generator runs.
+  the next generator runs. Thus, if two generators write to one file, the
+  definitions in it can be in a different order.
 - A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
   document, gives every file at the end.
 - A run that fails has no files. Drop the files that it gave before it
@@ -182,9 +183,10 @@ The run knows when a file is complete from the `projections` that each
 generator's entry lists. See [entry factories](entry-factories.md). The run
 gives a file of a generator with no list at the end.
 
-If a generator inserts a projection that its entry does not list, it can
-write to a file that the run gave earlier. The run then fails, and the
-error names the file.
+A generator can write to a file that the run gave earlier. This occurs if
+it inserts a projection that its entry does not list, or a model that the
+subject does not reach through `$ref`s. The run then fails, and the error
+names the file.
 
 The plan that tells the run when a file is complete costs time: about 0.4 s
 for a document of 18,000 operations in a run of 2.5 s. A run without

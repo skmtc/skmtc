@@ -22,7 +22,7 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { FilesRenderResult, ToArtifactsResult } from './generateTypes.ts'
+import type { FilesRenderResult, ToArtifactsResult } from '@/context/generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
@@ -157,7 +157,9 @@ export type ToArtifactsArgs = {
    * For an OpenAPI document the run gives a file as soon as no subject left
    * to run can write to it or read from it, so that a host can write it and
    * the run can let it go. That run goes subject by subject, and writes the
-   * same files with the same bytes. A run with `attribution.postPass` or
+   * same files. A file that more than one generator writes can have its
+   * definitions in another order: each subject runs every generator before
+   * the next subject runs. A run with `attribution.postPass` or
    * `inspect`, or of a GraphQL document, gives every file at the end.
    *
    * A run that fails has no files. What it gave before it failed, the host

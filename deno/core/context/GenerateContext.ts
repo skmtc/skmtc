@@ -563,8 +563,9 @@ export class GenerateContext implements GenerateContextType {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
     // A run that gives each file when it is complete goes subject by
-    // subject. Any other run goes generator by generator. The files are
-    // the same in both.
+    // subject. Any other run goes generator by generator. Both write the
+    // same files; a file that several generators write can have its
+    // definitions in another order.
     if (release !== undefined && this.document.type === 'oas') {
       this.#runBySubject(this.document.value, generators, stackTrail, release)
     } else {
@@ -668,10 +669,11 @@ export class GenerateContext implements GenerateContextType {
    * the plan says no later subject holds are given to `release.onFile` and
    * let go.
    *
-   * The order keeps each file's bytes as {@link #runByGenerator} writes
-   * them. The models run in document order, and so do the operations, and
-   * then the webhooks. An operation runs when each model up to the last one
-   * it can get to has run.
+   * The order keeps the bytes of a file that one generator writes as
+   * {@link #runByGenerator} writes them. The models run in document order,
+   * and so do the operations, and then the webhooks. An operation runs when
+   * each model up to the last one it can get to has run. A file that several
+   * generators write has their definitions in the order of the subjects.
    */
   #runBySubject(
     oasDocument: OasDocument,
@@ -827,13 +829,15 @@ export class GenerateContext implements GenerateContextType {
   /**
    * A read or a write of a file that was given to the host is a fault: the
    * file is gone. It means a generator got to a file that the plan does not
-   * give its subject, by a projection that its entry does not list.
+   * give its subject: by a projection that its entry does not list, or by a
+   * model that the subject does not reach through `$ref`s.
    */
   #affirmNotReleased(path: string): void {
     if (this.#released.has(path)) {
       throw new Error(
         `File '${path}' was complete and given to the host before this subject used it. ` +
-          `A generator inserts a projection that its entry does not list in 'projections'.`
+          `A generator inserts a projection that its entry does not list in 'projections', ` +
+          `or inserts a model that this subject does not reach through '$ref's.`
       )
     }
   }
