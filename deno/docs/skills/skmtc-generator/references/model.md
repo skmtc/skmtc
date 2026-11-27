@@ -1,35 +1,18 @@
----
-name: skmtc-model
-version: 0.3.2
-description: >
-  The model-generator shape for Skmtc: one definition per component
-  schema, built by copying the shipped SKELETON package and filling its
-  SLOT markers with the target library's syntax. Covers the edge cases
-  every model generator must survive — refs, recursion, optional vs
-  nullable, additionalProperties, enums, readOnly/writeOnly. Use when
-  authoring or editing a generator that maps schemas to a
-  validator/schema/type library ("write a gen-<lib>", "map OpenAPI
-  models to <lib>"). Load ALONGSIDE skmtc-generator (engine rules)
-  and skmtc-lang-typescript (TS layer).
-metadata:
-  describes:
-    '@skmtc/core': '0.49'
-    '@skmtc/lang-typescript': '0.15'
----
-
 # Model generators: fill the skeleton
 
-A **model generator** turns each component schema (`refName`) into one
-definition in one file: entry → projection → schema-type router → one
-snippet class per schema type. That structure is invariant across
-target libraries — only naming policy and per-type syntax vary. So do
-not write the structure: copy it.
+A **model generator** turns each schema (by its `ref`) into one
+definition in one file: the entry, a projection, a router over schema
+types, and one snippet class for each schema type. That structure is the
+same for every target library. Only the naming rule and the code for
+each type differ. So copy the structure, and write only what differs.
 
 ## 1. The method
 
-The `skeleton/` directory next to this file is a complete, compiling,
-engine-tested model generator that renders a placeholder syntax
-(`m.object({...})`). Author by transplant, not from scratch:
+`skeleton/` in this skill (`../skeleton/` from this file) is a complete
+model generator that compiles, is tested against the engine, and
+renders a placeholder syntax (`m.object({...})`). It is a tree of
+producers as `producers.md` describes: one router, one class for each
+schema type, names in `base.ts`.
 
 1. **Copy** `skeleton/` to your package location; run
    `deno test --allow-env --allow-sys --allow-read` — 9 green tests
@@ -38,7 +21,7 @@ engine-tested model generator that renders a placeholder syntax
    names and filenames; `myLibEntry` → `yourLibEntry`; then
    `src/lib.ts` — `LIB_MODULE` (emitted module specifier) and `LIB`
    (imported symbol).
-3. **Fill the slots** (§2), smallest first: scalars → string/enum →
+3. **Fill the slots** (section 2), smallest first: scalars → string/enum →
    array/object → union → lazy/recursion annotation.
 4. **Re-pin the test**: update the pinned strings in `mod.test.ts` to
    your target syntax. The structural assertions (files exist, shared
@@ -48,6 +31,10 @@ engine-tested model generator that renders a placeholder syntax
 
 Every slot is a `// SLOT(name):` comment. Everything outside a SLOT is
 engine machinery — modifying it is almost always a mistake.
+
+When your library needs something the skeleton has no slot for, add a
+class and a router case (`SKILL.md`, "When a case does not fit"). Do
+not add a function that inspects the schema before the router does.
 
 ## 2. The slots
 
@@ -122,43 +109,15 @@ engine machinery — modifying it is almost always a mistake.
 - **additionalProperties** → the record path; `true`/empty schema →
   the unknown fallback; properties + additionalProperties together →
   SLOT(object-intersection).
-- **An object schema has four forms — and position can change the
-  render.** Properties-only, record-only (additionalProperties), both,
-  empty: every place an object renders must survive all four. In
-  TypeScript one expression serves both type and declaration positions
-  (`z.object({...})`, `.and(z.record(...))` for both-forms), so the
-  object SLOTs compose freely. In a head+value language (Kotlin) the
-  two positions DIVERGE, and a position-blind `toString()` cannot serve
-  both (compiler-verified 2026-08-04, kotlin-debug rig): properties-only
-  declares as a `data class` parameter list, and in type position must
-  render a NAME — synthesize the named sibling declaration and
-  reference it (name derived from the schema's own `stackTrail`, no
-  naming param threaded through the router; collisions policed by a
-  document-wide claim registry that throws per-item, since the name
-  shares a PACKAGE with every component class — gen-kotlin-jackson
-  `toSynthesizedName.ts` + `synthesizedNames.ts`; a parameter list in
-  type position parses as a function type and fails, and widening to
-  `Map<String, Any?>` discards the type — capitulation, not a
-  solution); record-only and empty
-  must not take a data-class head at all (`data class X()` is illegal —
-  their declaration kind is `typealias`); both-forms has a declaration
-  form (data class plus a `@field:JsonAnySetter @get:JsonAnyGetter`
-  catch-all map property) but no anonymous type form. Decide the
-  identifier KIND and the value together from the same schema guards
-  (gen-kotlin-jackson `shape.ts` is the worked example) — never from
-  the name alone, and never by making one `toString()` answer both
-  positions.
-- **A discriminated union may be a DECLARATION, not an expression.**
-  In TypeScript SLOT(union) is one expression
-  (`z.discriminatedUnion("type", [...])`). In a language without union
-  types (Kotlin) a qualifying discriminated union becomes a named
-  `sealed` declaration, and the member models must declare the
-  supertype — a member may be BUILT before its union is ever seen, so
-  membership comes from a document-wide scan (parent → member
-  inversion, WeakMap-memoized) consulted at member construction, never
-  from the union's own walk. Non-qualifying unions render the honest
-  wire type (`JsonNode`), not `Any`. Full pattern: the Kotlin lang
-  skill §8c.
+- **An object schema has four forms.** Properties only, a record only
+  (`additionalProperties`), both, and empty: each place an object
+  renders must handle all four. In TypeScript one expression serves as
+  a type and as a declaration (`z.object({...})`, and
+  `.and(z.record(...))` for both), so the object slots compose. Section
+  6 covers a language where the two positions differ.
+- **A discriminated union is one expression in TypeScript**
+  (`z.discriminatedUnion("type", [...])`), at SLOT(union). Section 6
+  covers a language that has no union type.
 - **Property keys** go through `handleKey` — `'first-name'` renders
   quoted; never assume keys are identifiers.
 - **Visibility.** `readOnly`/`writeOnly` are captured per property in
@@ -203,17 +162,43 @@ import means a string swallowed a snippet), then the body, then
 | Enum with `null` member renders `'null'` | Keep the `literal()` null-guard from `MyLibString` |
 | Peer generator can't consume yours | `schemaToValueFn`/`createIdentifier` statics or TypeSystem contract fields removed |
 | Lint fires `no-template-imports`/`no-adhoc-tostring` | Target syntax leaked outside a `toString()` body — move it into the SLOT |
-| `data class NameMap<String, Any?>` (head glued to a type) in output | Declaration kind and value were decided separately — see the four-forms bullet in §3; kind+value must come from the same schema guards |
+| `data class NameMap<String, Any?>` (head glued to a type) in output | Declaration kind and value were decided separately — see section 6; kind and value must come from the same schema guards |
 
-## 6. Boundaries
+## 6. A language with a declaration head (Kotlin)
 
-Engine semantics (the one law, memoization, enrichments, variants,
-naming rules) live in **skmtc-generator** — read it first. TS-layer
-specifics (register shapes, identifier kinds, import machinery,
-`List`/`FunctionParameter`) live in **skmtc-lang-typescript**. This
-skill owns only the model SHAPE. The skeleton is TypeScript-emitting;
-for a Kotlin model generator, keep this skill's shape and edge-case
-rules but take call shapes from the Kotlin lang skill (no Kotlin
-skeleton yet). Operation generators are a different shape — load
-`skmtc-operation`; accumulators are covered by neither (clone
-`gen-msw`/`gen-express` per skmtc-generator §2).
+The skeleton writes TypeScript. For a Kotlin model generator, keep the
+shape and the edge-case rules of this page, and take the calls from the
+Kotlin lang package. There is no Kotlin skeleton.
+
+- **The declaration and the type position differ, so one `toString()`
+  cannot serve both.**
+  - An object with properties only declares as a `data class`
+    parameter list. In type position it must render a name: make a
+    named declaration beside it and refer to that (`engine.md`,
+    "Another generator's output", steps 3 and 4). A parameter list in
+    type position parses as a function type and fails.
+  - A record only, and an empty object, take no `data class` head
+    (`data class X()` is illegal). Their declaration kind is
+    `typealias`.
+  - Properties with a record have a declaration form (a data class
+    with a `@field:JsonAnySetter @get:JsonAnyGetter` map property) and
+    no anonymous type form.
+  - Decide the identifier kind and the value together, from the same
+    guards on the schema. `shape.ts` in `gen-kotlin-jackson` is the
+    worked example.
+- **A discriminated union can be a declaration.** In a language with
+  no union type, a discriminated union that qualifies is a named
+  `sealed` declaration, and each member model declares the supertype.
+  A member can be built before its union is seen, so membership comes
+  from one scan of the document that the member reads when it is
+  built, never from the union's own walk. A union that does not
+  qualify renders the wire type (`JsonNode`), not `Any`.
+
+## 7. Where the rest is
+
+- What the engine does, enrichments, variants and naming: `engine.md`.
+- Register calls, identifier kinds, imports, `List` and
+  `FunctionParameter`: `typescript.md`.
+- Operation generators: `operation.md`. Accumulators: clone
+  `@skmtc/gen-msw` or `@skmtc/gen-express` (`engine.md`, "Two shapes of
+  generator").

@@ -18,7 +18,37 @@
 
 ## Getting started
 
-### Install Skmtc
+### Set up with an agent
+
+Copy this prompt into your coding agent:
+
+```text
+Set up Skmtc in this project. Skmtc generates TypeScript code from an OpenAPI document.
+
+1. Install the CLI: curl -fsSL https://skmtc.dev/install | sh
+   On Windows, in PowerShell: irm https://skmtc.dev/install.ps1 | iex
+   Then run skmtc --version. It must print a version.
+2. If you support skills, run: npx skills add skmtc/skmtc --skill skmtc-cli skmtc-generator --yes
+3. Find the OpenAPI document of this project. If you cannot find one, ask me for its path or URL. Ask me which generators I want. https://jsr.io/@skmtc lists them.
+4. From the project root, run:
+   skmtc init <project> <basePath>
+   skmtc install <generators> <project>
+   skmtc generate <project> <schema>
+   <project> is a short name in kebab case. <basePath> is the folder that the "@/" import alias of this project points to, such as src. Generated files import each other through that alias. If the project has no such alias, ask me before you add one.
+5. Add a note to AGENTS.md, and create the file if needed: before Skmtc work, run skmtc agent-context --json, and follow the skmtc-cli skill if it is installed. To write or change a generator, follow the skmtc-generator skill. Do not edit a generated file. Change the settings or the generator, then run skmtc generate again.
+
+If a command fails, run skmtc doctor and show me its report. Do not edit .skmtc/<project>/deno.json, delete a lockfile or change Deno's minimum dependency age to get past an error.
+```
+
+The prompt installs the CLI and the skills, generates code from your OpenAPI
+document, and adds a note to `AGENTS.md` that sends each later session to
+`skmtc agent-context` and the skills.
+
+### Set up yourself
+
+The same path by hand: install the CLI, then run three commands.
+
+#### 1. Install Skmtc
 
 macOS and Linux:
 
@@ -54,21 +84,37 @@ provides. Run `skmtc` from Git Bash, or add Git's `usr\bin` folder to `PATH`.
 checking anything ([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc`
 yourself instead.
 
-### Create project and generate artifacts using TUI
+#### 2. Create a project and generate
 
 ```bash
-skmtc
+# Create a project: its name, and the folder for generated code
+skmtc init petstore src/generated
+
+# Add a generator from JSR
+skmtc install @skmtc/gen-zod petstore
+
+# Generate from an OpenAPI document: a URL or a local path
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
 ```
+
+The generated files are in `src/generated/`. They import each other through
+the `@/` alias, so in an app the folder you give to `init` is the one that
+alias points to.
+[Your first generation](deno/docs/using/tutorials/01-your-first-generation.md)
+explains each step.
+
+`skmtc` with no arguments opens a terminal UI that does the same steps:
 
 ![](assets/demo.gif)
 
 ### Install the agent skills
 
-Five skills teach a coding agent to author Skmtc generators, and ship from the
-same commit as the code they describe: `skmtc-generator` (engine rules),
-`skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and
-`skmtc-operation` (the two generator shapes), and `skmtc-cli`. In Claude Code,
-`skmtc-cli` is a plugin of its own, and installing `skmtc` installs it too.
+Two skills teach a coding agent to work with Skmtc, and ship from the same
+commit as the code they describe. `skmtc-generator` is for writing and editing
+generators: one entry that routes to references for model generators,
+operation generators, the engine and the TypeScript layer, with a skeleton to
+copy. `skmtc-cli` is for the CLI. In Claude Code, `skmtc-cli` is a plugin of
+its own, and installing `skmtc` installs it too.
 
 ```bash
 # Claude Code
@@ -76,17 +122,17 @@ same commit as the code they describe: `skmtc-generator` (engine rules),
 /plugin install skmtc@skmtc
 
 # any skills-capable agent
-npx skills add skmtc/skmtc
-npx skills add skmtc/skmtc --skill skmtc-generator
+npx skills add skmtc/skmtc --skill skmtc-cli skmtc-generator
 ```
 
-The sources live in [`deno/docs/skills/`](deno/docs/skills/) and read fine on
-their own; each is also rendered at
-[skmtc.dev/skills](https://skmtc.dev/skills).
+The setup prompt above runs the second form. The sources live in
+[`deno/docs/skills/`](deno/docs/skills/) and read fine on their own; each is
+also rendered at [skmtc.dev/skills](https://skmtc.dev/skills).
 
-This block is the one place the install lines are written down — everything
-else points here, and `verify-docs` fails on a second copy. Instructions that
-exist twice drift, and the reader who finds the stale one has no way to tell.
+This README is the one place the setup prompt and the install lines are
+written down — everything else points here, and `verify-docs` fails on a copy
+of the install lines in another file. Instructions that exist twice drift, and
+the reader who finds the stale one has no way to tell.
 
 ## Available generators
 

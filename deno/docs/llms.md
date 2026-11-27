@@ -516,10 +516,10 @@ Self-contained playbooks. Read only the one you need.
 #### Setting up Skmtc in a project
 
 1. Install the CLI. On macOS and Linux, run `curl -fsSL https://skmtc.dev/install | sh`. On Windows, run `irm https://skmtc.dev/install.ps1 | iex` in PowerShell. The installer bootstraps Deno if needed. To pin a version, set `SKMTC_VERSION=<version>` for `sh` (`| SKMTC_VERSION=<version> sh`). In PowerShell, run `$env:SKMTC_VERSION = '<version>'` before the install and `Remove-Item Env:SKMTC_VERSION` after it, because the variable stays set in that window. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
-2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
+2. `skmtc init <project> <basePath>` creates `.skmtc/<project>/` and records `settings.basePath`. `<basePath>` is the folder that the app's `@/` import alias points to.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
-4. Edit `.skmtc/<project>/.settings/skmtc.config.json` to set `source` and `settings.basePath`.
-5. `skmtc generate <project>` runs the pipeline.
+4. `skmtc generate <project> <schema>` runs the pipeline. `<schema>` is a path or a URL.
+5. To make `skmtc generate <project>` enough for later runs, add a top-level `source` to `.skmtc/<project>/.settings/skmtc.config.json`.
 
 #### Adding a generator to an existing project
 

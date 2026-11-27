@@ -85,6 +85,16 @@ for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
   } catch {
     // skill dir without SKILL.md — nothing to check
   }
+
+  // The pages a SKILL.md routes to quote code too.
+  const referencesDir = join(docsDir, 'skills', entry.name, 'references')
+  const hasReferences = await Deno.stat(referencesDir).then(
+    stat => stat.isDirectory,
+    () => false
+  )
+  if (hasReferences) {
+    await collectMarkdown(referencesDir)
+  }
 }
 
 // ---------------------------------------------------------------------

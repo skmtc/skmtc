@@ -78,10 +78,11 @@ See [`explanation/comparison-to-other-tools.md`](explanation/comparison-to-other
 ## Quick start
 
 1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` (on Windows, in PowerShell: `irm https://skmtc.dev/install.ps1 | iex`)
-2. Create a project: `skmtc init my-api ./`
-3. Install generators: `skmtc install @skmtc/gen-typescript @skmtc/gen-zod my-api`
-4. Configure a schema source in `.skmtc/my-api/.settings/skmtc.config.json`
-5. Generate: `skmtc generate my-api`
+2. Create a project: `skmtc init petstore src/generated`
+3. Install a generator: `skmtc install @skmtc/gen-zod petstore`
+4. Generate: `skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json`
+
+With a coding agent, paste the [setup prompt](https://github.com/skmtc/skmtc#set-up-with-an-agent) from the repo README. It runs the same commands in your project.
 
 Full walkthrough: [`using/tutorials/01-your-first-generation.md`](using/tutorials/01-your-first-generation.md).
 
@@ -230,7 +231,7 @@ If you are a coding assistant, read [`llms.md`](llms.md) — a primer optimized 
 
 ### Agent skills
 
-Five skills ship from this repo, at the same commit as the code they describe: `skmtc-generator` (engine rules), `skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and `skmtc-operation` (the two generator shapes), and `skmtc-cli`.
+Two skills ship from this repo, at the same commit as the code they describe: `skmtc-generator` (writing and editing generators: one entry, with references for model generators, operation generators, the engine and the TypeScript layer) and `skmtc-cli`.
 
 To install them, see [Install the agent skills](https://github.com/skmtc/skmtc#install-the-agent-skills) in the repo README — the install lines live there and nowhere else, so there is no second copy to go stale.
 

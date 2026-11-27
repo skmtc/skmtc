@@ -1,27 +1,9 @@
----
-name: skmtc-lang-typescript
-version: 0.3.3
-description: >
-  The TypeScript target-language layer for Skmtc generators
-  (@skmtc/lang-typescript): projection base factories, TsSnippet, the
-  three register shapes, identifier kinds and the type-only import
-  machinery, composition helpers, sanitization, TsFile render rules.
-  Use ALONGSIDE skmtc-generator whenever a generator emits
-  TypeScript. Headings are the template for other skmtc-lang-*
-  skills.
-metadata:
-  describes:
-    '@skmtc/lang-typescript': '0.15'
-    '@skmtc/core': '0.49'
----
+# The TypeScript layer (`@skmtc/lang-typescript`)
 
-# The TypeScript layer (@skmtc/lang-typescript)
-
-Read `skmtc-generator` first; you will normally have copied the
-`skmtc-model` skeleton (model generators — load that skill) or
-cloned `@skmtc/gen-tanstack-query-fetch-zod` (operation) — **those are
-the worked examples**. This skill carries the rules that aren't visible
-from imitation alone.
+What a generator that writes TypeScript takes from its lang package:
+base factories, `TsSnippet`, the register calls, identifier kinds,
+import forms, `List` and the helpers for strings from the document. Read
+the section for the work in hand.
 
 ## 1. Declaring the language
 
@@ -61,7 +43,7 @@ Windows) inside generated import text.
 
 The veneers take two type parameters: `EnrichmentType` and
 `ProjectionOptions`, the caller options a peer passes as `{ options }`
-on an insert (skmtc-generator §4). Declare the second to accept
+on an insert (`engine.md`, "Enrichments and options"). Declare the second to accept
 options; `toIdentifierName` / `toExportPath` then receive `options`
 and the instance stores it as `this.options`:
 
@@ -150,13 +132,18 @@ type-only header import is fine.
 
 ## 5. Composition helpers
 
-All `Stringable`, all deferring joins to render — use them instead of
-`array.join` whenever items are snippets (joining pre-renders and orphans
-provenance):
+All are `Stringable`, and all join at render.
 
-- `List` — `List.toObject/toArray/toParams/toLines/toKeyValue`,
+- `List` is for a real list: items of one kind, in a number the
+  document sets (properties, parameters, entries, steps). Use it in
+  place of `array.join` over producers. A fixed set of different parts
+  is a template over named fields (`producers.md`, rule 5).
+  `List.toObject/toArray/toParams/toLines/toKeyValue`,
   `List.fromKeys(record).toObject(fn)`, `new List(values, { separator,
-  bookends, skipEmpty })`.
+  bookends, skipEmpty })`. Build a `List` in the constructor: the lint
+  rule `skmtc/tostring-purity` reports `new List(…)` in `toString()`.
+  A `List` leaves out an item that is `undefined`. It keeps an item
+  that renders `''`, and `skipEmpty` acts on an empty list only.
 - `FunctionParameter({ typeDefinition, destructure, required, skipEmpty })`
   — one object, four readings: `toString()` (declaration), `toInbound()`
   (call site), `toPropertyList()` (the variables), `hasProperty(name)`.
@@ -211,20 +198,21 @@ to. You
 almost never construct `TsFile`/`TsImport`/`TsDefinition` yourself —
 `register` and the Drivers do.
 
-## 8. The contrast that matters
+## 8. What a field holds
 
 ```ts
-// WRONG: stored rendered text — z import never registers, refs duplicate
+// Wrong: the field holds rendered text. The `z` import is not registered, and a ref is not reused.
 this.properties[key] = `z.string().optional()`
-// RIGHT: stored snippet — imports settle, cache sees it, provenance holds
+// Right: the field holds a producer. Its imports register, and the cache sees it.
 this.properties[key] = toMyValue({ schema: propSchema, required, destinationPath, context })
 ```
 
-A cached peer *name* is a legitimate string — minding the two insert
-return shapes: `this.responseName = definition.identifier.name` from
-`insertNormalizedModel`, or `.toName()` off `insertModel`'s `Inserted`
-handle. Modifier pipelines (`applyModifiers`-style) run inside
-`toString()`, never to build stored fields.
+A field can hold a plain string that is a fact: an identifier name, an
+export path, a module specifier, a literal, the name of a peer's
+definition. Read a peer's name from the result of the insert:
+`definition.identifier.name` from `insertNormalizedModel`, or
+`.toName()` from the `Inserted` handle of `insertModel`. Modifiers
+(`applyModifiers`) run in `toString()`, and never build a stored field.
 
 ## 9. TypeScript pitfalls
 
