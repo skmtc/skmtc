@@ -1,10 +1,12 @@
 import { fromModelKey, toModelKey, type RefParts } from '@/helpers/refFns.ts'
 import { toRefKey } from '@/parse/toRefKey.ts'
 import { canNameSchema } from '@/parse/toCyclicRefs.ts'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
 
 /** A ref the parser read, and where it is. */
 export type ReadRef = {
-  ref: RefParts
+  /** The ref, with the kind of object the parser read it as: only a `schema` ref can name a model. */
+  ref: RefParts & { refType: OasRefData['refType'] }
   /** The frames of the ref's place in the document: `['paths', '/pets', 'get', …]`. */
   place: readonly string[]
   /** The key of the ref target the parser read it for; `undefined` in the document's own walk. */
@@ -21,7 +23,10 @@ type WebhookPlace = { name: string; method: string }
 type Named = {
   /** The keys of the models. */
   models: Set<string>
-  /** The places of the components that are no schemas: a parameter, a response, a request body, a header. */
+  /**
+   * The keys (`toRefKey`) of the objects that are no schemas: a parameter, a
+   * response, a request body, a header, as a component or a pointer into the document.
+   */
   components: Set<string>
 }
 
@@ -51,7 +56,9 @@ export class Reach {
     for (const { ref, place, refTarget } of refs) {
       const named = this.#toNamed(refTarget ?? toPlaceKey(place))
 
-      if (canNameSchema(ref)) {
+      // A pointer into `paths` passes `canNameSchema` whatever it points at,
+      // so a parameter or a response ref is told apart by its `refType`.
+      if (ref.refType === 'schema' && canNameSchema(ref)) {
         named.models.add(toModelKey(ref))
       } else {
         named.components.add(toRefKey(ref))

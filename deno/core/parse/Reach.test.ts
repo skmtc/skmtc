@@ -2,12 +2,14 @@ import { assertEquals } from '@std/assert'
 import * as log from '@std/log'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { Reach } from '@/parse/Reach.ts'
+import { Reach, type ReadRef } from '@/parse/Reach.ts'
 import { toRefParts } from '@/helpers/refFns.ts'
 
 const schema = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 const model = (name: string) => toRefParts({ $ref: `#/components/schemas/${name}` })
 const sorted = (keys: readonly string[]) => [...keys].sort()
+/** A schema ref as the parser keeps it, for a `Reach` made by hand. */
+const schemaRef = (name: string): ReadRef['ref'] => ({ ...model(name), refType: 'schema' })
 
 // Order -> Customer -> Address, and Customer -> Order back: a cycle of two
 // with one model below it. Tag stands alone. Receipt is named only in data.
@@ -160,13 +162,16 @@ Deno.test('Reach - an operation the document does not have names nothing', () =>
 // The parser removes such a loop, so the refs are given to Reach as it would
 // get them from a parser that kept it.
 Deno.test('Reach - components that refer to each other in a loop end the walk', () => {
-  const response = (name: string) => toRefParts({ $ref: `#/components/responses/${name}` })
+  const response = (name: string): ReadRef['ref'] => ({
+    ...toRefParts({ $ref: `#/components/responses/${name}` }),
+    refType: 'response'
+  })
 
   const looped = new Reach([
     { ref: response('A'), place: ['paths', '/loop', 'get', 'responses', '200'], refTarget: undefined },
     { ref: response('B'), place: ['components', 'responses', 'A'], refTarget: undefined },
     { ref: response('A'), place: ['components', 'responses', 'B'], refTarget: undefined },
-    { ref: model('Tag'), place: ['components', 'responses', 'B', 'content'], refTarget: undefined }
+    { ref: schemaRef('Tag'), place: ['components', 'responses', 'B', 'content'], refTarget: undefined }
   ])
 
   assertEquals(looped.namedByOperation({ path: '/loop', method: 'get' }), ['Tag'])
@@ -177,11 +182,37 @@ Deno.test('Reach - a ref read for a ref target is named by that target', () => {
   const target = '#/paths/~1orders/get/responses/200/content/application~1json/schema'
 
   const targeted = new Reach([
-    { ref: model('Tag'), place: ['paths', '/orders', 'get', 'responses', '200'], refTarget: target }
+    { ref: schemaRef('Tag'), place: ['paths', '/orders', 'get', 'responses', '200'], refTarget: target }
   ])
 
   assertEquals(targeted.ofModel(toRefParts({ $ref: target })).includes('Tag'), true)
   assertEquals(targeted.namedByOperation({ path: '/orders', method: 'get' }), [])
+})
+
+// A pointer into `paths` passes the path check whatever it points at. The
+// parameter it points at is no model: the operation names what it holds.
+Deno.test('Reach - a pointer ref to a parameter names the models of that parameter, not the parameter', () => {
+  const pointed = toReach({
+    openapi: '3.0.3',
+    info: { title: 'Reach', version: '1.0.0' },
+    paths: {
+      '/a': {
+        get: {
+          parameters: [{ $ref: '#/paths/~1b/get/parameters/0' }],
+          responses: { '204': { description: 'none' } }
+        }
+      },
+      '/b': {
+        get: {
+          parameters: [{ name: 'id', in: 'query', schema: schema('Id') }],
+          responses: { '204': { description: 'none' } }
+        }
+      }
+    },
+    components: { schemas: { Id: { type: 'string' } } }
+  })
+
+  assertEquals(pointed.namedByOperation({ path: '/a', method: 'get' }), ['Id'])
 })
 
 Deno.test('Reach - a webhook names the models of its own refs', () => {
