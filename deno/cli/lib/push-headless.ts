@@ -13,9 +13,10 @@
  *      When it already holds config, `confirmOverwrite` (interactive only) gates
  *      the overwrite.
  *   3. PUT the local `skmtc.config.json` (`{ source?, settings }`) to
- *      `/v1/projects/{account}/{slug}/client-config`. The hub folds the nested
- *      settings into its flat ProjectConfig and overwrites it, returning the
- *      result.
+ *      `/v1/projects/{account}/{slug}/client-config`. The parse settings go
+ *      as `parse` (`settings.parse ?? settings.system`), never as `system`.
+ *      The hub folds the nested settings into its flat ProjectConfig and
+ *      overwrites it, returning the result.
  *   4. `-u`: an explicit `--project` is written back into `skmtc.config.json` so later
  *      pushes are bare `skmtc push`.
  *
@@ -201,7 +202,9 @@ export const pushHeadless = async ({
         include: settings.include,
         skip: settings.skip,
         enrichments: settings.enrichments,
-        inputDirs: settings.inputDirs
+        inputDirs: settings.inputDirs,
+        // The hub reads only `parse`; a project not yet migrated still has `system`.
+        parse: settings.parse ?? settings.system
       }
     }
 

@@ -102,14 +102,20 @@ checkout:
 |---|---|
 | `settings.enrichments` | **replaced** from the hub |
 | `settings.include` / `settings.skip` | **replaced** from the hub |
+| `settings.parse` (or `settings.system`) | **replaced** from the hub's `parse`, under the key the file already uses |
 | `settings.basePath` | **preserved** (where files land in this checkout) |
 | `settings.packages` | **preserved** |
 | `settings.inputDirs` | **preserved** (preview discovery dirs are local) |
 | `source` | **preserved** (the schema pin — the hub has no `source`) |
 | `project` | **preserved** (the remote) |
 
-An **empty** hub value for `enrichments` / `include` / `skip` clears the
-local key rather than writing an empty `[]` / `{}`. The merged result is
+A project not yet migrated keeps its parse settings under
+`settings.system`. `pull` writes the hub's `parse` there, and every other
+project gets it under `settings.parse`. Only
+[`skmtc migrate config`](migrate.md) renames `system` to `parse`.
+
+An **empty** hub value for `enrichments` / `include` / `skip` / `parse`
+clears the local key rather than writing an empty `[]` / `{}`. The merged result is
 re-validated through `@skmtc/core`'s `skmtcClientConfig`, whose enrichment
 schema is opaque — generator-owned enrichment payloads pass through
 untouched.
