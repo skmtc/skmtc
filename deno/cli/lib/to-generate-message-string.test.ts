@@ -28,6 +28,13 @@ Deno.test('toGenerateMessageString - omits "under …" when basePath is absent',
   assertEquals(message, 'Generated 1,234 tokens, 7 files in 180ms.')
 })
 
+Deno.test('toGenerateMessageString - names no token count when the tokens were not counted', () => {
+  const { tokens: _tokens, ...uncounted } = baseStats
+  const message = toGenerateMessageString({ stats: uncounted })
+
+  assertEquals(message, 'Generated 7 files in 180ms.')
+})
+
 Deno.test('toGenerateMessageString - surfaces error count line', () => {
   const message = toGenerateMessageString({
     stats: { ...baseStats, errors: [['a', 'b'], ['c']] }

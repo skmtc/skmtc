@@ -11,6 +11,9 @@ import { fromFileUrl } from '@std/path/from-file-url'
 import { existsSync } from '@std/fs/exists'
 import { ensureDir } from '@std/fs/ensure-dir'
 import type { generateLocal } from '@/lib/generate-local.ts'
+import { stub } from '@std/testing/mock'
+import type { ManifestContent } from '@skmtc/core/Manifest'
+import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { enableConfigMigrationOffer } from '@/lib/config-migration-offer.ts'
 import { withConfigRoot } from '@/tests/config-files.mock.ts'
 import {
@@ -80,7 +83,7 @@ const toRecordingGenerateLocal = () => {
     if (bundlePath === undefined) throw new Error('generate ran without building a bundle')
     bundles.push(await Deno.readTextFile(fromFileUrl(bundlePath)))
     return {
-      stats: { tokens: 0, lines: 0, totalTime: 0, errors: [], files: 0 },
+      stats: { lines: 0, totalTime: 0, errors: [], files: 0 },
       parseIssues: [],
       enrichmentWarnings: [],
       filePaths: [],
@@ -271,7 +274,7 @@ Deno.test('generateSwitch - in interactive mode, asks to migrate an old-name pro
     const generateLocalFn: typeof generateLocal = args => {
       settingsSeen.push(args.clientSettings)
       return Promise.resolve({
-        stats: { tokens: 0, lines: 0, totalTime: 0, errors: [], files: 0 },
+        stats: { lines: 0, totalTime: 0, errors: [], files: 0 },
         parseIssues: [],
         enrichmentWarnings: [],
         filePaths: [],
@@ -324,4 +327,102 @@ Deno.test('generateSwitch - a name that is not a project writes nothing', async 
       }
     })
   })
+})
+
+type TokenRun = { logs: string[]; exitCode: number | undefined }
+
+/**
+ * Runs `generate` through the real `generateLocal`, with the worker stubbed
+ * to return one generated file. `serverUrl` makes it a remote run, so no
+ * bundle is built.
+ */
+const runGenerateWithOneFile = async ({
+  jsonFlag,
+  countTokens
+}: {
+  jsonFlag: boolean
+  countTokens: boolean | undefined
+}): Promise<TokenRun> => {
+  const config = { source: 'openapi.json', serverUrl: 'https://stack.test', settings: { basePath: 'src' } }
+  const artifactPath = 'src/pets.generated.ts'
+  const manifest: ManifestContent = {
+    deploymentId: 'd',
+    traceId: 't',
+    spanId: 's',
+    files: { [artifactPath]: { lines: 1, characters: 42, destinationPath: '@/pets.generated.ts' } },
+    previews: {},
+    results: {},
+    parseIssues: [],
+    startAt: 0,
+    endAt: 1
+  }
+
+  let run: TokenRun = { logs: [], exitCode: undefined }
+
+  await withConfigRoot({ pets: { 'skmtc.config.json': config } }, async ({ tempRoot }) => {
+    await Deno.writeTextFile(
+      join(tempRoot, 'openapi.json'),
+      JSON.stringify({ openapi: '3.0.0', info: { title: 'p', version: '1' }, paths: {} })
+    )
+    const workerStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
+      Promise.resolve({
+        artifacts: { [artifactPath]: 'export const pets = ["cat", "dog"] as const\n' },
+        manifest
+      })
+    )
+
+    try {
+      let exitCode: number | undefined
+      const logs = await captureStdout(async () => {
+        const captured = await withCapturedExit(() =>
+          generateSwitch({
+            projectName: 'pets',
+            schemaSourceString: undefined,
+            watch: undefined,
+            jsonFlag,
+            noInputFlag: true,
+            countTokens
+          })
+        )
+        exitCode = captured.exitCode
+      })
+      run = { logs, exitCode }
+    } finally {
+      workerStub.restore()
+    }
+  })
+
+  return run
+}
+
+Deno.test('generateSwitch - without --count-tokens, --json stats has no tokens key', async () => {
+  const { logs, exitCode } = await runGenerateWithOneFile({ jsonFlag: true, countTokens: undefined })
+
+  assertEquals(exitCode, 0)
+  const parsed = JSON.parse(logs[0])
+  assertEquals(parsed.stats.files, 1)
+  assertEquals('tokens' in parsed.stats, false)
+})
+
+Deno.test('generateSwitch - without --count-tokens, the success line has no token count', async () => {
+  const { logs, exitCode } = await runGenerateWithOneFile({ jsonFlag: false, countTokens: undefined })
+
+  assertEquals(exitCode, 0)
+  assertEquals(logs[0], 'Generated 1 files under src in 1ms.')
+})
+
+Deno.test('generateSwitch - with --count-tokens, --json stats has the token count', async () => {
+  const { logs, exitCode } = await runGenerateWithOneFile({ jsonFlag: true, countTokens: true })
+
+  assertEquals(exitCode, 0)
+  const parsed = JSON.parse(logs[0])
+  assertEquals(typeof parsed.stats.tokens, 'number')
+  assertEquals(parsed.stats.tokens > 0, true)
+})
+
+Deno.test('generateSwitch - with --count-tokens, the success line has the token count', async () => {
+  const { logs, exitCode } = await runGenerateWithOneFile({ jsonFlag: false, countTokens: true })
+
+  assertEquals(exitCode, 0)
+  assertEquals(/^Generated \d+ tokens, 1 files under src in 1ms\.$/.test(logs[0]), true)
 })
