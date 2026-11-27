@@ -27,8 +27,15 @@ import type { GeneratorConfig } from '@/types/GeneratorType.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
+import type { Preview, PreviewModule } from '@/types/Preview.ts'
 
 const GENERATOR = 'gen'
+
+/** The preview module a test entry gives for a subject, by the subject's name. */
+const toTestPreviewModule = (name: string): PreviewModule => ({
+  name: `${name}Preview`,
+  exportPath: `@/${name}.ts`
+})
 
 /** One object entry of `settings.skip`. An entry of `settings.include` has the same shape. */
 type FilterEntry = Exclude<NonNullable<ClientSettings['skip']>[number], string>
@@ -40,6 +47,8 @@ type Entry = GeneratorConfig<Enrichments<undefined, undefined, undefined>>
 type Behavior = {
   isSupported?: (name: string) => boolean
   transform?: (name: string, variant: string) => void
+  /** Give the entry a `toPreviewModule` that returns {@link toTestPreviewModule}. */
+  hasPreview?: boolean
 }
 
 /**
@@ -58,6 +67,8 @@ type Kind = {
   /** A `settings.include` or `settings.skip` entry that names every variant of a subject. */
   toFilter: (name: string) => FilterEntry
   hasFilters: boolean
+  /** The source of a subject's preview, for the `main` variant. */
+  toSource: (name: string) => Preview['source']
 }
 
 const oasDocument = new OasDocument({
@@ -87,63 +98,91 @@ const kinds: Kind[] = [
   {
     name: 'an OpenAPI operation',
     document: { type: 'oas', value: oasDocument },
-    toEntry: ({ isSupported, transform }) =>
+    toEntry: ({ isSupported, transform, hasPreview }) =>
       toOasOperationEntry({
         id: GENERATOR,
         toEnrichmentSchema: () => emptyEnrichmentSchema,
         isSupported: ({ operation }) => isSupported?.(operation.path.slice(1)) ?? true,
-        transform: ({ operation, variant }) => transform?.(operation.path.slice(1), variant)
+        transform: ({ operation, variant }) => transform?.(operation.path.slice(1), variant),
+        toPreviewModule: hasPreview
+          ? ({ operation }) => toTestPreviewModule(operation.path.slice(1))
+          : undefined
       }),
     toTrail: name => `/${name}:get`,
     toEnrichments: (name, block) => ({ [`/${name}`]: { get: block } }),
     toFilter: name => ({ [GENERATOR]: { [`/${name}`]: { get: [] } } }),
-    hasFilters: true
+    hasFilters: true,
+    toSource: name => ({
+      type: 'oasOperation',
+      generatorId: GENERATOR,
+      operationPath: `/${name}`,
+      operationMethod: 'get',
+      variant: 'main'
+    })
   },
   {
     name: 'a webhook',
     document: { type: 'oas', value: oasDocument },
-    toEntry: ({ isSupported, transform }) =>
+    toEntry: ({ isSupported, transform, hasPreview }) =>
       toWebhookEntry({
         id: GENERATOR,
         toEnrichmentSchema: () => emptyEnrichmentSchema,
         isSupported: ({ webhook }) => isSupported?.(webhook.name) ?? true,
-        transform: ({ webhook, variant }) => transform?.(webhook.name, variant)
+        transform: ({ webhook, variant }) => transform?.(webhook.name, variant),
+        toPreviewModule: hasPreview ? ({ webhook }) => toTestPreviewModule(webhook.name) : undefined
       }),
     toTrail: name => `webhook:${name}:post`,
     toEnrichments: (name, block) => ({ [name]: { post: block } }),
     toFilter: name => ({ [GENERATOR]: { [name]: { post: [] } } }),
-    hasFilters: true
+    hasFilters: true,
+    toSource: name => ({
+      type: 'webhook',
+      generatorId: GENERATOR,
+      webhookName: name,
+      webhookMethod: 'post',
+      variant: 'main'
+    })
   },
   {
     name: 'a GraphQL operation',
     document: { type: 'gql', value: gqlDocument },
-    toEntry: ({ isSupported, transform }) =>
+    toEntry: ({ isSupported, transform, hasPreview }) =>
       toGqlOperationEntry({
         id: GENERATOR,
         toEnrichmentSchema: () => emptyEnrichmentSchema,
         isSupported: ({ operation }) => isSupported?.(operation.fieldName) ?? true,
-        transform: ({ operation, variant }) => transform?.(operation.fieldName, variant)
+        transform: ({ operation, variant }) => transform?.(operation.fieldName, variant),
+        toPreviewModule: hasPreview ? ({ operation }) => toTestPreviewModule(operation.fieldName) : undefined
       }),
     toTrail: name => `query:${name}`,
     toEnrichments: (name, block) => ({ query: { [name]: block } }),
     // A filter of settings has no shape that names a GraphQL operation.
     toFilter: () => ({ [GENERATOR]: { query: {} } }),
-    hasFilters: false
+    hasFilters: false,
+    toSource: name => ({
+      type: 'gqlOperation',
+      generatorId: GENERATOR,
+      rootKind: 'query',
+      fieldName: name,
+      variant: 'main'
+    })
   },
   {
     name: 'a model',
     document: { type: 'oas', value: oasDocument },
-    toEntry: ({ isSupported, transform }) =>
+    toEntry: ({ isSupported, transform, hasPreview }) =>
       toModelEntry({
         id: GENERATOR,
         toEnrichmentSchema: () => emptyEnrichmentSchema,
         isSupported: ({ ref }) => isSupported?.(ref.refName) ?? true,
-        transform: ({ ref, variant }) => transform?.(ref.refName, variant)
+        transform: ({ ref, variant }) => transform?.(ref.refName, variant),
+        toPreviewModule: hasPreview ? ({ ref }) => toTestPreviewModule(ref.refName) : undefined
       }),
     toTrail: name => name,
     toEnrichments: (name, block) => ({ [name]: block }),
     toFilter: name => ({ [GENERATOR]: { [name]: [] } }),
-    hasFilters: true
+    hasFilters: true,
+    toSource: name => ({ type: 'model', generatorId: GENERATOR, refName: name, variant: 'main' })
   }
 ]
 
@@ -153,10 +192,12 @@ type RunArgs = {
   settings?: ClientSettings
   /** Where the results go. A test of a run that throws passes its own, to read them afterwards. */
   results?: Record<string, ResultType>
+  /** Where the run's previews go, by module name. */
+  previews?: Record<string, Preview>
 }
 
 /** One run of the kind's entry: each result by its trail below the generator's. */
-const run = ({ kind, behavior = {}, settings, results = {} }: RunArgs): Record<string, ResultType> => {
+const run = ({ kind, behavior = {}, settings, results = {}, previews = {} }: RunArgs): Record<string, ResultType> => {
   const entry = kind.toEntry(behavior)
 
   const context = new GenerateContext({
@@ -170,7 +211,7 @@ const run = ({ kind, behavior = {}, settings, results = {} }: RunArgs): Record<s
     toGeneratorConfigMap: () => ({ [GENERATOR]: entry })
   })
 
-  context.toArtifacts(new StackTrail(['test']))
+  Object.assign(previews, context.toArtifacts(new StackTrail(['test'])).previews)
 
   return results
 }
@@ -246,5 +287,16 @@ for (const kind of kinds) {
     // The run fails when every subject has run, and names the subject that threw.
     assertThrows(() => run({ kind, behavior: { transform }, results }), GenerationFailure, first)
     assertEquals(results, { [first]: 'error', [second]: 'success' })
+  })
+
+  Deno.test(`${kind.name} - a transformed subject's preview has the source of its kind`, () => {
+    const previews: Record<string, Preview> = {}
+
+    run({ kind, behavior: { hasPreview: true }, previews })
+
+    assertEquals(
+      Object.fromEntries(Object.entries(previews).map(([name, preview]) => [name, preview.source])),
+      { firstPreview: kind.toSource('first'), secondPreview: kind.toSource('second') }
+    )
   })
 }
