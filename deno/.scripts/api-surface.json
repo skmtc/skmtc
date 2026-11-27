@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.50",
+    "minor": "0.51",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -29,7 +29,7 @@
       "DEFAULT_VARIANT": "97c016b3d9102998",
       "DanglingRefError": "3b61a122257f8256",
       "DanglingRefKind": "9adb8333903c86d6",
-      "DefinitionBase": "2ff1b22d970cf9df",
+      "DefinitionBase": "7fb4a79056d415b4",
       "DefinitionContainer": "2dd86760262c3abf",
       "DiscriminatorFields": "2a73fcfa7713424d",
       "DocumentFields": "2bbb7022c56b3026",
@@ -276,7 +276,7 @@
       "PathItemFields": "958098f59c1f85cd",
       "PeerInsertOptions": "f05320d754efa304",
       "PeerInsertSettings": "ed28e36786d436dc",
-      "PendingDefinition": "f1f2e1192bdd53dd",
+      "PendingDefinition": "180b7c9cb3471c54",
       "PhaseType": "06a5d943770837ee",
       "PickArgs": "2701c1c9f67000c0",
       "Preview": "1d0d0b53b949dd60",

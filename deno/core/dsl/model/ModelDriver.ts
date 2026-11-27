@@ -192,7 +192,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       value,
       noExport: this.noExport
     })
-    definition.reaches = marker.reaches
+    definition.leadsTo = marker.leadsTo === marker ? undefined : marker.leadsTo
 
     // Added once the constructor returned, so the Definition renders after
     // the models it refers to, and a constructor that throws adds no file.
@@ -294,6 +294,7 @@ type WhilePendingArgs = {
 
 /** Run `construct` with `marker` on top of the context's pending stack, popped however `construct` ends. */
 const whilePending = <T>({ context, marker }: WhilePendingArgs, construct: () => T): T => {
+  marker.depth = context.pendingStack.length
   context.pendingStack.push(marker)
 
   try {
@@ -387,10 +388,6 @@ const stitchModelImport = ({
   })
 }
 
-/** The models `definition`'s construction reached that are still pending. */
-const toOpenReaches = (definition: DefinitionBase): PendingDefinition[] =>
-  [...(definition.reaches ?? [])].filter(reached => reached.pending)
-
 /**
  * Whether anything referred back to the model of `settings` while its
  * projection was being constructed: the model is recursive, on its own or in
@@ -442,8 +439,10 @@ export type ModelRef<V extends GeneratedValue, EnrichmentType> =
       settings: ContentSettings<EnrichmentType>
       definition: GeneratedDefinition<V>
       /**
-       * The model reached a model that is still pending, so this reference is
-       * inside a cycle. Every reference inside a cycle must be deferred where
+       * The model is in a cycle that is not complete yet: it leads back to a
+       * model that is still pending. The source is constructed inside that
+       * pending model, so this reference is inside the cycle, in whatever
+       * order the models are reached. Every reference inside a cycle must be deferred where
        * the target language reads the value when the module loads (zod's
        * `z.lazy`): any model of the cycle can be the first one loaded.
        */
@@ -482,8 +481,8 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
     })
 
     pending.backReferences++
-    // The model whose constructor is running reached a pending model.
-    context.pendingStack.at(-1)?.reaches.add(pending)
+    // The model whose constructor is running led back to a pending model.
+    context.pendingStack.at(-1)?.leadBackTo(pending)
 
     stitchModelImport({
       context,
@@ -497,19 +496,20 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
   }
 
   const driver = new ModelDriver(args, settings)
-  // What the model reached that is still pending, the source reaches too:
-  // through this reference. Constructed now or found in the cache, the
-  // Definition carries what its construction reached.
-  const open = toOpenReaches(driver.definition)
-  const source = context.pendingStack.at(-1)
+  // Constructed now or found in the cache, the Definition carries the model
+  // its construction led back to. While the cycle that model is in is open,
+  // this reference is inside it, and the source leads back there too.
+  const openEnd = driver.definition.leadsTo?.toOpenEnd()
 
-  open.forEach(reached => source?.reaches.add(reached))
+  if (openEnd !== undefined) {
+    context.pendingStack.at(-1)?.leadBackTo(openEnd)
+  }
 
   return {
     suspended: false,
     settings: driver.settings,
     definition: driver.definition,
-    inCycle: open.length > 0
+    inCycle: openEnd !== undefined
   }
 }
 

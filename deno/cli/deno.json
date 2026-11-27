@@ -1,15 +1,15 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "license": "Apache-2.0",
   "exports": "./mod.ts",
   "imports": {
     "@/": "./",
     "@cliffy/command": "jsr:@cliffy/command@1.1.0",
     "@deno/graph": "jsr:@deno/graph@0.111.0",
-    "@skmtc/core": "jsr:@skmtc/core@^0.50.0",
+    "@skmtc/core": "jsr:@skmtc/core@^0.51.0",
     "@skmtc/convert": "jsr:@skmtc/convert@^0.1.20",
-    "@skmtc/server": "jsr:@skmtc/server@^0.3.46",
+    "@skmtc/server": "jsr:@skmtc/server@^0.3.47",
     "chokidar": "npm:chokidar@^4.0.3",
     "ink": "npm:ink@^8.0.0",
     "@inkjs/ui": "npm:@inkjs/ui@^2.0.0",
