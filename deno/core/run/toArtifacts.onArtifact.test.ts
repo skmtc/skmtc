@@ -14,10 +14,12 @@ import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { MockDefinition, MockFile, MockImport } from '@/test/MockFile.ts'
 import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
-import { toModelRef } from '@/dsl/model/ModelDriver.ts'
+import { isReferencedBack, toModelRef } from '@/dsl/model/ModelDriver.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
+import { toWebhookProjectionBase } from '@/dsl/webhook/toWebhookProjectionBase.ts'
+import { toWebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { Enrichments } from '@/types/Enrichments.ts'
 import type { Lang } from '@/dsl/Lang.ts'
@@ -37,6 +39,14 @@ const json = (name: string) => ({ description: 'ok', content: { 'application/jso
 // Order -> Customer -> Address, and Customer -> Order back. Tag stands
 // alone, and Zed is the last model and names nothing. The operation for
 // Tag, a late model, is before the one for Order, an early model.
+const schemas = {
+  Order: { type: 'object', properties: { customer: schema('Customer') } },
+  Customer: { type: 'object', properties: { address: schema('Address'), last: schema('Order') } },
+  Address: { type: 'object' },
+  Tag: { type: 'string' },
+  Zed: { type: 'string' }
+}
+
 const document = toDocumentObject(
   {
     openapi: '3.0.3',
@@ -46,17 +56,20 @@ const document = toDocumentObject(
       '/tags': { get: { responses: { '200': json('Tag') } } },
       '/orders': { get: { responses: { '200': json('Order') } } }
     },
-    components: {
-      schemas: {
-        Order: { type: 'object', properties: { customer: schema('Customer') } },
-        Customer: { type: 'object', properties: { address: schema('Address'), last: schema('Order') } },
-        Address: { type: 'object' },
-        Tag: { type: 'string' },
-        Zed: { type: 'string' }
-      }
-    }
+    components: { schemas }
   },
   'release document'
+)
+
+// The same models, and one operation for Customer, the second model of the cycle.
+const customersDocument = toDocumentObject(
+  {
+    openapi: '3.0.3',
+    info: { title: 'Customers', version: '1.0.0' },
+    paths: { '/customers': { get: { responses: { '200': json('Customer') } } } },
+    components: { schemas }
+  },
+  'customers document'
 )
 
 const neutralLang: Lang = {
@@ -98,6 +111,8 @@ const brokenShapes = new Set<string>()
 
 class Shape extends ShapeBase {
   names: string[]
+  /** A model that a model in its cycle refers back to. A validator gives such a model a type annotation. */
+  isReferredBack: boolean
 
   constructor(args: ModelProjectionConstructorArgs<Enrichments>) {
     super(args)
@@ -112,6 +127,8 @@ class Shape extends ShapeBase {
           destinationPath: args.settings.exportPath
         }).settings.identifier.name
     )
+
+    this.isReferredBack = isReferencedBack({ context: args.context, settings: args.settings })
   }
 
   override toString(): string {
@@ -119,7 +136,7 @@ class Shape extends ShapeBase {
       throw new Error('toString broke')
     }
 
-    return `shape(${this.names.join(', ')})`
+    return `shape(${this.names.join(', ')})${this.isReferredBack ? ' referredBack' : ''}`
   }
 }
 
@@ -205,10 +222,14 @@ type RunArgs = {
   inspect?: boolean
   /** Asks for attribution with a post-pass, which writes a sidecar for each file. */
   postPass?: boolean
+  /** The document of the run, when it is not the release document. */
+  input?: typeof document
+  /** Lists the operation generator before the two model generators. */
+  operationsFirst?: boolean
 }
 
-const run = ({ onArtifact, onTransform, extra, inspect, postPass }: RunArgs = {}) => {
-  const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+const run = ({ onArtifact, onTransform, extra, inspect, postPass, input, operationsFirst }: RunArgs = {}) => {
+  const toListed = <E = undefined>(): GeneratorsMapContainer<E> => ({
     // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field
     shapes: toModelEntry({
       id: 'shapes',
@@ -250,10 +271,17 @@ const run = ({ onArtifact, onTransform, extra, inspect, postPass }: RunArgs = {}
         })
   })
 
+  const generators = <E = undefined>(): GeneratorsMapContainer<E> => {
+    const listed = toListed<E>()
+    const { calls, ...models } = listed
+
+    return operationsFirst === true ? { calls, ...models } : listed
+  }
+
   return toArtifacts({
     traceId: 'trace',
     spanId: 'span',
-    document: { type: 'oas', value: document },
+    document: { type: 'oas', value: input ?? document },
     settings: { basePath: './src' },
     toGeneratorConfigMap: generators,
     startAt: 0,
@@ -497,11 +525,29 @@ Deno.test('toArtifacts - a toString that throws is a render failure, with onArti
   }
 })
 
-// What the order does not keep: a model generator that writes every model to
-// one file, after an operation generator that inserts its projection. Run
-// generator by generator, the operations create the models in their order.
-// Run subject by subject, the models run first, in document order.
-Deno.test('toArtifacts - a file that one model generator writes for every model can change its order with onArtifact', () => {
+// The trap: an operation generator that is listed before the model generators
+// gets to a model before the model's own generator does. In a run that kept
+// the order of the config, the operation for Customer would enter the cycle
+// at Customer, so Customer would have the mark and not Order, and the call
+// would put the check before the shape in Customer's file. A run with
+// onArtifact always starts from the models.
+Deno.test('toArtifacts - an operation generator that is listed first changes no file, with onArtifact or without it', () => {
+  const listed = run({ input: customersDocument })
+  const first = run({ input: customersDocument, operationsFirst: true })
+  const sink = toSink()
+
+  run({ input: customersDocument, operationsFirst: true, onArtifact: sink.onArtifact })
+
+  assert(listed.artifacts[modelFile('Order')].includes('referredBack'), listed.artifacts[modelFile('Order')])
+  assert(!listed.artifacts[modelFile('Customer')].includes('referredBack'), listed.artifacts[modelFile('Customer')])
+  assertEquals(first.artifacts, listed.artifacts)
+  assertEquals(sink.given, listed.artifacts)
+})
+
+// The trap: a model generator that writes every model to one file, after an
+// operation generator that inserts its projection. If the operations ran
+// first, they would create the models in their order: Tag before Order.
+Deno.test('toArtifacts - a file that one model generator writes for every model has the order of the document, both ways', () => {
   const EveryBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
     id: 'every',
     toIdentifierName: ({ ref }) => `${ref.refName}Every`,
@@ -541,7 +587,7 @@ Deno.test('toArtifacts - a file that one model generator writes for every model 
     })
   })
 
-  const toAll = (onArtifact?: (path: string, content: string) => void) => {
+  const toAll = (withSink: boolean) => {
     const sink = toSink()
 
     const result = toArtifacts({
@@ -553,20 +599,109 @@ Deno.test('toArtifacts - a file that one model generator writes for every model 
       startAt: 0,
       silent: true,
       stackTrail: new StackTrail(['TEST']),
-      onArtifact: onArtifact === undefined ? undefined : sink.onArtifact
+      onArtifact: withSink ? sink.onArtifact : undefined
     })
 
     const all = { ...result.artifacts, ...sink.given }['src/models/all.generated.txt']
-    const names = ['Order', 'Tag'].map(name => `${name}Every`)
 
     assert(all !== undefined)
 
-    return names.map(name => all.indexOf(name))
+    return all
   }
 
-  const [orderPlain, tagPlain] = toAll()
-  const [orderGiven, tagGiven] = toAll(() => {})
+  const plain = toAll(false)
 
-  assert(tagPlain < orderPlain, 'without onArtifact, /tags runs before /orders')
-  assert(orderGiven < tagGiven, 'with onArtifact, Order runs before Tag, in document order')
+  assert(plain.indexOf('OrderEvery') < plain.indexOf('TagEvery'), plain)
+  assertEquals(toAll(true), plain)
+})
+
+// The trap: a run with onArtifact runs the operations before the webhooks. A
+// run that kept the order of the config would run the webhook generator
+// first here, and the file that both add to would start with the webhook.
+Deno.test('toArtifacts - a webhook generator that is listed before an operation generator runs after it, both ways', () => {
+  const RouteBase = toOasOperationProjectionBase<Enrichments>(NeutralSnippet, {
+    id: 'routes',
+    toIdentifierName: ({ operation }) => `route${operation.path.replaceAll('/', '_')}`,
+    toIdentifierType: () => ({ type: 'entity' }),
+    toExportPath: () => '@/handlers/all.txt',
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  class Route extends RouteBase {
+    override toString(): string {
+      return 'route'
+    }
+  }
+
+  const HookBase = toWebhookProjectionBase<Enrichments>(NeutralSnippet, {
+    id: 'hooks',
+    toIdentifierName: ({ webhook }) => `hook_${webhook.name}`,
+    toIdentifierType: () => ({ type: 'entity' }),
+    toExportPath: () => '@/handlers/all.txt',
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  class Hook extends HookBase {
+    override toString(): string {
+      return 'hook'
+    }
+  }
+
+  const hooksDocument = toDocumentObject(
+    {
+      openapi: '3.0.3',
+      info: { title: 'Hooks', version: '1.0.0' },
+      paths: { '/ping': { get: { responses: { '204': { description: 'ok' } } } } },
+      webhooks: { pinged: { post: { responses: { '204': { description: 'ok' } } } } }
+    },
+    'hooks document'
+  )
+
+  const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+    // @ts-expect-error see `run`
+    hooks: toWebhookEntry({
+      id: 'hooks',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      projections: [Hook],
+      transform: ({ context, webhook }) => {
+        context.insertWebhook({ projection: Hook, webhook })
+      }
+    }),
+    // @ts-expect-error see `run`
+    routes: toOasOperationEntry({
+      id: 'routes',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      projections: [Route],
+      transform: ({ context, operation }) => {
+        context.insertOperation({ projection: Route, operation })
+      }
+    })
+  })
+
+  const toAll = (withSink: boolean) => {
+    const sink = toSink()
+
+    const result = toArtifacts({
+      traceId: 'trace',
+      spanId: 'span',
+      document: { type: 'oas', value: hooksDocument },
+      settings: { basePath: './src' },
+      toGeneratorConfigMap: generators,
+      startAt: 0,
+      silent: true,
+      stackTrail: new StackTrail(['TEST']),
+      onArtifact: withSink ? sink.onArtifact : undefined
+    })
+
+    const all = { ...result.artifacts, ...sink.given }['src/handlers/all.generated.txt']
+
+    assert(all !== undefined)
+
+    return all
+  }
+
+  const plain = toAll(false)
+
+  assert(plain.indexOf('route__ping') < plain.indexOf('hook_pinged'), plain)
+  assertEquals(toAll(true), plain)
 })
