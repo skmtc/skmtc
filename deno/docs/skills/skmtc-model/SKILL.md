@@ -13,7 +13,7 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.48'
+    '@skmtc/core': '0.49'
     '@skmtc/lang-typescript': '0.15'
 ---
 
@@ -86,8 +86,9 @@ engine machinery — modifying it is almost always a mistake.
   `ref.refName` alone, two deep targets that share it
   (`…/properties/disk` twice) collide with
   `Registered definition mismatch`.
-- **A ref can name nothing.** By default (`settings.system.danglingRefs:
-  []`) the parser removes what holds such a `$ref`, so your generator
+- **A ref can name nothing.** By default (`settings.parse.danglingRefs:
+  []`; `settings.system`, its old name, still works but is deprecated,
+  and `skmtc migrate config <project>` renames it) the parser removes what holds such a `$ref`, so your generator
   never sees it. When the list has `schema`, a schema `$ref` stays, and
   inserting or resolving it throws `DanglingRefError`
   (from `@skmtc/core`). To render the item, catch it in your ref
@@ -108,7 +109,7 @@ engine machinery — modifying it is almost always a mistake.
 - **An `allOf` can keep a reference.** The parser merges an `allOf` into
   one schema, so it usually comes to the router as an object. A `$ref`
   that closes a cycle stays a ref: the schema is an `OasIntersection` of
-  the kept refs and at most one other schema (`system.intersections`).
+  the kept refs and at most one other schema (`parse.intersections`).
   `MyLibIntersection` routes each member, so the refs render lazily as
   any other. When a kept ref leads back to the intersection with no
   property between (`A: { allOf: [B, …] }`, `B: { oneOf: [A, …] }`), most

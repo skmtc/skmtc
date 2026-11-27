@@ -1,8 +1,8 @@
 /**
  * Headless `pull` path — the hub→local counterpart to `push`. Fetches an
  * EXISTING skmtc-hub project's config from `/client-config` (the nested
- * `client.json#settings` shape) and folds it into the local
- * `.skmtc/<project>/.settings/client.json`. The read half of the PR-based
+ * `skmtc.config.json#settings` shape) and folds it into the local
+ * `.skmtc/<project>/.settings/skmtc.config.json`. The read half of the PR-based
  * enrichment round-trip: a user edits enrichments in the hub, pulls them down,
  * regenerates locally, commits.
  *
@@ -20,7 +20,7 @@
  * generator-owned enrichment payloads pass through untouched.
  *
  * Flow mirrors push: resolve the destination (`--project` →
- * `client.json#project`), GET (404 → "create it in the web app first"), merge,
+ * `skmtc.config.json#project`), GET (404 → "create it in the web app first"), merge,
  * and write only when the result differs from the local file.
  */
 
@@ -36,7 +36,7 @@ type PullHeadlessArgs = {
   token: string
   /** Hub origin (base URL). */
   origin: string
-  /** Destination override (`@account/slug`); falls back to `client.json#project`. */
+  /** Destination override (`@account/slug`); falls back to `skmtc.config.json#project`. */
   projectFlag?: string
   /**
    * Interactive overwrite gate. Called only when the pull would CHANGE the local
@@ -62,7 +62,7 @@ export type PullHeadlessResult =
       wrote: string | null
       /** Generator slots carrying enrichments in the pulled config (excludes `_stack`). */
       enrichmentGenerators: number
-      /** Whether an explicit `--project` was recorded into client.json. */
+      /** Whether an explicit `--project` was recorded into skmtc.config.json. */
       remoteWritten: boolean
     }
   | {
@@ -123,7 +123,7 @@ export const pullHeadless = async ({
     return {
       type: 'failed',
       projectName,
-      reason: `no client.json for "${projectName}" (.skmtc/${projectName}/.settings/client.json)`,
+      reason: `no skmtc.config.json for "${projectName}" (.skmtc/${projectName}/.settings/skmtc.config.json)`,
       stage: 'read'
     }
   }
@@ -134,7 +134,7 @@ export const pullHeadless = async ({
       type: 'failed',
       projectName,
       reason:
-        'no hub destination — set `project: "@account/slug"` in client.json or pass --project @account/slug',
+        'no hub destination — set `project: "@account/slug"` in skmtc.config.json or pass --project @account/slug',
       stage: 'destination'
     }
   }
@@ -149,7 +149,7 @@ export const pullHeadless = async ({
   }
   const { account, slug } = dest
 
-  // Fetch the hub's config as a nested client.json. A 404 is decisive: pull
+  // Fetch the hub's config as a nested skmtc.config.json. A 404 is decisive: pull
   // targets an existing project, exactly like push.
   let hubBody: unknown
   try {
@@ -211,7 +211,7 @@ export const pullHeadless = async ({
   // (`v.unknown()`), so generator-specific payloads survive verbatim.
   let merged: typeof contents
   try {
-    merged = parseOrExplain(skmtcClientConfig, mergedRaw, `pulled client.json for "${projectName}"`)
+    merged = parseOrExplain(skmtcClientConfig, mergedRaw, `pulled skmtc.config.json for "${projectName}"`)
   } catch (err) {
     return {
       type: 'failed',

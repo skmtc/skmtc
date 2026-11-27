@@ -292,7 +292,7 @@ Deno.test('OasIntersection - a union with one as a member is not discriminable',
   assertEquals(union.isDiscriminable(), false)
 })
 
-Deno.test('system.intersections - takes merge, cycles and all', () => {
+Deno.test('parse.intersections - takes merge, cycles and all', () => {
   ;['merge', 'cycles', 'all', undefined].forEach(intersections => assert(v.is(systemSettings, { intersections })))
   assertEquals(v.is(systemSettings, { intersections: 'none' }), false)
 })

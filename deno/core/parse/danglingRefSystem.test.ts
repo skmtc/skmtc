@@ -62,7 +62,7 @@ const toDocument = (openapi: string) =>
         },
         // A `type` next to a reference to a union with a dangling member.
         TypedShape: { allOf: [{ $ref: '#/components/schemas/Shape' }], type: 'object' },
-        // Fails on its own (`system.not` is strict), so the ref to it is not dangling.
+        // Fails on its own (`parse.not` is strict), so the ref to it is not dangling.
         Broken: { not: { type: 'string' } },
         UsesBroken: { type: 'object', properties: { broken: { $ref: '#/components/schemas/Broken' } } }
       }
@@ -124,7 +124,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.danglingRefs ['schema']: a dangling schema ref stays, with a warning, and resolving it throws`, () => {
+  Deno.test(`${openapi} parse.danglingRefs ['schema']: a dangling schema ref stays, with a warning, and resolving it throws`, () => {
     const { toSchema, toOperation, issuesOf } = parse({ openapi, system: { danglingRefs: ['schema'] } })
     const owner = toSchema('Owner')
 
@@ -147,7 +147,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(issuesOf('INVALID_DEPENDENCY_REF').filter(issue => issue.location.includes('Owner')), [])
   })
 
-  Deno.test(`${openapi} system.danglingRefs ['schema']: core's own walks read a dangling ref as unknown`, () => {
+  Deno.test(`${openapi} parse.danglingRefs ['schema']: core's own walks read a dangling ref as unknown`, () => {
     const { toSchema } = parse({ openapi, system: { danglingRefs: ['schema'] } })
     const shape = toSchema('Shape')
     const knownShape = toSchema('KnownShape')
@@ -182,7 +182,7 @@ const petSchema = { type: 'object', properties: { id: { type: 'string' } } }
 const apiKey = { type: 'apiKey', name: 'X-Key', in: 'header' }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
-  Deno.test(`${openapi} a ref into the wrong bucket removes what holds it, whatever system.danglingRefs lists, and what it names stays`, () => {
+  Deno.test(`${openapi} a ref into the wrong bucket removes what holds it, whatever parse.danglingRefs lists, and what it names stays`, () => {
     for (const system of [undefined, { danglingRefs: ['schema', 'requestBody'] } satisfies SystemSettings]) {
       // The wrong-bucket ref comes first, in `paths`, before the schema refs.
       const { toSchema, toOperation, issues } = parse({
@@ -207,7 +207,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} an operation goes with a security scheme that names nothing, unless system.danglingRefs lists it`, () => {
+  Deno.test(`${openapi} an operation goes with a security scheme that names nothing, unless parse.danglingRefs lists it`, () => {
     const cases = [undefined, { danglingRefs: ['schema'] } satisfies SystemSettings].flatMap(system =>
       [undefined, [{ alias: [] }]].map(root => ({ system, root }))
     )
@@ -259,7 +259,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertThrows(() => requirement.toSecurityScheme(), DanglingRefError)
   })
 
-  Deno.test(`${openapi} an example ref that names nothing removes the operation, unless system.danglingRefs lists 'example'`, () => {
+  Deno.test(`${openapi} an example ref that names nothing removes the operation, unless parse.danglingRefs lists 'example'`, () => {
     for (const listed of [false, true]) {
       const { toOperation, issuesOf } = parse({
         openapi,
@@ -337,7 +337,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.danglingRefs: only a dangling ref of a listed kind stays`, () => {
+  Deno.test(`${openapi} parse.danglingRefs: only a dangling ref of a listed kind stays`, () => {
     const missing = (bucket: string) => ({ $ref: `#/components/${bucket}/Missing` })
     const document = {
       paths: {
@@ -371,7 +371,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
     const errors = schemaOnly.issuesOf('DANGLING_REF').filter(({ level }) => level === 'error')
     assertEquals(errors.length, 5)
-    assert(errors.every(({ message }) => /To keep it, list '\w+' in system\.danglingRefs\./.test(message)))
+    assert(errors.every(({ message }) => /To keep it, list '\w+' in parse\.danglingRefs\./.test(message)))
 
     // Each listed kind stays, and the generator decides: `toParams()` throws for a parameter.
     const all = parse({
@@ -571,7 +571,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
           level: 'error',
           location: 'TEST:components:parameters:P1',
           message:
-            "Ref \"#/components/parameters/P2\" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs."
+            "Ref \"#/components/parameters/P2\" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in parse.danglingRefs."
         }
       ]
     )
@@ -581,7 +581,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     )
   })
 
-  Deno.test(`${openapi} system.danglingRefs ['parameter']: a loop of parameter $refs stays, with a warning, and resolving it throws DanglingRefError`, () => {
+  Deno.test(`${openapi} parse.danglingRefs ['parameter']: a loop of parameter $refs stays, with a warning, and resolving it throws DanglingRefError`, () => {
     const { toOperation, issuesOf } = parse({ openapi, system: { danglingRefs: ['parameter'] }, document: parameterLoop })
     const a = toOperation('/a')
 
@@ -675,7 +675,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.anyOf unknown follows an anyOf member through any chain, and a loop names nothing`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown follows an anyOf member through any chain, and a loop names nothing`, () => {
     // Core reads each member to decide whether the `anyOf` is any value. It
     // followed a loop until the stack overflowed: an INVALID_SCHEMA for `L`.
     const chain = Object.fromEntries(
@@ -710,7 +710,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(c.type, 'union')
   })
 
-  Deno.test(`${openapi} a loop of response $refs names nothing, unless system.danglingRefs lists 'response'`, () => {
+  Deno.test(`${openapi} a loop of response $refs names nothing, unless parse.danglingRefs lists 'response'`, () => {
     const removed = parse({ openapi, system: undefined, document: responseLoop })
 
     assertEquals(removed.toOperation('/r'), undefined)

@@ -1,7 +1,7 @@
 # Customize with enrichments
 
 > Configure per-operation labels, titles, and field overrides via
-> `client.json` — without touching generator source code.
+> `skmtc.config.json` — without touching generator source code.
 
 ## What you'll build
 
@@ -47,14 +47,14 @@ All keys are optional — provide only what you override.
 
 The full schema is documented at [gen-shadcn-form's reference](../../reference/stock-generators/gen-shadcn-form.md).
 
-## Step 2: Add enrichments to client.json
+## Step 2: Add enrichments to skmtc.config.json
 
 `gen-shadcn-form` is an OAS operation generator, so its routing
 keys are the literal OpenAPI `path` and lowercase `method` —
 **not** `operationId`. For the petstore, `addPet` is `POST /pet`
 and `updatePet` is `PUT /pet`.
 
-Edit `.skmtc/petstore/.settings/client.json`:
+Edit `.skmtc/petstore/.settings/skmtc.config.json`:
 
 ```jsonc
 {
@@ -96,7 +96,7 @@ for all three routing shapes.
 Two validation behaviors worth knowing before you edit: a
 wrongly-typed value (a number where `title` expects a string) fails
 the run. The run writes nothing, and the error names the value's
-place in `client.json`. A misspelled key can't fail
+place in `skmtc.config.json`. A misspelled key can't fail
 anything (the schema ignores unknown keys), so the engine warns
 about it instead — step 5 shows that warning in action.
 
@@ -106,7 +106,7 @@ about it instead — step 5 shows that warning in action.
 skmtc generate petstore
 ```
 
-No need to rebundle — `client.json` is runtime config, not bundle
+No need to rebundle — `skmtc.config.json` is runtime config, not bundle
 code.
 
 ## Step 4: Verify the customization landed
@@ -125,7 +125,7 @@ name". Other operations use the form generator's defaults
 ## Step 5: Typo a key on purpose
 
 Misspell one override and watch the engine catch it. In
-`client.json`, change `"submitLabel"` to `"submitLabl"` and
+`skmtc.config.json`, change `"submitLabel"` to `"submitLabl"` and
 regenerate:
 
 ```bash
@@ -144,7 +144,7 @@ Fix the key back and regenerate before moving on.
 
 ## What just happened
 
-Your `client.json` entry was routed to the form generator by the
+Your `skmtc.config.json` entry was routed to the form generator by the
 path `[generatorId][path][method][variant]` and validated against
 the shape the generator declares. Where you provided a value (the
 `title` for `POST /pet`), it overrode the generator's default; where

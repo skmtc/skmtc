@@ -9,7 +9,7 @@ export type DescribeResult = DescribeResponse & {
 
 type DescribeHeadlessArgs = {
   project: Project
-  /** Explicit schema override; falls back to `client.json#source`. */
+  /** Explicit schema override; falls back to `skmtc.config.json#source`. */
   schemaSourceString: string | undefined
   /** URL of the `bundle.js` the caller has just built (see `createBundle`). */
   bundlePath: string

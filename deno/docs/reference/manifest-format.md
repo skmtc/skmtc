@@ -168,7 +168,7 @@ Each leaf is a `ResultType` string:
 | `success` | Generator ran and produced output for this item |
 | `warning` | Output produced, with a recoverable issue logged |
 | `error` | Generator threw or returned failure; output may be missing or partial |
-| `skipped` | Item matched but deliberately skipped (via `client.json` filters) |
+| `skipped` | Item matched but deliberately skipped (via `skmtc.config.json` filters) |
 | `notSupported` | Generator's `isSupported` returned false — *expected* for items outside the generator's scope |
 
 #### `error` leaves do not carry the exception text
@@ -287,7 +287,7 @@ type EnrichmentWarning = {
     | 'UNKNOWN_ENRICHMENT_KEY'       // leaf key the generator's schema doesn't declare (silently dropped)
     | 'SKIPPED_SUBJECT_ENRICHMENT'   // info: enrichment targets a skip/include-excluded item
     | 'SKIPPED_GENERATOR_ENRICHMENT' // info: whole generator skipped while enrichments exist
-  /** Routing key sequence under client.json#settings.enrichments */
+  /** Routing key sequence under skmtc.config.json#settings.enrichments */
   path: string[]
   message: string
   /** Nearest known key, when a close match exists (e.g. 'submitLabel' for 'submitLabl') */

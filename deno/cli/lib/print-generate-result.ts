@@ -11,6 +11,7 @@
  * it. New fields can be added; existing fields shouldn't change shape.
  */
 
+import { printJsonResult } from '@/lib/project-config.ts'
 import type { GenerateLocalResult } from '@/lib/generate-local.ts'
 import { toGenerateMessageString } from '@/lib/to-generate-message-string.ts'
 import type { TypecheckResult } from '@/lib/typecheck.ts'
@@ -86,7 +87,7 @@ export const printGenerateResult = ({
             }
           : {})
       }
-      console.log(JSON.stringify(payload, null, 2))
+      printJsonResult(payload)
       return
     }
     case 'text': {

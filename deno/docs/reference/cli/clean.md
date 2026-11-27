@@ -16,7 +16,7 @@ This is distinct from the *incremental* prune that runs inside
 rewrite (stale artifacts from a removed generator, a renamed
 output). `clean` deletes the **full** set the manifest records.
 
-`clean` never touches generator source, `client.json`, `deno.json`,
+`clean` never touches generator source, `skmtc.config.json`, `deno.json`,
 `worker.ts` or `bundle.js`. When a formatter could explain a tracked
 file's drift, it renders fresh content to tell the formatter change
 apart from a hand edit. It builds the bundle it renders with in a temporary directory, from the
@@ -93,12 +93,12 @@ generated ones) is never removed.
 The climb is bounded by the project's **output anchors** so it can
 never remove the anchor itself or anything above it:
 
-- **`basePath`** (`client.json#settings.basePath`) — the floor. Never
+- **`basePath`** (`skmtc.config.json#settings.basePath`) — the floor. Never
   removed, even if a project generated everything under it.
 - **Each `packages[].rootPath`** (multi-package output) — a package
   root below the floor. Never removed.
 
-If `basePath` is absent from `client.json`, directory pruning is
+If `basePath` is absent from `skmtc.config.json`, directory pruning is
 **skipped entirely** rather than guessed at — deleting a directory is
 destructive and a wrong floor could take out `src/`.
 
@@ -187,7 +187,7 @@ fresh tree rather than relying on the incremental prune.
 ## What `clean` does *not* do
 
 - Does **not** rebuild the project's `bundle.js` or `worker.ts`.
-- Does **not** modify `client.json` (enrichments, skip/include,
+- Does **not** modify `skmtc.config.json` (enrichments, skip/include,
   basePath) or `deno.json` — generator *configuration* is untouched.
   Use [`remove`](remove.md) to uninstall a generator.
 - Does **not** delete files the current manifest doesn't record. If
@@ -207,5 +207,5 @@ fresh tree rather than relying on the incremental prune.
 - [`skmtc doctor`](doctor.md) — inspects the manifest `clean` reads
 - [Manifest format](../manifest-format.md) — the `files` record
   `clean` walks
-- [client.json schema](../settings/client-json-schema.md) — `basePath`
+- [skmtc.config.json schema](../settings/client-json-schema.md) — `basePath`
   and `packages`, the anchors that bound directory pruning

@@ -20,6 +20,8 @@ export const COMMANDS_THAT_SKIP_REGISTRY_CHECK: ReadonlySet<string> = new Set<st
   // local filesystem + config operations.
   'eject',
   'adopt',
+  // migrate config and migrate variants rewrite the local config only.
+  'migrate',
   // describe builds the project's bundle outside the project from the
   // locked pins, then runs it to read generator capabilities. (generate
   // --debug is covered by 'generate' above — it runs the local worker.ts
@@ -32,7 +34,7 @@ export const COMMANDS_THAT_SKIP_REGISTRY_CHECK: ReadonlySet<string> = new Set<st
   'whoami',
   // feedback sends a problem or a feature request to the hub.
   'feedback',
-  // push/pull move client.json to/from the hub; neither touches JSR.
+  // push/pull move skmtc.config.json to/from the hub; neither touches JSR.
   'push',
   'pull',
   // project fork/rm manage hub projects; they never touch JSR.

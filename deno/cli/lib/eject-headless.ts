@@ -3,7 +3,7 @@
  * engine ownership and user ownership.
  *
  * **Eject** renames `X.generated.ts` → `X.ts`, adds the owned export
- * path to `client.json#settings.ejected` (the authoritative set the
+ * path to `skmtc.config.json#settings.ejected` (the authoritative set the
  * engine and writer read), records provenance metadata in
  * `.settings/ejections.json`, and re-keys the generated lock entry.
  * From the next generate on, the engine stores the owned path into
@@ -17,11 +17,12 @@
  * content; the caller's messaging carries the overwrite warning.
  *
  * Both operations order their steps so an interruption leaves a safe
- * state: client.json is updated before the rename on eject (a listed
+ * state: skmtc.config.json is updated before the rename on eject (a listed
  * but not-yet-renamed file just means one more generate treats the old
  * path as ejected), and after the rename on adopt.
  */
 
+import { toConfigFileText, toConfigPath } from '@/lib/project-config.ts'
 import { join } from '@std/path/join'
 import { dirname } from '@std/path/dirname'
 import { isValidWorkspacePath, toWorkspacePath } from '@skmtc/core'
@@ -140,7 +141,7 @@ export const ejectHeadless = async ({
     }
   }
 
-  // 1. Record intent first: client.json's ejected set is what the
+  // 1. Record intent first: skmtc.config.json's ejected set is what the
   //    engine and writer honor, so an interruption after this point
   //    leaves the file safe (treated as ejected) even if not yet
   //    renamed.
@@ -311,7 +312,7 @@ const findManifestEntry = (
 }
 
 /**
- * Loose parse of client.json for the ejected-set update: validates only
+ * Loose parse of skmtc.config.json for the ejected-set update: validates only
  * what is touched (`settings.ejected`) while `looseObject` passes every
  * other field through verbatim, so a read-modify-write never drops
  * config it doesn't understand.
@@ -322,12 +323,12 @@ const clientJsonEjectedSlice = v.object({
   })
 })
 
-/** Read-modify-write of `client.json#settings.ejected`, preserving every other field. */
+/** Read-modify-write of `skmtc.config.json#settings.ejected`, preserving every other field. */
 const updateClientJsonEjected = (
   projectPath: string,
   update: (ejected: string[]) => string[]
 ): void => {
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
 
   const { config } = v.parse(clientJsonEjectedSlice, {
     config: JSON.parse(Deno.readTextFileSync(clientJsonPath))
@@ -344,7 +345,7 @@ const updateClientJsonEjected = (
 
   config.settings = settings
 
-  Deno.writeTextFileSync(clientJsonPath, JSON.stringify(config, null, 2))
+  Deno.writeTextFileSync(clientJsonPath, toConfigFileText(config))
 }
 
 /** Contributing items for a destinationPath from `.maps/_map.ndjson`, tolerantly. */

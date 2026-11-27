@@ -75,7 +75,7 @@ skmtc install @skmtc/gen-msw myapp
 skmtc install @skmtc/gen-shadcn-form myapp
 ```
 
-Edit `.skmtc/myapp/.settings/client.json`:
+Edit `.skmtc/myapp/.settings/skmtc.config.json`:
 
 ```jsonc
 {

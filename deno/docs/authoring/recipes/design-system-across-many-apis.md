@@ -113,12 +113,12 @@ the shared generator updates all consumers after a rebundle.
 
 ### Per-API enrichments
 
-The consuming projects' `client.json` carries per-API
+The consuming projects' `skmtc.config.json` carries per-API
 customization that goes into the shared schema's enrichment
 fields:
 
 ```jsonc
-// .skmtc/customer-app/.settings/client.json
+// .skmtc/customer-app/.settings/skmtc.config.json
 {
   "source": "https://api.example.com/customer-api.json",
   "settings": {
@@ -146,7 +146,7 @@ A team can add a new API to the design system by:
 1. `skmtc init <new-api>`
 2. Update `.skmtc/<new-api>/deno.json#imports` to reference the
    shared generators
-3. Set `.skmtc/<new-api>/.settings/client.json#source` to the
+3. Set `.skmtc/<new-api>/.settings/skmtc.config.json#source` to the
    new API's spec
 4. (Optional) Add per-operation enrichments
 5. `skmtc generate <new-api>`

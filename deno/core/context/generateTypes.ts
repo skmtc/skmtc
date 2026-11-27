@@ -209,16 +209,16 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
  *
  * `ALLOF_CONTRADICTION` (`warning`) — `allOf` members contradict, and
- * `system.allOf: latestWins` kept the later member's keywords. One for each
+ * `parse.allOf: latestWins` kept the later member's keywords. One for each
  * schema; the message names the keywords.
  *
- * `ANYOF_AS_UNKNOWN` (`warning`) — `system.anyOf: unknown` read an `anyOf`
+ * `ANYOF_AS_UNKNOWN` (`warning`) — `parse.anyOf: unknown` read an `anyOf`
  * of two or more members as any value. The schema keeps its other keywords.
  * One for each schema.
  *
  * `DANGLING_REF` — a `$ref` names nothing in the document: no component has
  * its name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
- * `B` to `A`). One for each place the `$ref` is written. A `warning` when `system.danglingRefs` lists
+ * `B` to `A`). One for each place the `$ref` is written. A `warning` when `parse.danglingRefs` lists
  * the `$ref`'s kind: the ref stays, and resolving it throws
  * `DanglingRefError`; with `allOfMember` listed, a `$ref` that core merges
  * (in an `allOf`, or in a `oneOf` or `anyOf` member) is left out of the
@@ -229,7 +229,7 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `REF_TYPE_MISMATCH` (`error`) — a `$ref` names a component of the wrong
  * kind, such as a request body that is a `$ref` to
  * `#/components/schemas/Pet`. One for each place the `$ref` is written. What
- * holds the ref is removed; `system.danglingRefs` does not apply.
+ * holds the ref is removed; `parse.danglingRefs` does not apply.
  *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example

@@ -74,9 +74,9 @@ Generators that target a specific protocol narrow on `document.type`.
 
 ### `settings: ClientSettings | undefined`
 
-The user's `client.json#settings` block. May be undefined if no
-client.json was loaded (rare; usually settings is populated by the
-CLI before passing through).
+The user's `skmtc.config.json#settings` block. Its value is
+`undefined` when the host loaded no config file. This is rare:
+usually the CLI fills in the settings before it passes them through.
 
 ### `logger: Logger`
 

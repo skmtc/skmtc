@@ -13,7 +13,7 @@
  *                    without the lock); edit detection can't classify
  *                    it until a generate run seeds the lock
  *   - `ejected`    — user-owned by declaration
- *                    (`client.json#settings.ejected`); expected to
+ *                    (`skmtc.config.json#settings.ejected`); expected to
  *                    differ from generated output, never overwritten
  *                    or deleted
  *
@@ -84,12 +84,12 @@ export type StatusHeadlessResult = {
 type StatusHeadlessArgs = {
   projectName: string
   clientSettings: ClientSettings | undefined
-  /** `client.json#source` — resolved fresh each run to disambiguate a
+  /** `skmtc.config.json#source` — resolved fresh each run to disambiguate a
    *  formatter-config change from a hand edit, and to classify ejected
    *  files against current generated output. Absent, or unreachable,
    *  degrades gracefully (see module doc comment). */
   schemaSourceString: string | undefined
-  /** `client.json#serverUrl` — generate against a deployed stack
+  /** `skmtc.config.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
   /** Builds the project's bundle without writing to the project.

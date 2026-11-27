@@ -63,7 +63,7 @@ export const enrichmentWarningType: v.GenericSchema<EnrichmentWarningType> = v.p
 
 /**
  * One enrichment-config warning. `path` is the routing key sequence under
- * `client.json#settings.enrichments` locating the offending entry —
+ * `skmtc.config.json#settings.enrichments` locating the offending entry —
  * `[generatorId, ...subjectSegments]` for addressing warnings, extended
  * down to the leaf key for `UNKNOWN_ENRICHMENT_KEY`. `suggestion` carries
  * the nearest known key when a close match exists (`submitLabl` →

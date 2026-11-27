@@ -11,7 +11,7 @@ export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObjec
 export type NormalizeFn = (schema: OpenAPIV3.SchemaObject) => OpenAPIV3.SchemaObject
 
 /**
- * The `system` settings as the merge reads them (`client.json#settings.system`),
+ * The `system` settings as the merge reads them (`skmtc.config.json#settings.parse`),
  * and the keywords a later `allOf` member replaced under `latestWins`, so
  * the parser can name them in one warning for the schema.
  */
@@ -21,7 +21,7 @@ export type MergeSystem = {
   /** `unknown`: a member with `not` merges, its `not` carried as written. Left out: `strict`, which refuses it. */
   not?: 'strict' | 'unknown'
   /**
-   * `client.json` `system.allOf`, kept while the first pass over a cross
+   * `skmtc.config.json` `parse.allOf`, kept while the first pass over a cross
    * product's pairs sets `allOf` to `strict`. A member's own `allOf` merges
    * under this setting in every pass. Left out: `allOf` is the setting.
    */
@@ -29,9 +29,9 @@ export type MergeSystem = {
   replaced: Set<string>
   /** `unknown`: an `anyOf` of two or more members is any value, so it adds nothing to the merge. Left out: `union`. */
   anyOf?: 'union' | 'unknown'
-  /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
+  /** The keywords the merge read as any value: `anyOf` under `parse.anyOf: unknown`. */
   unknown?: Set<string>
-  /** The refs that stay refs (`system.intersections`). Left out: every ref is followed. */
+  /** The refs that stay refs (`parse.intersections`). Left out: every ref is followed. */
   keptRefs?: KeptRefs
 }
 

@@ -3,7 +3,7 @@
  *
  * A **variant** is a named axis below `[path][method]` (OAS) or
  * `[rootKind][fieldName]` (GraphQL) inside
- * `client.json#settings.enrichments`. It lets a single operation produce
+ * `skmtc.config.json#settings.enrichments`. It lets a single operation produce
  * N Definitions instead of one — e.g. a single broad `PATCH` endpoint
  * driving several section-edit forms, each scoped to a subset of fields.
  *
@@ -11,10 +11,10 @@
  * enrichment block. The variant name `'main'` is the canonical default
  * and is guaranteed to be present:
  *
- * - When a consumer's `client.json` writes no enrichments at all for a
+ * - When a consumer's `skmtc.config.json` writes no enrichments at all for a
  *   `(generatorId, path, method)`, the engine still dispatches once with
  *   `variant: 'main'` and `enrichments: undefined`.
- * - When a consumer's `client.json` writes any variants for a
+ * - When a consumer's `skmtc.config.json` writes any variants for a
  *   `(generatorId, path, method)`, `'main'` must be among them — Valibot
  *   rejects at parse time, and the engine also throws at runtime.
  *

@@ -223,7 +223,7 @@ export type EnrichmentScopes = {
 /**
  * The `{ subject, generator, stack }` umbrella carried on
  * `ContentSettings.enrichments`. Each member is the generator-owned leaf for
- * that scope at a different key-depth in `client.json#settings.enrichments`:
+ * that scope at a different key-depth in `skmtc.config.json#settings.enrichments`:
  *
  *  - **subject** — `[id][subject][variant]`, resolved per item (the original
  *    per-subject enrichment).

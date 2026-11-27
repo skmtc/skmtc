@@ -2,16 +2,16 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { KeptRefs } from '@/parse/keptRefs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
-/** What the `allOf` merge reads of `client.json#settings.system`, and what it reports back. */
+/** What the `allOf` merge reads of `skmtc.config.json#settings.parse`, and what it reports back. */
 type AllOfSystem = {
   allOf: 'strict' | 'latestWins'
   not: 'strict' | 'unknown'
   anyOf: 'union' | 'unknown'
   /** The keywords a later member replaced under `latestWins`. */
   replaced: Set<string>
-  /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
+  /** The keywords the merge read as any value: `anyOf` under `parse.anyOf: unknown`. */
   unknown: Set<string>
-  /** The refs that stay refs (`system.intersections`). */
+  /** The refs that stay refs (`parse.intersections`). */
   keptRefs: KeptRefs | undefined
 }
 
@@ -40,7 +40,7 @@ type LogAllOfContradictionsArgs = {
 
 /**
  * One warning for a schema whose `allOf` members contradicted, naming the
- * keywords the later member kept (`system.allOf: latestWins`). Nothing when
+ * keywords the later member kept (`parse.allOf: latestWins`). Nothing when
  * no keyword was replaced.
  */
 export const logAllOfContradictions = ({ system, stackTrail, parent, context }: LogAllOfContradictionsArgs): void => {
@@ -50,7 +50,7 @@ export const logAllOfContradictions = ({ system, stackTrail, parent, context }: 
 
   context.logIssueNoKey({
     level: 'warning',
-    message: `The allOf members contradict on ${[...system.replaced].join(', ')}; the later member's values are kept (system.allOf is latestWins).`,
+    message: `The allOf members contradict on ${[...system.replaced].join(', ')}; the later member's values are kept (parse.allOf is latestWins).`,
     parent,
     stackTrail,
     type: 'ALLOF_CONTRADICTION'

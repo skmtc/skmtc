@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
@@ -111,7 +112,7 @@ export const printInitResult = (
         nextStep:
           result.type === 'created' ? `skmtc install <generators...> ${result.projectName}` : null
       }
-      console.log(JSON.stringify(payload, null, 2))
+      printJsonResult(payload)
       return
     }
     case 'text': {

@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -10,7 +11,7 @@ import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
 
 export const description =
-  'Push this project\'s client.json (config + enrichments) to its skmtc-hub project. The destination is the `project: "@account/slug"` field in client.json (or --project); it overwrites the hub project\'s config. The project must already exist on the hub.'
+  'Push this project\'s skmtc.config.json (config + enrichments) to its skmtc-hub project. The destination is the `project: "@account/slug"` field in skmtc.config.json (or --project); it overwrites the hub project\'s config. The project must already exist on the hub.'
 
 type RenderPushArgs = {
   skmtcRoot?: SkmtcRoot
@@ -157,7 +158,7 @@ export const printPushResult = (
 ): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {
@@ -172,7 +173,7 @@ export const printPushResult = (
             console.log('  note: replaced existing config')
           }
           if (result.remoteWritten) {
-            console.log('  note: recorded destination in client.json#project')
+            console.log('  note: recorded destination in skmtc.config.json#project')
           }
           if (result.baseFilesPushed !== undefined) {
             console.log(`  base files: ${result.baseFilesPushed}`)

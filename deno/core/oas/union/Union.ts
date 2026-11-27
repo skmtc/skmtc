@@ -196,8 +196,8 @@ export class OasUnion extends OasBase {
   default?: unknown
 
   /**
-   * The schema's `not`, kept as an `OasUnknown` under `client.json`
-   * `system.not: unknown`: the document says "not something", and core does
+   * The schema's `not`, kept as an `OasUnknown` under `skmtc.config.json`
+   * `parse.not: unknown`: the document says "not something", and core does
    * not read what. `undefined` otherwise.
    */
   not: OasUnknown | undefined = undefined
@@ -272,7 +272,7 @@ export class OasUnion extends OasBase {
    * property, and that allows only string literals for it. No value may
    * belong to two members. A member that is a union, or anything other than
    * an object, makes it `false`, as does a reference on the way that names
-   * nothing in the document (kept when `system.danglingRefs` lists `schema`).
+   * nothing in the document (kept when `parse.danglingRefs` lists `schema`).
    *
    * It reads the schemas only. A generator may refuse more: one that leaves
    * out `readOnly` properties cannot discriminate on one.

@@ -81,7 +81,7 @@ Render passes it through unchanged.
 ### `basePath: string | undefined`
 
 The base path under which generated files land. Pulled from
-`client.json#settings.basePath`. Applied by `toResolvedArtifactPath`
+`skmtc.config.json#settings.basePath`. Applied by `toResolvedArtifactPath`
 to compute final on-disk paths.
 
 ### `logger: Logger`

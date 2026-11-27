@@ -25,7 +25,7 @@ type GenerateLocalArgs = {
   fileType: FileType
   clientSettings: ClientSettings | undefined
   /**
-   * When set (from `client.json#serverUrl`), generate against this deployed
+   * When set (from `skmtc.config.json#serverUrl`), generate against this deployed
    * stack server over HTTP instead of the local `bundle.js`.
    */
   stackUrl?: string
@@ -51,7 +51,7 @@ type GenerateLocalArgs = {
 
 /**
  * Per-run summary of gen-maps output. Populated only when the
- * project's `client.json#settings.anchors.enabled` is `true` (or
+ * project's `skmtc.config.json#settings.anchors.enabled` is `true` (or
  * a future `--anchors` flag overrides it on).
  */
 export type GenerateLocalAnchorsStats = {

@@ -24,7 +24,7 @@ const ownParameters = [
 ]
 
 // Each `Missing…` ref names nothing in the document: the parser keeps it only
-// when `system.danglingRefs` lists `parameter`.
+// when `parse.danglingRefs` lists `parameter`.
 const pathItem = {
   parameters: [...sharedParameters, { $ref: '#/components/parameters/MissingShared' }],
   get: {

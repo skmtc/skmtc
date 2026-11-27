@@ -71,7 +71,7 @@ Deno.test('isWriteOnly() reads writeOnly on the reference, or on the schema, an 
   assertEquals(properties.updated_at.isWriteOnly(), false)
 })
 
-/** The schemas parsed from `components.schemas`, with a loop of `$ref`s kept (`system.danglingRefs`). */
+/** The schemas parsed from `components.schemas`, with a loop of `$ref`s kept (`parse.danglingRefs`). */
 const toSchemas = (schemas: Record<string, unknown>) => {
   const parsed = new ParseContext({
     input: {

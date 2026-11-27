@@ -42,7 +42,7 @@ export const toRefV31 = <T extends OasRefData['refType']>({
   const oasRef = context.withStackTrail(stackTrail, () => new OasRef({ ...siblings, refType, $ref, nullable, readOnly, writeOnly }, context))
 
   // The parse context checks each ref once the document is parsed, and
-  // removes what holds a ref that names nothing (`system.danglingRefs`).
+  // removes what holds a ref that names nothing (`parse.danglingRefs`).
   context.registerOasRef(stackTrail.clone(), oasRef)
 
   return oasRef

@@ -159,6 +159,7 @@ Deno.test('printAgentContext - json format is parseable and complete', async () 
         globalStateDir: '/h/.skmtc',
         jsrUrl: 'https://jsr.io/',
         projects: [],
+        deprecations: [],
         commands: [
           {
             name: 'list',
@@ -195,6 +196,7 @@ Deno.test('printAgentContext - text format shows commands with flags', async () 
             generators: { remote: ['@skmtc/gen-zod'], local: [] }
           }
         ],
+        deprecations: [],
         commands: [
           {
             name: 'list',

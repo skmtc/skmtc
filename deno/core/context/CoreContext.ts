@@ -609,7 +609,7 @@ export class CoreContext {
    * Seed-values sibling of {@link toSupportedSubjects}: parse the document, then
    * call each generator's `toEnrichmentDefaults` over its supported subjects —
    * no transform, no render. Returns the default enrichment values keyed by the
-   * `client.json#settings.enrichments` routing, plus parse issues. Fails open
+   * `skmtc.config.json#settings.enrichments` routing, plus parse issues. Fails open
    * like {@link toArtifacts}: a bad schema surfaces as a `parseIssue` and the
    * defaults map is returned empty.
    */
@@ -698,11 +698,18 @@ export class CoreContext {
   }
 
   #setupParsePhase(input: SkmtcDocumentInput, settings?: ClientSettings): ParsePhase {
+    if (settings?.parse && settings.system) {
+      this.logger.warn(
+        'settings.parse and settings.system are both set: settings.parse is used and settings.system is ignored. ' +
+          'settings.system is the deprecated name of settings.parse; remove it.'
+      )
+    }
+
     const parseContext = new ParseContext({
       input,
       logger: this.logger,
       silent: this.silent,
-      system: settings?.system
+      system: settings?.parse ?? settings?.system
     })
 
     return { type: 'parse', context: parseContext }

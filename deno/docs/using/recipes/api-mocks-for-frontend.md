@@ -27,7 +27,7 @@ skmtc install @skmtc/gen-msw my-frontend
 skmtc install @skmtc/gen-tanstack-query-fetch-zod my-frontend
 ```
 
-`.skmtc/my-frontend/.settings/client.json`:
+`.skmtc/my-frontend/.settings/skmtc.config.json`:
 
 ```jsonc
 {

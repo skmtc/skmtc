@@ -4,6 +4,7 @@ import { generateWithWorker } from './generate-worker.ts'
 import { generateWithServer } from './generate-server.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import type { FileType } from '@/lib/types.ts'
+import { toEngineSettings } from '@/lib/project-config.ts'
 
 type GenerateWithWorkerArgs = {
   /** URL of the bundle the caller just built. Unused with `stackUrl`. */
@@ -31,7 +32,12 @@ export class GenerateArtifacts {
     stackUrl
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     if (stackUrl) {
-      return await generateWithServer({ stackUrl, schemaContents, fileType, clientSettings })
+      return await generateWithServer({
+        stackUrl,
+        schemaContents,
+        fileType,
+        clientSettings: toEngineSettings(clientSettings)
+      })
     }
     if (bundlePath === undefined) {
       throw new Error('No bundle to run: build the bundle first (see `createBundle`).')
@@ -39,7 +45,7 @@ export class GenerateArtifacts {
     return await generateWithWorker({
       schemaContents,
       fileType,
-      clientSettings,
+      clientSettings: toEngineSettings(clientSettings),
       bundlePath,
       attribution
     })

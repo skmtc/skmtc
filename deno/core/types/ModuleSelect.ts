@@ -13,7 +13,7 @@ import { schemaPath, type SchemaPath } from '@/types/SchemaPath.ts'
  * schema-seeded fields start out, and how label/order overrides are
  * expressed for fields that need no custom input.
  *
- * Stored in `client.json` under the literal key `moduleSelect`:
+ * Stored in `skmtc.config.json` under the literal key `moduleSelect`:
  *
  * ```jsonc
  * {

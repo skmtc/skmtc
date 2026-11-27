@@ -238,7 +238,7 @@ export class OasOperation extends OasBase {
    * The path item's come first.
    *
    * References stay references, so a caller can resolve each one on its own.
-   * A reference that names nothing (kept when `system.danglingRefs` lists
+   * A reference that names nothing (kept when `parse.danglingRefs` lists
    * `parameter`) keeps its place, and resolving it throws `DanglingRefError`.
    * {@link OasOperation.toParams} resolves them all.
    *

@@ -1,7 +1,7 @@
 import { hasParentSegment, isAbsolutePath } from '@skmtc/core'
 
 /**
- * `basePath` in client.json is resolved relative to the SKMTC root
+ * `basePath` in skmtc.config.json is resolved relative to the SKMTC root
  * directory (the parent of `.skmtc/`). Absolute paths used to be
  * silently treated as relative, producing surprising output locations
  * like `<skmtc-root>/Users/.../generated`. Reject them up front with a

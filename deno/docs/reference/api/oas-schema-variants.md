@@ -193,7 +193,7 @@ class OasIntersection {
 ```
 
 The parser usually merges the members of an `allOf` into one schema.
-[`settings.system.intersections`](../settings/client-json-schema.md#settingssystem-optional)
+[`settings.parse.intersections`](../settings/client-json-schema.md#settingsparse-optional)
 sets which `$ref`s the parser keeps. By default it keeps a `$ref` that
 closes a cycle: its target leads back to the schema that has the `$ref`.
 

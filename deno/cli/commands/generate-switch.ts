@@ -8,6 +8,7 @@ import { openBundleProject } from '@/lib/bundle-project.ts'
 import { Manager } from '@/lib/manager.ts'
 import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
+import { offerConfigMigrations } from '@/lib/config-migration-offer.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -27,7 +28,7 @@ type GenerateSwitchArgs = {
   /** Optional override for the `tsc` command (default: `npx tsc`). */
   tscCmd?: string
   /**
-   * Override for `client.json#settings.anchors.enabled`. `true` from
+   * Override for `skmtc.config.json#settings.anchors.enabled`. `true` from
    * `--anchors`, `false` from `--no-anchors`, `undefined` (default)
    * to honour the config value.
    */
@@ -63,6 +64,13 @@ export const generateSwitch = async ({
   }
 
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
+
+  // generate reads the config without SkmtcRoot.open, so it offers the
+  // migration itself, before the read (only in interactive mode).
+  if (isProjectName(projectName)) {
+    await offerConfigMigrations({ projectNames: [projectName] })
+  }
+
   const generateLocalArgs = await toGenerateLocalArgs({
     projectName,
     schemaSourceString,
@@ -70,7 +78,7 @@ export const generateSwitch = async ({
   })
 
   // Strict mode and `toGenerateLocalArgs` couldn't resolve everything
-  // (no schema source given, none in `client.json#source`, or the
+  // (no schema source given, none in `skmtc.config.json#source`, or the
   // bundle / project state is missing). The Ink fallback exists for
   // human exploration — for agents we'd rather emit a recipe error
   // pointing at the missing input than mount a TUI they can't drive.
@@ -81,8 +89,8 @@ export const generateSwitch = async ({
       usage: 'skmtc generate <project> [schema]',
       example: 'skmtc generate my-api ./schema.json',
       discover:
-        'If you want the schema source pinned, set `settings.source` in ' +
-        '.skmtc/<project>/.settings/client.json — then `skmtc generate <project>` ' +
+        'If you want the schema source pinned, set `source` in ' +
+        '.skmtc/<project>/.settings/skmtc.config.json — then `skmtc generate <project>` ' +
         'is enough.'
     })
   }
@@ -91,7 +99,7 @@ export const generateSwitch = async ({
     // A local project rebuilds bundle.js on every run, from the pins and
     // generator source it has now, and runs the bundle that build returns.
     // The build refuses a module graph with two copies of `@skmtc/core` or
-    // a `@skmtc/lang-*`. A REMOTE generate (`client.json#serverUrl` set)
+    // a `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
     // runs on the stack server and builds nothing locally.
     const bundlePath = generateLocalArgs.stackUrl ? undefined : await buildForRun(projectName)
 

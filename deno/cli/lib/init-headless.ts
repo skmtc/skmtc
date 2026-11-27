@@ -1,6 +1,6 @@
 /**
  * Headless `init` path — creates the `.skmtc/<project>/` scaffolding
- * (`deno.json`, `.settings/client.json`) without any Ink rendering.
+ * (`deno.json`, `.settings/skmtc.config.json`) without any Ink rendering.
  * Strict mode invokes this directly.
  *
  * Three outcomes are possible:

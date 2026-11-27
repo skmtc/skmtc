@@ -80,7 +80,7 @@ Deno.test('toArtifacts - a loop of parameter $refs removes the operation that us
   assertEquals(issues, ['error DANGLING_REF', 'error INVALID_DEPENDENCY_REF', 'error INVALID_DEPENDENCY_REF'])
 })
 
-Deno.test("toArtifacts - system.danglingRefs ['parameter']: a loop of parameter $refs reaches the generator as a ref that names nothing", () => {
+Deno.test("toArtifacts - parse.danglingRefs ['parameter']: a loop of parameter $refs reaches the generator as a ref that names nothing", () => {
   const { seen, issues } = run({ system: { danglingRefs: ['parameter'] } })
 
   assertEquals(seen, ['get /a: #/components/parameters/P1 (unresolved)', 'get /b: '])

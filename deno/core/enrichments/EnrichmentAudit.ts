@@ -45,7 +45,7 @@ export type AuditGenerator = {
 }
 
 type FinalizeArgs = {
-  /** The consumer's `client.json#settings.enrichments` record. */
+  /** The consumer's `skmtc.config.json#settings.enrichments` record. */
   enrichments: GeneratorEnrichments | undefined
   /** The generators configured for this run. */
   generators: readonly AuditGenerator[]

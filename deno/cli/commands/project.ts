@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -124,7 +125,7 @@ const toSchemaStepText = (
 ): string => {
   switch (schemaStep) {
     case 'registered':
-      return 'registered from client.json#source'
+      return 'registered from skmtc.config.json#source'
     case 'revision-added':
       return 'added a new revision from the local file'
     case 'unchanged':
@@ -132,7 +133,7 @@ const toSchemaStepText = (
     case 'url-not-uploaded':
       return `not uploaded (URL source); bound the hub's latest revision of ${api.account}/${api.slug}, which may be older than the document at the URL now`
     case 'no-source':
-      return `no client.json#source; bound the hub's latest revision of ${api.account}/${api.slug}`
+      return `no skmtc.config.json#source; bound the hub's latest revision of ${api.account}/${api.slug}`
     default: {
       const _exhaustive: never = schemaStep
       throw new Error(`Unhandled schema step: ${JSON.stringify(_exhaustive)}`)
@@ -145,7 +146,7 @@ export const printCreateResult = (
   { format }: { format: 'text' | 'json' }
 ): void => {
   if (format === 'json') {
-    console.log(JSON.stringify(result, null, 2))
+    printJsonResult(result)
     return
   }
   switch (result.type) {
@@ -164,7 +165,7 @@ export const printCreateResult = (
         console.log(`  base files: ${result.baseFilesPushed}`)
       }
       if (result.remoteWritten) {
-        console.log('  note: recorded project + api in client.json')
+        console.log('  note: recorded project + api in skmtc.config.json')
       }
       if (result.url) console.log(`  project: ${result.url}`)
       return
@@ -261,7 +262,7 @@ export const renderProjectRm = async ({
 
 export const printRmResult = (result: RmResult, { format }: { format: 'text' | 'json' }): void => {
   if (format === 'json') {
-    console.log(JSON.stringify(result, null, 2))
+    printJsonResult(result)
     return
   }
   switch (result.type) {

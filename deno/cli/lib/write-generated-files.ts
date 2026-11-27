@@ -43,7 +43,7 @@ type DeletePreviousArtifactsArgs = {
   skmtcRootPath: string
   manifestPath: string
   incomingPaths: string[]
-  /** Output anchors from the run's client.json — used to bound the
+  /** Output anchors from the run's skmtc.config.json — used to bound the
    *  empty-dir prune that follows file deletion. When absent (no
    *  basePath, or called without settings), dirs aren't pruned. */
   clientSettings?: ClientSettings
@@ -155,7 +155,7 @@ type WriteGeneratedFilesArgs = {
   manifestPath: string
   artifacts: Record<string, string>
   manifest: ManifestContent
-  /** Output anchors from the run's client.json — forwarded to the
+  /** Output anchors from the run's skmtc.config.json — forwarded to the
    *  stale-artifact prune so it can clean up emptied directories.
    *  Also supplies the `formatter` command for post-write formatting
    *  and formatter-aware edit detection. */

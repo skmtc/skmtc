@@ -20,7 +20,7 @@ What it does:
 ```
 1. Stack    deno.json#name — the local stack, which must already be deployed
             (skmtc deploy). Pinned to `latest`, or --stack-version <v>.
-2. API      client.json#api if set. A file client.json#source is then added
+2. API      skmtc.config.json#api if set. A file skmtc.config.json#source is then added
             to that API as a revision (POST /v1/apis/{account}/{api}/revisions)
             — schemaStep "revision-added"; an unchanged file adds nothing —
             "unchanged". A URL source is not uploaded — "url-not-uploaded" —
@@ -28,13 +28,13 @@ What it does:
             can be older than the document at the URL now. With no source,
             nothing is sent and the project binds that latest revision —
             "no-source".
-            Without client.json#api, register client.json#source —
+            Without skmtc.config.json#api, register skmtc.config.json#source —
             /v1/apis/upload (a file) or /v1/apis/import (a URL) — and write the
-            resulting @account/slug back into client.json#api — "registered".
+            resulting @account/slug back into skmtc.config.json#api — "registered".
 3. Project  POST /v1/projects binding the two. A 409 (already exists) STOPS the
             command — nothing is overwritten.
 4. Seed     PUT …/client-config (config) + …/preview/base-files (--base-files).
-5. Record   fills client.json#project + #api when absent (never overwrites an
+5. Record   fills skmtc.config.json#project + #api when absent (never overwrites an
             existing ref — that's yours).
 ```
 
@@ -72,7 +72,7 @@ What it does:
 
 `failed` carries a `stage`:
 
-- `read`: no client.json, or a bad name.
+- `read`: no skmtc.config.json, or a bad name.
 - `stack`: no scoped `deno.json#name`.
 - `api`: no schema, the register failed, or the schema revision upload failed.
 - `create`: **409 → already exists**, or 422 → stack not deployed.
@@ -99,7 +99,7 @@ account when `<name>` is a bare slug.
   `deno.json#version`.
 - **API** — uploads don't self-identify (the hub can't match a local file to an
   existing API). So `create` records the registered `@account/slug` in
-  **`client.json#api`** (like `client.json#project` is the project remote) — a
+  **`skmtc.config.json#api`** (like `skmtc.config.json#project` is the project remote) — a
   re-run reuses it instead of registering a duplicate.
 - **Project** — `create` is create-only; **`push` is update** (and asks before
   overwriting). They never share a path, so you can't accidentally clobber a
@@ -114,7 +114,7 @@ goes to production.
 
 ## See also
 
-- [`pull`](pull.md) — pull a project's config back into client.json
+- [`pull`](pull.md) — pull a project's config back into skmtc.config.json
 - [`push`](push.md) — push config to an existing project (the _update_ path)
 - [`deploy`](deploy.md) — deploy the stack the project binds
 - [overview](overview.md) — shared flags

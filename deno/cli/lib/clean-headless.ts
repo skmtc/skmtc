@@ -38,14 +38,14 @@ import { createReadOnlyBundle, type ReadOnlyBundle } from '@/lib/create-bundle.t
 type CleanHeadlessArgs = {
   projectName: string
   dryRun: boolean
-  /** Output anchors from the project's client.json — used to bound
+  /** Output anchors from the project's skmtc.config.json — used to bound
    *  empty-dir pruning. When absent (no basePath), dirs aren't pruned. */
   clientSettings: ClientSettings | undefined
-  /** `client.json#source` — resolved fresh to disambiguate a
+  /** `skmtc.config.json#source` — resolved fresh to disambiguate a
    *  formatter-config change from a hand edit in the `modified` report.
    *  Absent, or unreachable, degrades to lock-hash-only comparison. */
   schemaSourceString: string | undefined
-  /** `client.json#serverUrl` — generate against a deployed stack
+  /** `skmtc.config.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
   /** Builds the project's bundle without writing to the project.
@@ -171,7 +171,7 @@ export const cleanHeadless = async ({
 
     // Ejected files are the user's — `clean` removes generated output,
     // and these are no longer generated output. Belt and braces: honor
-    // both the manifest annotation and the client.json ejected set.
+    // both the manifest annotation and the skmtc.config.json ejected set.
     if (entry.ejected || ejectedArtifactPaths.has(path)) {
       ejected.push(path)
       continue

@@ -95,7 +95,7 @@ const toPropertyNames = (schema: OasSchema | OasRef<'schema'> | undefined): stri
   schema?.type === 'object' ? Object.keys(schema.properties ?? {}) : undefined
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
-  Deno.test(`${openapi} system.anyOf unknown: the properties next to an anyOf stay, and its members are left out`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: the properties next to an anyOf stay, and its members are left out`, () => {
     const { toSchema, warningsAt, errorsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
     const streamCopy = toSchema('StreamCopy')
 
@@ -107,14 +107,14 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals([warningsAt('StreamCopy'), errorsAt('StreamCopy')], [1, 0])
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: an anyOf with nothing next to it is unknown`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: an anyOf with nothing next to it is unknown`, () => {
     const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
 
     assertEquals(toSchema('PurgeCache')?.type, 'unknown')
     assertEquals(warningsAt('PurgeCache'), 1)
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: a default next to the anyOf gives it no type`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: a default next to the anyOf gives it no type`, () => {
     const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
 
     // The trap: without the members, `{ default: 'load' }` looked like a string with no type.
@@ -122,7 +122,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(warningsAt('WaitUntil'), 1)
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: an allOf member's anyOf is left out of the merge`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: an allOf member's anyOf is left out of the merge`, () => {
     const { toSchema, warningsAt, errorsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
     const namedWithCode = toSchema('NamedWithCode')
 
@@ -132,7 +132,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals([warningsAt('NamedWithCode'), errorsAt('NamedWithCode')], [1, 0])
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: an anyOf with one member besides null stays a nullable reference`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: an anyOf with one member besides null stays a nullable reference`, () => {
     const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
     const maybeNamed = toSchema('MaybeNamed')
 
@@ -142,7 +142,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(warningsAt('MaybeNamed'), 0)
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: a null member written type: ['null'] is null too`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: a null member written type: ['null'] is null too`, () => {
     const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
     const maybeNamed = toSchema('MaybeNamedList')
 
@@ -151,7 +151,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(warningsAt('MaybeNamedList'), 0)
   })
 
-  Deno.test(`${openapi} system.anyOf unknown: an anyOf of single values stays a union`, () => {
+  Deno.test(`${openapi} parse.anyOf unknown: an anyOf of single values stays a union`, () => {
     const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
 
     // The trap: cf gives these one flag (`--origin-port 22` or `--origin-port 22-25`); any value would lose it.

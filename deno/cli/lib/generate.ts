@@ -19,7 +19,7 @@ type GenerateArgs = {
   fileType: FileType
   clientSettings: ClientSettings | undefined
   /**
-   * When set (from `client.json#serverUrl`), generate against this deployed
+   * When set (from `skmtc.config.json#serverUrl`), generate against this deployed
    * stack server over HTTP instead of the local `bundle.js`.
    */
   stackUrl?: string

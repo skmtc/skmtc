@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.48'
+    '@skmtc/core': '0.49'
 ---
 
 # Authoring Skmtc generators
@@ -183,13 +183,13 @@ functions that return strings — helpers drift.
   document cannot supply; the consumer provides them; options are
   the caller's.** Declare them as a valibot three-scope umbrella
   (`subject`/`generator`/`stack`) in `enrichments.ts` — that schema is
-  the whole contract the consumer's `client.json` can fill; the
+  the whole contract the consumer's `skmtc.config.json` can fill; the
   opt-out is
   `export const toEnrichmentSchema = () => emptyEnrichmentSchema` — a
   FUNCTION returning the schema, required in both the entry config and
   the base-factory config. Read via
   `this.settings.enrichments.subject?...`; the run-constant scopes
-  (`client.json` keys `[id]._generator` and `._stack`, umbrella
+  (`skmtc.config.json` keys `[id]._generator` and `._stack`, umbrella
   members `generator` and `stack` — no underscore in generator code)
   are read outside a projection with `toGeneratorEnrichment` /
   `toStackEnrichment`. Declare every scope you read: a scope left
@@ -197,7 +197,9 @@ functions that return strings — helpers drift.
   every generator in the run to declare `stack`; check each
   generator's `enrichments.ts` — most stock ones declare `subject` only).
   A wrong-typed value fails the run, and the message names its place in
-  `client.json`; keys the schema drops and
+  `skmtc.config.json` (its old name, `client.json`, still works, but
+  the CLI reports it as deprecated; `skmtc migrate config <project>`
+  moves it); keys the schema drops and
   routing paths nothing read land on `manifest.enrichmentWarnings`.
   Options come from the CALLING generator, on the insert:
   `this.insertModel(Peer, ref, { options: { suffix: 'Input' } })`.
@@ -280,7 +282,7 @@ the text into a template.
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
 | A `ref` built from a string of your own | Fabricated ref — go through a peer's two doors, never its statics |
-| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing (no component has its name, or its `$ref`s loop), and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
+| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing (no component has its name, or its `$ref`s loop), and `skmtc.config.json` `settings.parse.danglingRefs` (old name `settings.system`, deprecated) lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
 ## 7. The lang layer

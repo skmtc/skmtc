@@ -63,7 +63,7 @@ import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 /**
  * Valibot schema for {@link ModulePackage}.
  *
- * `rootPath` must be a **forward** path: `client.json` `basePath` is
+ * `rootPath` must be a **forward** path: `skmtc.config.json` `basePath` is
  * the common on-disk anchor, so every package sits forward from it.
  * A `..` segment means `basePath` was placed too deep — a misconfig
  * that otherwise misplaces every artifact silently.
@@ -74,7 +74,7 @@ export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
     v.check(
       rootPath => !hasParentSegment(rootPath),
       'package rootPath must be a forward path with no ".." segments — ' +
-        'set client.json basePath to a common ancestor of every package ' +
+        'set skmtc.config.json basePath to a common ancestor of every package ' +
         'so each rootPath is written forward from it'
     )
   ),
@@ -244,7 +244,7 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 })
 
 /**
- * What `client.json#settings.system.danglingRefs` can list: each kind of
+ * What `skmtc.config.json#settings.parse.danglingRefs` can list: each kind of
  * `$ref`, and `allOfMember`, a `$ref` that core merges at parse: a member of
  * an `allOf`, also one inside a `oneOf` or `anyOf` member, or a `oneOf` or
  * `anyOf` member merged with the keywords beside the union.
@@ -261,11 +261,11 @@ export const danglingRefKinds = [
   'allOfMember'
 ] as const satisfies readonly (OasRefData['refType'] | 'allOfMember')[]
 
-/** A kind of `$ref` that `system.danglingRefs` can let name nothing. */
+/** A kind of `$ref` that `parse.danglingRefs` can let name nothing. */
 export type DanglingRefKind = (typeof danglingRefKinds)[number]
 
-/** Valibot schema for {@link SystemSettings}: `client.json#settings.system`. */
-export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
+/** Valibot schema for {@link ParseSettings}: `skmtc.config.json#settings.parse`. */
+export const parseSettings: v.GenericSchema<ParseSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown'])),
@@ -273,6 +273,13 @@ export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   danglingRefs: v.optional(v.array(v.picklist(danglingRefKinds))),
   intersections: v.optional(v.picklist(['merge', 'cycles', 'all']))
 })
+
+/**
+ * The old name of {@link parseSettings}.
+ *
+ * @deprecated Use `parseSettings`.
+ */
+export const systemSettings: v.GenericSchema<ParseSettings> = parseSettings
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(
@@ -296,7 +303,8 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
-  system: v.optional(systemSettings),
+  parse: v.optional(parseSettings),
+  system: v.optional(parseSettings),
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
@@ -558,7 +566,7 @@ export type Include = IncludeOperations | IncludeModels | string
  */
 /**
  * Per-project gen-maps (`anchors`) configuration. Lives at
- * `client.json#settings.anchors`.
+ * `skmtc.config.json#settings.anchors`.
  *
  * v1 honours the two fields below. Future fields (parser choice,
  * gzip compression, map toggle) will land additively as the
@@ -582,11 +590,11 @@ export type AnchorsSettings = {
 
 /**
  * How the OpenAPI parser treats what it cannot read faithfully, or reads
- * another way (`client.json#settings.system`). Each setting's default parses
+ * another way (`skmtc.config.json#settings.parse`). Each setting's default parses
  * as core always did: `strict` fails the schema, and `removeErroredItems`
  * removes each item that uses it.
  */
-export type SystemSettings = {
+export type ParseSettings = {
   /**
    * `latestWins`: where `allOf` members contradict, the later member's
    * keyword wins, with one warning for each schema where it happens.
@@ -632,6 +640,13 @@ export type SystemSettings = {
   intersections?: 'merge' | 'cycles' | 'all'
 }
 
+/**
+ * The old name of {@link ParseSettings}.
+ *
+ * @deprecated Use `ParseSettings`.
+ */
+export type SystemSettings = ParseSettings
+
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
@@ -655,12 +670,18 @@ export type ClientSettings = {
    * in v1. See {@link AnchorsSettings}.
    */
   anchors?: AnchorsSettings
-  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link SystemSettings}. */
-  system?: SystemSettings
+  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link ParseSettings}. */
+  parse?: ParseSettings
+  /**
+   * The old name of {@link parse}. Read only when `parse` is not set.
+   *
+   * @deprecated Use `parse`. `skmtc migrate config <project>` moves it.
+   */
+  system?: ParseSettings
   /**
    * Preview input-matcher discovery directories (project-root relative, e.g.
    * `src/fields`, `src/inputs`). A preview/hub concern: the generation engine
-   * ignores it. Declared here so the CLI preserves it when reading `client.json`
+   * ignores it. Declared here so the CLI preserves it when reading `skmtc.config.json`
    * and carries it through `skmtc push` to the hub.
    */
   inputDirs?: string[]

@@ -18,7 +18,7 @@ type DanglingRefErrorOptions = {
  * component.
  *
  * By default the parser removes what holds such a reference, so a generator
- * never meets one. When `client.json` `system.danglingRefs` lists the
+ * never meets one. When `skmtc.config.json` `parse.danglingRefs` lists the
  * reference's kind, it stays, and a generator that resolves it can catch
  * this error and render something else in its place. Test for it with
  * {@link DanglingRefError.is}, not `instanceof`.

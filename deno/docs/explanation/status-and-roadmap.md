@@ -232,7 +232,7 @@ opportunistically and don't appear here.
   Pin via JSR lockfile if you depend on a specific output shape.
   Cloned generators are insulated from upstream breaking changes
   by virtue of being copied.
-- **`client.json` schema:** additive changes are safe.
+- **`skmtc.config.json` schema:** additive changes are safe.
   Field-removal or semantic changes follow the engine's semver.
   Migration notes accompany breaking changes when they happen.
 

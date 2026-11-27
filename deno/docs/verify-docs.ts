@@ -646,8 +646,8 @@ if (oasIssueMembers.length === 0 || gqlIssueMembers.length === 0) {
 
 // ---------------------------------------------------------------------
 // 8. Client-settings sync — the clientSettings and skmtcClientConfig
-//    valibot schemas in core/types/Settings.ts define the client.json
-//    surface. reference/settings/client-json-schema.md claims "the
+//    valibot schemas in core/types/Settings.ts define the
+//    skmtc.config.json surface. reference/settings/client-json-schema.md claims "the
 //    complete shape", so every schema key must appear there (as a
 //    `"key"` in a JSONC block or as backticked prose).
 // ---------------------------------------------------------------------

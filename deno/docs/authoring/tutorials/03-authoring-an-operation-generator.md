@@ -237,7 +237,7 @@ scope in the Projection:
 const baseUrl = this.settings.enrichments.subject?.baseUrl ?? 'https://api.example.com'
 ```
 
-Users set `baseUrl` per operation in `client.json` under the OAS
+Users set `baseUrl` per operation in `skmtc.config.json` under the OAS
 operation routing path `enrichments[generatorId][path][method][variant]`
 — the subject leaf sits under the variant key (`main` by default):
 

@@ -187,7 +187,7 @@ but the source files remain. Inspect the directory manually.
 
 ## What `remove` does *not* do
 
-- Does **not** remove entries from `client.json` (enrichments,
+- Does **not** remove entries from `skmtc.config.json` (enrichments,
   paths). Those may now point at a generator that no longer exists,
   which is harmless but cluttered. Manual cleanup if needed.
 - Does **not** verify git state — uncommitted changes in a

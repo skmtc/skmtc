@@ -302,7 +302,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * @returns The resolved component
    * @throws {DanglingRefError} when a reference on the chain names nothing,
    * or the chain loops ({@link toLoop}), so it never reaches a component.
-   * The parser keeps either one only when `system.danglingRefs` lists its kind.
+   * The parser keeps either one only when `parse.danglingRefs` lists its kind.
    * @throws Error when a reference on the chain names a component of another
    * kind (see {@link resolveOnce})
    */
@@ -395,7 +395,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    *
    * @returns Either the resolved component or another reference in the chain
    * @throws {DanglingRefError} when the reference names nothing in the
-   * document (kept when `client.json` `system.danglingRefs` lists its kind),
+   * document (kept when `skmtc.config.json` `parse.danglingRefs` lists its kind),
    * including a `$ref` with no name, such as `#/components/schemas/`
    * @throws Error when it names a component of another kind, such as a
    * `requestBody` ref to `#/components/schemas/…`

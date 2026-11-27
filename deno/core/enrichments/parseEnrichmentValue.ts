@@ -6,7 +6,7 @@ type ParseEnrichmentValueArgs<EnrichmentType> = {
   value: unknown
   /** The generator whose schema reads `value`; `undefined` for the shared `_stack` bag. */
   generatorId: string | undefined
-  /** The `client.json#settings.enrichments` routing path of the value at `path` inside `value`. */
+  /** The `skmtc.config.json#settings.enrichments` routing path of the value at `path` inside `value`. */
   toRoutingPath: (path: readonly string[]) => string[]
 }
 
@@ -14,7 +14,7 @@ type ParseEnrichmentValueArgs<EnrichmentType> = {
  * `value` parsed through a generator's enrichment schema. Enrichments are
  * typed configuration, so a value that does not match throws, and the run
  * fails. The message lists every value that does not match, at its place in
- * `client.json`, so the user can fix them all in one pass.
+ * `skmtc.config.json`, so the user can fix them all in one pass.
  */
 export const parseEnrichmentValue = <EnrichmentType>({
   schema,
@@ -41,7 +41,7 @@ export const parseEnrichmentValue = <EnrichmentType>({
       : `Enrichments for '${generatorId}' do not match its enrichment schema.`
 
   throw new Error(
-    [`${header} Fix them in client.json (settings.enrichments):`, ...lines].join('\n')
+    [`${header} Fix them in skmtc.config.json (settings.enrichments):`, ...lines].join('\n')
   )
 }
 

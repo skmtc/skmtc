@@ -33,10 +33,10 @@ my-monorepo/
 └── .skmtc/
     ├── customer-api/
     │   ├── deno.json                  # generators for project "customer-api"
-    │   └── .settings/client.json
+    │   └── .settings/skmtc.config.json
     └── admin-api/
         ├── deno.json                  # different generators for project "admin-api"
-        └── .settings/client.json
+        └── .settings/skmtc.config.json
 ```
 
 ## Step-by-step
@@ -49,15 +49,15 @@ skmtc init admin-api packages/admin-api/src/generated
 ```
 
 Each gets its own `.skmtc/<project>/` directory with its own
-`deno.json` (generator imports) and `client.json` (settings).
+`deno.json` (generator imports) and `skmtc.config.json` (settings).
 
 ### Configure each project's source
 
 `init` already wrote each project's `basePath`. Add the `source` so each
-`client.json` reads:
+`skmtc.config.json` reads:
 
 ```jsonc
-// .skmtc/customer-api/.settings/client.json
+// .skmtc/customer-api/.settings/skmtc.config.json
 {
   "source": "https://api.example.com/customer-api.json",
   "settings": {
@@ -67,7 +67,7 @@ Each gets its own `.skmtc/<project>/` directory with its own
 ```
 
 ```jsonc
-// .skmtc/admin-api/.settings/client.json
+// .skmtc/admin-api/.settings/skmtc.config.json
 {
   "source": "https://api.example.com/admin-api.json",
   "settings": {
