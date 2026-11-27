@@ -262,9 +262,9 @@ the `projections` that each entry lists, and from the `$ref`s that the
 parser read.
 
 The two orders write the same files. If two generators insert into one
-file, the definitions in it can be in a different order. Each order takes
-the model generators first, so the order of the kinds in the config changes
-no file. See
+file, the definitions in it can be in a different order. The order
+generator by generator takes the model generators first. Thus, the order
+of the kinds in the config changes no file, in either order. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle

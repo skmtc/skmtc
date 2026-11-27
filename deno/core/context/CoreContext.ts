@@ -159,9 +159,10 @@ export type ToArtifactsArgs = {
    * the run can let it go. That run goes subject by subject, and writes the
    * same files. A file can have its definitions in another order when more
    * than one generator inserts into it: each subject runs every generator
-   * before the next subject runs. Each run takes the model generators first,
-   * then the operation generators, then the webhook generators, so the order
-   * of these kinds in the config changes no file. A run with
+   * before the next subject runs. A run without `onArtifact` takes the model
+   * generators first, then the operation generators, then the webhook
+   * generators, so the order of these kinds in the config changes no file.
+   * A run with
    * `attribution.postPass` or `inspect`, or of a GraphQL document, gives
    * every file at the end.
    *

@@ -137,9 +137,10 @@ you're authoring a new stack.
 
 Yes — the cache is order-independent. Whichever generator's
 `transform` fires first will hit the cache miss and construct;
-the other will hit the cache hit and reuse. The dispatcher
-iterates generators in their order in the config map, but the
-coordination doesn't depend on that order. See
+the other will hit the cache hit and reuse. The dispatcher runs
+the model generators first, then the operation generators, then the
+webhook generators. Generators of one kind run in their order in the
+config map. The coordination doesn't depend on that order. See
 [cross-generator-coordination.md](../../concepts/cross-generator-coordination.md).
 
 ### How tightly should I pin peer versions?

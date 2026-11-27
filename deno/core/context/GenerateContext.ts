@@ -583,10 +583,10 @@ export class GenerateContext implements GenerateContextType {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
     // A run that gives each file when it is complete goes subject by
-    // subject. Any other run goes generator by generator. Both take the
-    // kinds in one order (the models, the operations, the webhooks), and
-    // both write the same files; a file that more than one generator inserts
-    // into can have its definitions in another order.
+    // subject. Any other run goes generator by generator, by kind: the
+    // models, the operations, the webhooks. Both write the same files,
+    // whatever the order of the kinds in the config; a file that more than
+    // one generator inserts into can have its definitions in another order.
     if (release !== undefined && this.document.type === 'oas') {
       this.#runBySubject(this.document.value, generators, stackTrail, release)
     } else {
