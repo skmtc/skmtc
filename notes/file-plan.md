@@ -51,16 +51,20 @@ Five ideas, each with one home. The tickets are listed further down.
    `toExportPath`), which exist today and construct nothing. An entry with
    no `projections` is not planned, and its files render at the end, as now.
    So a generator joins when its author adds one line.
-2. **Reach.** For each subject, the models it can reach through `$ref`s,
-   and for each model, the models it reaches. Core computes it from the
-   document in `parse/`, from the same walk as the cycle check, and keys it
-   by model key, so a deep ref target counts.
+2. **Reach.** For each model, the models it reaches through `$ref`s, and for
+   each operation or webhook, the models it names. Core reads it from the
+   refs the parser read, each with its place (`ParseContext.toReach()`), and
+   keys it by model key, so a deep ref target counts. It needs no walk of
+   the document of its own.
 3. **The file plan.** Before generate, for each file path: the subjects that
-   hold it. A subject holds a file when one of its own projections maps it
-   there, or when the file has a model the subject reaches. The second part
-   is what makes a later insert with other options, or a peer that reads a
-   definition's value, safe: the file stays while any such subject is left.
-   This step changes no behavior; it adds the plan and its tests.
+   hold it. A subject holds a file when a declared projection of its kind
+   maps it there, or when the file has a model the subject names or a model
+   that one reaches. The second part is what makes a later insert with other
+   options, or a peer that reads a definition's value, safe: the file stays
+   while any such subject is left. A subject of the plan is the `Subject`
+   the run takes, so the two share one name for it. This step changes no
+   behavior; it adds the plan and its tests. A file that no declared
+   projection maps a subject to is not in the plan, and stays to the end.
 4. **Subject order, and release.** The run goes subject by subject: for one
    subject, every generator. Two rules keep the output as it is today:
    models in document order, and an operation after the models it reaches.
@@ -70,6 +74,13 @@ Five ideas, each with one home. The tickets are listed further down.
    generator inserted a projection it did not declare.
 5. **A sink.** `onArtifact(path, text)` on `toArtifacts`, called at release.
    Without it the text stays in memory and the result is as today.
+
+**A run plans only when it releases.** The plan costs time: with the three
+stock generators, about 30 ms for GitHub in a run of about 250 ms, and about
+0.3 to 0.5 s for Microsoft Graph in a run of about 2 s (measured with ticket
+3). So ticket 5 builds the plan for a run whose host asks for each file as
+it is complete, and a run that does not ask goes generator by generator, as
+today, with no plan.
 
 A host that wants to write between subjects needs the run as steps: a
 generator that stops after each subject. That is a seventh ticket, after these,
@@ -83,9 +94,9 @@ The same work fits three patterns core already has, and one it lacks.
 - **Statics before construction.** The plan asks a projection class where a
   subject's file is, with the statics the Drivers use today. No new way to
   name a file is added.
-- **One ref walk.** Reach is a second reader of the graph that the cycle
-  check builds in `parse/toCyclicRefs.ts`. It adds no walk of its own, no
-  list of HTTP methods and no pointer decoding.
+- **One ref walk.** Reach reads the refs the parser kept while it read the
+  document. It adds no walk of its own, no list of HTTP methods and no
+  pointer decoding.
 - **A class for a thing that has state.** `Reach` and `FilePlan` are two
   small classes, each with its tests: what holds a file, and which files a
   finished subject releases. `GenerateContext` asks them; it does not grow
@@ -136,8 +147,8 @@ The same work fits three patterns core already has, and one it lacks.
 | # | Ticket | Changes behavior | Size |
 |---|---|---|---|
 | 1 | Entries declare projections, and each stock generator does | no | core small; every stock generator one line and a release |
-| 2 | Reach, from the document | no | one module in `parse/` with tests |
-| 3 | The file plan | no | one module with tests; the plan is built and not used |
+| 2 | Reach, from the refs the parser read | no | one module in `parse/` with tests |
+| 3 | The file plan | no | one module with tests; nothing in a run builds the plan yet |
 | 4 | One `Subject` type and one runner for the four kinds | no | a refactor of `GenerateContext`'s four run loops; deep review |
 | 5 | Subject order and release | yes: order of work, peak memory | the large one; deep review |
 | 6 | `onArtifact` | adds an option | small |
@@ -147,16 +158,35 @@ The same work fits three patterns core already has, and one it lacks.
 - Ticket 5 adds the permanent check: a test in core's suite that runs a
   document planned and unplanned and compares every file's bytes.
 - Tickets 1 to 4 give no gain by themselves. The gain arrives with 5.
+- Ticket 4 was built before ticket 3, which takes its `Subject`.
 - Each ticket carries its patch and its tests.
+
+## Verified with ticket 3
+
+- **The plan against real runs.** With the three stock generators
+  (gen-typescript, gen-zod, gen-tanstack-query-fetch-zod) and their lists,
+  on Sentry, GitHub, Cloudflare and Microsoft Graph: every file of the run
+  is in the plan, and no subject reads or writes a planned file that the
+  plan does not give it. Microsoft Graph made 446,096 reads and writes of
+  22,601 files.
+- **`toExportPath` of the stock projections** needs only the subject, the
+  enrichments and the variant, but for two generators. gen-effect-schema's
+  `coerce` option adds a suffix to the name, and the path follows the name:
+  the plan asks with no options, so it knows the file of the JSON reading
+  only, and the file of a coerced twin stays to the end. gen-md-docs takes
+  the path of a document from an option, so it has no list.
+- **A projection that cannot answer is left out for that subject.** A static
+  that throws, or enrichments with variants and no `main`: the run reports
+  the fault where it happens, and the plan counts it (`unanswered`).
+- **The plan's reads of enrichments are not recorded** in the enrichment
+  audit. The plan reads for projections the run may never insert.
 
 ## Not verified yet
 
 Each of these is checked when its ticket is written, and the note is
 corrected if it does not hold.
 
-- That `toExportPath` of every stock projection needs nothing but the
-  subject, the enrichments and the variant on main (caller options became
-  part of identity in 0.4x, and a projection with options may map one
-  subject to several paths).
-- How webhooks map to files, and whether they fit the operation rule.
+- How webhooks map to files in a real generator. The plan gives a webhook
+  the operation rule; no stock generator takes webhooks, so no run has
+  checked it.
 - The figures above are from core 0.45. Ticket 5 measures again on main.
