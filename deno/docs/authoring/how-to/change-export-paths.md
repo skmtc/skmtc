@@ -82,7 +82,7 @@ toExportPath: ({ operation, enrichments }) => {
 }
 ```
 
-Users now set per-operation path overrides in `client.json`.
+Users now set per-operation path overrides in `skmtc.config.json`.
 
 ### Regenerate
 

@@ -24,7 +24,7 @@ If you find yourself wanting to change a hardcoded value in a generator, that's 
 init → install → generate
 ```
 
-After the first run, you change `client.json` (the schema source,
+After the first run, you change `skmtc.config.json` (the schema source,
 enrichments, what to skip) and run `generate` again.
 
 ## Quick start
@@ -64,5 +64,5 @@ Complete worked examples.
 
 - [Concepts](../concepts/) — mental models that apply to both using and authoring
 - [CLI reference](../reference/cli/overview.md) — every command, every flag
-- [Settings reference](../reference/settings/) — `client.json` schema and enrichment shape
+- [Settings reference](../reference/settings/) — `skmtc.config.json` schema and enrichment shape
 - [Stock generators reference](../reference/stock-generators/) — per-generator capabilities and enrichments

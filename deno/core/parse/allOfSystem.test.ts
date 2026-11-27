@@ -37,7 +37,7 @@ const parse = (system: SystemSettings | undefined) => {
   return { failure: schemas?.[('Failure' as RefName)], issues: context.issues.map(({ level, type, message }) => ({ level, type, message })) }
 }
 
-Deno.test('system.allOf latestWins: a schema whose members contradict parses, with one warning naming the keywords', () => {
+Deno.test('parse.allOf latestWins: a schema whose members contradict parses, with one warning naming the keywords', () => {
   const { failure, issues } = parse({ allOf: 'latestWins' })
   const success = failure?.type === 'object' ? failure.properties?.success : undefined
 
@@ -45,7 +45,7 @@ Deno.test('system.allOf latestWins: a schema whose members contradict parses, wi
   assertEquals(issues, [{
     level: 'warning',
     type: 'ALLOF_CONTRADICTION',
-    message: "The allOf members contradict on enum; the later member's values are kept (system.allOf is latestWins)."
+    message: "The allOf members contradict on enum; the later member's values are kept (parse.allOf is latestWins)."
   }])
 })
 

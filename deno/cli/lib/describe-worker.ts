@@ -6,6 +6,7 @@ import type {
   SupportedSubjects
 } from '@skmtc/core'
 import { toDocumentInput } from '@/lib/document-input.ts'
+import { toEngineSettings } from '@/lib/project-config.ts'
 import type { FileType } from '@/lib/types.ts'
 
 /**
@@ -69,7 +70,7 @@ export const describeWithWorker = ({
             type: 'DESCRIBE',
             payload: {
               document,
-              clientSettings
+              clientSettings: toEngineSettings(clientSettings)
             }
           })
           break

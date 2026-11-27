@@ -11,7 +11,7 @@ differ.
 
 ## Prerequisites
 
-- The project's `client.json#source` points at a GraphQL SDL
+- The project's `skmtc.config.json#source` points at a GraphQL SDL
   (`.graphql` file or content-type `application/graphql`).
 - Familiarity with [the GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md).
 

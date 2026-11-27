@@ -16,7 +16,7 @@ type ToEffectiveParametersArgs = {
  * them: the path item's first, then its own. An own parameter with the same
  * name and location replaces the path item's. References stay references.
  *
- * A reference that names nothing (kept when `system.danglingRefs` lists
+ * A reference that names nothing (kept when `parse.danglingRefs` lists
  * `parameter`) has no name or location. It keeps its place, and only the
  * same `$ref` replaces it.
  */
@@ -31,7 +31,7 @@ export const toEffectiveParameters = ({
 
 /**
  * True for a parameter `$ref` that names nothing in the document, which the
- * parser keeps when `system.danglingRefs` lists `parameter`.
+ * parser keeps when `parse.danglingRefs` lists `parameter`.
  */
 export const namesNothing = (parameter: Parameter): boolean => {
   if (!parameter.isRef()) {

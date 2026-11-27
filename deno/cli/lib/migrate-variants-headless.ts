@@ -1,5 +1,5 @@
 /**
- * Headless variant-axis migration for a project's `client.json`.
+ * Headless variant-axis migration for a project's `skmtc.config.json`.
  *
  * Idempotent — re-running on an already-migrated file leaves it
  * unchanged.
@@ -23,7 +23,7 @@
  * variant axis.
  */
 
-import { join } from '@std/path/join'
+import { reportConfigDeprecations, toConfigFileText, toConfigLocation } from '@/lib/project-config.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
 const HTTP_METHODS: ReadonlySet<string> = new Set([
@@ -131,12 +131,14 @@ export const migrateVariantsHeadless = async ({
   projectName: string
 }): Promise<MigrateVariantsResult> => {
   const projectPath = toProjectPath(projectName)
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const location = toConfigLocation(projectPath)
+  const clientJsonPath = location.path
 
   const source = await Deno.readTextFile(clientJsonPath)
   const beforeBytes = new TextEncoder().encode(source).length
   // deno-lint-ignore no-explicit-any — JSON shape is validated downstream
   const data = JSON.parse(source) as any
+  reportConfigDeprecations({ projectPath, location, config: data })
 
   const settings = data?.settings as Record<string, unknown> | undefined
   if (!settings) {
@@ -163,7 +165,7 @@ export const migrateVariantsHeadless = async ({
 
   const alreadyMigrated = wrapped.length === 0 && skipCount === 0 && includeCount === 0
 
-  const next = JSON.stringify(data, null, 2) + '\n'
+  const next = toConfigFileText(data) + '\n'
 
   if (!alreadyMigrated) {
     await Deno.writeTextFile(clientJsonPath, next)

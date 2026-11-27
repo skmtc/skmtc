@@ -145,7 +145,8 @@ declares in enrichments. `'main'` is always present.
 ## Enrichments and options
 
 **Enrichments** are settings that the document cannot give. The
-consumer writes them in `client.json`.
+consumer writes them in `skmtc.config.json`. Its old name,
+`client.json`, still works, and the CLI reports it as deprecated.
 
 - Declare them in `enrichments.ts` as a valibot schema with three
   scopes: `subject`, `generator` and `stack`. That schema is all a
@@ -155,13 +156,13 @@ consumer writes them in `client.json`.
   the entry config and in the base factory config.
 - Read the subject scope as `this.settings.enrichments.subject`. Read
   the other two outside a projection with `toGeneratorEnrichment` and
-  `toStackEnrichment`. Their `client.json` keys are `[id]._generator`
+  `toStackEnrichment`. Their `skmtc.config.json` keys are `[id]._generator`
   and `[id]._stack`.
 - Declare each scope you read. A scope left as `v.undefined()` rejects
   any value at its key, so `_stack` needs every generator of the run to
   declare `stack`. Most stock generators declare `subject` only.
 - A value of the wrong type fails the run, and the message names its
-  place in `client.json`. Keys that the schema drops are listed in
+  place in `skmtc.config.json`. Keys that the schema drops are listed in
   `manifest.enrichmentWarnings`.
 
 **Options** come from the generator that calls you, on the insert:
@@ -252,7 +253,7 @@ enrichment routing and its base factories are not covered here.
 | The router sends a custom value to the wrong class | `schema.type === 'custom'` is a real case of the router |
 | `null` passes a guard for an optional value | `!== undefined` lets `null` pass. Test both |
 | A `ref` built from a string of your own | Use the peer's two doors |
-| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing, and `settings.system.danglingRefs` lists its kind. Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (your bundle can have another copy of core, so `instanceof` can be false), throw any other error again, and render a fallback or fail the item. By default (`[]`) the parser removes what holds such a `$ref`, and you do not see it |
+| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing, and `settings.parse.danglingRefs` (old name `settings.system`, deprecated) lists its kind. Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (your bundle can have another copy of core, so `instanceof` can be false), throw any other error again, and render a fallback or fail the item. By default (`[]`) the parser removes what holds such a `$ref`, and you do not see it |
 | Your code reads fields of a peer's value other than its definition and name | Those fields are private to the peer and change without notice |
 | An inline schema renders as another schema's definition | Two `insertNormalizedModel` calls share a `fallbackName` at one path, and the second got the first one's definition — name each from your identifier name plus its role |
 | Every file is written again on a run that changed nothing | The output reads a clock, a random value, the environment or module state — build it from the document, enrichments and generator code alone |

@@ -42,7 +42,7 @@ Each pattern, with what replaces it.
 
 | In the diff | Write this |
 |---|---|
-| A function that takes a schema and returns a schema, or a yes or no about it | Nothing. The parser gives the schema as it is to be rendered. If the reading is wrong for your documents, a `settings.system` key changes it |
+| A function that takes a schema and returns a schema, or a yes or no about it | Nothing. The parser gives the schema as it is to be rendered. If the reading is wrong for your documents, a `settings.parse` key changes it |
 | A function that returns target code and is not `toString()` | A producer, with the code in its `toString()` |
 | Target code in a string that a field stores | A producer in that field |
 | `items.map(…).join(…)` over producers, outside the `members` and `properties` of a model generator's classes | A `List`, built in the constructor |

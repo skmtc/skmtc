@@ -9,7 +9,7 @@
  * the capability set: only generators that advertise `toEnrichmentDefaults`
  * appear, and only the subjects for which a non-`undefined` default is computed.
  *
- * The shape mirrors the `client.json#settings.enrichments` subtree so a host
+ * The shape mirrors the `skmtc.config.json#settings.enrichments` subtree so a host
  * can fold it straight into settings (subject scope only — the run-constant
  * `_generator` / `_stack` scopes are out of scope for seeding):
  *  - operation generator: `[id][path][method][variant] = values`

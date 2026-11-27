@@ -143,7 +143,7 @@ every `allOf`:
 
 ```ts
 case 'intersection':
-  throw new Error(`${schema.stackTrail.toSchemaPointer()} is an allOf that keeps a $ref, which gen-effect-schema cannot render: Effect has no intersection of schemas. Set settings.system.intersections to "merge" in client.json, and the parser merges each allOf into one schema.`)
+  throw new Error(`${schema.stackTrail.toSchemaPointer()} is an allOf that keeps a $ref, which gen-effect-schema cannot render: Effect has no intersection of schemas. Set settings.parse.intersections to "merge" in skmtc.config.json, and the parser merges each allOf into one schema.`)
 ```
 
 | For the same ten router cases | Wrong | Right |
@@ -156,7 +156,7 @@ case 'intersection':
 
 The first version did not use three things that were there. The parser
 merges an `allOf` and leaves a reference only where a merge cannot end.
-`settings.system.intersections` changes which references it leaves. The
+`settings.parse.intersections` changes which references it leaves. The
 router renders any schema, so it renders a member too.
 
 Review found nine blocking faults in the first version, and three of

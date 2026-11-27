@@ -1,6 +1,6 @@
 /**
  * `skmtc migrate variants <project>` — migrates a project's
- * `client.json` to the variant-aware shape introduced in
+ * `skmtc.config.json` to the variant-aware shape introduced in
  * `@skmtc/core@0.5.0`.
  *
  * What changes:
@@ -10,7 +10,7 @@
  *     `{ path: [methods] }` to `{ path: { method: [variants] } }`
  *     with `[]` meaning "all variants of this method".
  *
- * Idempotent — re-running on an already-migrated `client.json` is
+ * Idempotent — re-running on an already-migrated `skmtc.config.json` is
  * a no-op (reports as such in JSON output).
  */
 

@@ -5,7 +5,7 @@ import { extname } from '@std/path/posix/extname'
  * engine when a projection's `toExportPath` result is stored into
  * `ContentSettings` (see `GenerateContext.to*ContentSettings`).
  * Consumers override it per project via
- * `client.json#settings.generatedSuffix`; setting it to `''` disables
+ * `skmtc.config.json#settings.generatedSuffix`; setting it to `''` disables
  * injection entirely.
  */
 export const DEFAULT_GENERATED_SUFFIX = '.generated'

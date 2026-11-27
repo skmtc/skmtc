@@ -10,7 +10,7 @@ description: >
   output, or an edge case it renders wrongly.
 metadata:
   describes:
-    '@skmtc/core': '0.48'
+    '@skmtc/core': '0.49'
     '@skmtc/lang-typescript': '0.15'
 ---
 
@@ -101,7 +101,7 @@ this table.** If the job is here, use what does it.
 
 | Job | Use | What it gives you |
 |---|---|---|
-| Merge an `allOf`, read `oneOf` and `anyOf` as a union, resolve each `$ref`, remove what a broken `$ref` holds | The parser. A `settings.system` key (`allOf`, `anyOf`, `intersections`, `danglingRefs`) changes how it reads | A schema you render as it is, with no code that inspects, repairs, merges or compares schemas |
+| Merge an `allOf`, read `oneOf` and `anyOf` as a union, resolve each `$ref`, remove what a broken `$ref` holds | The parser. A `settings.parse` key (`allOf`, `anyOf`, `intersections`, `danglingRefs`) changes how it reads | A schema you render as it is, with no code that inspects, repairs, merges or compares schemas |
 | Choose the code for a schema type | Your **router**: one `switch (schema.type)` with a `never` default, which returns a producer | Each class reads typed fields from a narrowed schema. A new type is a compile error until it has a case and a class |
 | Build a model once, wherever it is used | `insertModel`, `toModelRef` | One definition and one import for each model. You hold its name |
 | Give an inline schema (a body, a parameters object, a response) a definition | `insertNormalizedModel` with a `fallbackName` | The model generator renders it. You hold its name |
@@ -112,7 +112,7 @@ this table.** If the job is here, use what does it.
 | Join a list and leave out absent items | `List`, built in the constructor | Separators and brackets in one place |
 | Put a string from the document into code | `handleKey`, `sanitizeIdentifier`, `toStringLiteral`, `toPathTemplate` (`references/typescript.md`) | Correct quotes and escapes for any character |
 | Make more than one definition from one subject | Variants. Pass `variant` on | Names and files that stay apart |
-| Take a setting from the consumer | Enrichments, declared as a schema | A wrong value fails the run and names its place in `client.json` |
+| Take a setting from the consumer | Enrichments, declared as a schema | A wrong value fails the run and names its place in `skmtc.config.json` |
 | Catch two definitions that claim one name | The engine: `Registered definition mismatch` | Nothing to write |
 | Report a fault in the document | The parser: issues in the manifest | Nothing to write |
 
@@ -208,7 +208,7 @@ An edge case shows that a decision has no place yet. Give it its place:
 4. **You need the code or the name of another schema.** Insert it.
 5. **The document is ambiguous or broken.** Render what the parser
    gives. If your target has no form for it, throw from the router case
-   and name the schema's pointer and the `settings.system` key that
+   and name the schema's pointer and the `settings.parse` key that
    changes the parse. Code that detects, repairs, merges or compares
    schemas is the parser's.
 6. **None of these fits.** The engine lacks something. Stop, and report

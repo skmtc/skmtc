@@ -72,7 +72,7 @@ const toNot = (schema: OasSchema | OasRef<'schema'> | undefined) =>
     : { type: schema.not.type, pointer: schema.not.stackTrail.toJsonPointer() }
 
 for (const openapi of ['3.0.3', '3.1.0']) {
-  Deno.test(`${openapi} system.not unknown: a schema with not parses with its other keywords, and keeps the not`, () => {
+  Deno.test(`${openapi} parse.not unknown: a schema with not parses with its other keywords, and keeps the not`, () => {
     const { toSchema, errorsAt } = parse({ openapi, system: { not: 'unknown' } })
     const onlyUrl = toSchema('OnlyUrl')
 
@@ -83,7 +83,7 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     assertEquals(errorsAt('OnlyUrl'), 0)
   })
 
-  Deno.test(`${openapi} system.not unknown: a oneOf whose members have a not parses, each member with its not`, () => {
+  Deno.test(`${openapi} parse.not unknown: a oneOf whose members have a not parses, each member with its not`, () => {
     const { toSchema, errorsAt } = parse({ openapi, system: { not: 'unknown' } })
     const quickAction = toSchema('QuickAction')
     const members = quickAction?.type === 'union' ? quickAction.members : []
@@ -94,7 +94,7 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     assertEquals(errorsAt('QuickAction'), 0)
   })
 
-  Deno.test(`${openapi} system.not unknown: an allOf member's not is kept by the merge`, () => {
+  Deno.test(`${openapi} parse.not unknown: an allOf member's not is kept by the merge`, () => {
     const { toSchema, errorsAt } = parse({ openapi, system: { not: 'unknown' } })
     const withWait = toSchema('WithWait')
 
@@ -103,7 +103,7 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     assertEquals(errorsAt('WithWait'), 0)
   })
 
-  Deno.test(`${openapi} system.not unknown: a schema that is only a not is unknown`, () => {
+  Deno.test(`${openapi} parse.not unknown: a schema that is only a not is unknown`, () => {
     const { toSchema } = parse({ openapi, system: { not: 'unknown' } })
     const anything = toSchema('AnythingButAString')
 
@@ -111,7 +111,7 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     assertEquals(toNot(anything)?.type, 'unknown')
   })
 
-  Deno.test(`${openapi} system.not unknown: a not next to a one-member allOf reference fails, and is not lost`, () => {
+  Deno.test(`${openapi} parse.not unknown: a not next to a one-member allOf reference fails, and is not lost`, () => {
     const { toSchema, errorsAt } = parse({ openapi, system: { not: 'unknown' } })
 
     // The trap: the one-member allOf parses to a reference, which has no field for the not.

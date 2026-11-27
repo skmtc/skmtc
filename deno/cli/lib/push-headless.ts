@@ -1,22 +1,22 @@
 /**
- * Headless `push` path. Pushes a local project's `client.json` to an EXISTING
+ * Headless `push` path. Pushes a local project's `skmtc.config.json` to an EXISTING
  * skmtc-hub project, where it becomes the project's editable config (the web
  * CMS edits the same flat config). This is the project-level counterpart to
  * `deploy` (which stores and deploys an immutable *stack* version).
  *
  * Flow:
  *   1. Resolve the hub destination — `--project @account/slug` wins, else the
- *      `project` field in `.skmtc/<project>/.settings/client.json` (the git-remote
+ *      `project` field in `.skmtc/<project>/.settings/skmtc.config.json` (the git-remote
  *      analog). No destination → fail before any network call.
  *   2. GET the destination's current config — 404 means the project doesn't
  *      exist (push targets an existing project; create it in the web app first).
  *      When it already holds config, `confirmOverwrite` (interactive only) gates
  *      the overwrite.
- *   3. PUT the local `client.json` (`{ source?, settings }`) to
+ *   3. PUT the local `skmtc.config.json` (`{ source?, settings }`) to
  *      `/v1/projects/{account}/{slug}/client-config`. The hub folds the nested
  *      settings into its flat ProjectConfig and overwrites it, returning the
  *      result.
- *   4. `-u`: an explicit `--project` is written back into `client.json` so later
+ *   4. `-u`: an explicit `--project` is written back into `skmtc.config.json` so later
  *      pushes are bare `skmtc push`.
  *
  * The hub authorizes the PUT against the *destination* account (writer on the
@@ -34,7 +34,7 @@ type PushHeadlessArgs = {
   token: string
   /** Hub origin (base URL). */
   origin: string
-  /** Destination override (`@account/slug`); falls back to `client.json#project`. */
+  /** Destination override (`@account/slug`); falls back to `skmtc.config.json#project`. */
   projectFlag?: string
   /**
    * Interactive overwrite gate. Called only when the destination already holds
@@ -53,7 +53,7 @@ type PushHeadlessArgs = {
    */
   baseFiles?: Record<string, string>
   /**
-   * Push ONLY the base files, leaving the hub project's client.json config
+   * Push ONLY the base files, leaving the hub project's skmtc.config.json config
    * untouched — skips the client-config PUT entirely (`--base-files-only`).
    * Paired with `baseFiles`. With this set, `overwroteExistingConfig` is always
    * false and `enrichmentCount` reports the EXISTING hub config (from the
@@ -72,7 +72,7 @@ export type PushHeadlessResult =
       enrichmentCount: number
       /** Whether the destination already held config that this push replaced. */
       overwroteExistingConfig: boolean
-      /** Whether an explicit `--project` was written back into client.json. */
+      /** Whether an explicit `--project` was written back into skmtc.config.json. */
       remoteWritten: boolean
       /** Number of base files pushed — present only when `--base-files` ran. */
       baseFilesPushed?: number
@@ -123,7 +123,7 @@ export const pushHeadless = async ({
     return {
       type: 'failed',
       projectName,
-      reason: `no client.json for "${projectName}" (.skmtc/${projectName}/.settings/client.json)`,
+      reason: `no skmtc.config.json for "${projectName}" (.skmtc/${projectName}/.settings/skmtc.config.json)`,
       stage: 'read'
     }
   }
@@ -134,7 +134,7 @@ export const pushHeadless = async ({
       type: 'failed',
       projectName,
       reason:
-        'no hub destination — set `project: "@account/slug"` in client.json or pass --project @account/slug',
+        'no hub destination — set `project: "@account/slug"` in skmtc.config.json or pass --project @account/slug',
       stage: 'destination'
     }
   }
@@ -286,7 +286,7 @@ export const pushHeadless = async ({
     }
   }
 
-  // `-u`: persist an explicit `--project` into client.json so the destination is
+  // `-u`: persist an explicit `--project` into skmtc.config.json so the destination is
   // remembered. Non-fatal — the push already succeeded.
   let remoteWritten = false
   if (projectFlag?.trim() && contents.project?.trim() !== destSpec) {

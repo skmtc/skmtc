@@ -96,7 +96,7 @@ export const SKMTC_IGNORE_FILE = '.skmtcignore'
  * Seed `.skmtcignore` written into new projects by `init`. The built-in
  * defaults above already cover derived bundles, deps, secrets and binaries, so
  * the seed is mostly a documented starting point — plus the deploy/generate
- * logs, which live under `.settings` (kept for `client.json`) and are pure
+ * logs, which live under `.settings` (kept for `skmtc.config.json`) and are pure
  * noise in an upload.
  */
 export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc deploy\` uploads (gitignore syntax).

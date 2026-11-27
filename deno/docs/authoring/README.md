@@ -12,7 +12,7 @@ None of this is required to use Skmtc — if you haven't used it as a consumer y
 
 ```
 Use stock          → install + accept defaults
-Configure          → enrichments in client.json
+Configure          → enrichments in skmtc.config.json
 Customize behavior → clone + edit source     ← extending starts here
 Author new         → write a new generator
 ```

@@ -31,7 +31,7 @@ contract — keys outside it are silently stripped.
 For stock generators, the shape is documented in the per-generator
 reference (e.g., [gen-shadcn-form](../../reference/stock-generators/gen-shadcn-form.md)).
 
-### Add enrichments to client.json
+### Add enrichments to skmtc.config.json
 
 The routing keys depend on the generator's projection-base kind:
 
@@ -94,7 +94,7 @@ for all three routing shapes.
 skmtc generate <project>
 ```
 
-No rebundle needed — `client.json` is runtime config.
+No rebundle needed — `skmtc.config.json` is runtime config.
 
 ## Verification
 
@@ -140,5 +140,5 @@ either:
 
 - [Enrichments concept](../../concepts/enrichments.md)
 - [Enrichments shape reference](../../reference/settings/enrichments-shape.md)
-- [client.json schema](../../reference/settings/client-json-schema.md)
+- [skmtc.config.json schema](../../reference/settings/client-json-schema.md)
 - [Per-generator enrichment docs](../../reference/stock-generators/)

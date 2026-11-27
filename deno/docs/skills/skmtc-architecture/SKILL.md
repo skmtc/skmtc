@@ -361,7 +361,7 @@ Detail: [`concepts/the-manifest.md`](../../concepts/the-manifest.md),
 `core/anchors/` is the **provenance layer**. Capture is always on;
 **emission is opt-in**: pass `attribution: { postPass: {...} }` to
 `toArtifacts` (the engine-level `AttributionState` has no `enabled`
-field — the `client.json#settings.anchors.enabled` switch is the
+field — the `skmtc.config.json#settings.anchors.enabled` switch is the
 user-facing toggle). When emission is on, the run produces two extra
 artifact types alongside the code:
 
@@ -528,7 +528,7 @@ backend / platform training data; right column = Skmtc reality.
 - **skmtc-generator** — authoring and editing generators (Projections,
   Snippets, the DSL, customization seams). Load when *writing
   generator code*.
-- **skmtc-cli** — running the CLI, configuring `client.json`,
+- **skmtc-cli** — running the CLI, configuring `skmtc.config.json`,
   enrichments, skip/include. Load when *operating* Skmtc.
 - **skmtc-debug** — diagnosing broken runs (no output, wrong output,
   errors). Verify-first stance. Load when *something is broken*.

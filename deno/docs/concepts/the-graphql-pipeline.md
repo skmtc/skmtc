@@ -444,7 +444,7 @@ T," `[T]` is "nullable list of nullable T," and so on.
 
 ### Can I generate code from a `.graphql` file?
 
-Yes — point `client.json#source` at the SDL file (`.graphql`
+Yes — point `skmtc.config.json#source` at the SDL file (`.graphql`
 extension or `application/graphql` content-type). The CLI
 detects the protocol from the source and routes through the
 GraphQL parse path. See

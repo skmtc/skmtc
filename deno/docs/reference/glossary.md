@@ -38,7 +38,7 @@ Skmtc-native definition below; the analogues lose detail.
 | `withVariant(base, variant)` | PascalCase-aware concatenation | `withVariant('Form', 'main')` → `'Form'`; kebab-case variants become PascalCase suffixes |
 | `'main'` | The always-present default branch | Engine-guaranteed; filled in when no enrichments are configured |
 | Project | A workspace folder for one schema-to-code mapping | Lives at `<root>/.skmtc/<project>/`; not the consumer app |
-| `client.json#settings` | A `tsconfig.json`-style config | Carries `basePath`, `source`, `enrichments`, `include`, `skip` |
+| `skmtc.config.json#settings` | A `tsconfig.json`-style config | Carries `basePath`, `source`, `enrichments`, `include`, `skip`, `parse` |
 | `enrichments` | Per-item prop overrides | Routed per protocol: path/method (OAS), rootKind/fieldName (GQL), or refName (models) |
 | `basePath` | The `@` alias root in `tsconfig.paths` | Required, relative; must match the consumer bundler's alias |
 | `include` | An allow-list | Empty array = no filter |
@@ -86,7 +86,7 @@ The three modes every state-touching CLI command supports: interactive
 
 ### basePath
 
-The `settings.basePath` field in `client.json`: both the on-disk root
+The `settings.basePath` field in `skmtc.config.json`: both the on-disk root
 for generated files and the bundler `@` alias root in the consuming
 app. See
 [projects-and-workspaces](../concepts/projects-and-workspaces.md#basepath-alignment-with-the-consuming-app).
@@ -182,7 +182,7 @@ writing it) and returning it to generation (`adopt`). See
 
 ### Enrichment
 
-User-supplied configuration in `client.json`, validated against the
+User-supplied configuration in `skmtc.config.json`, validated against the
 generator's Valibot schema from `toEnrichmentSchema`. Three scopes by
 key depth: `subject` (per operation or model, under a variant key),
 `generator` (`[id]._generator`, one generator) and `stack` (`._stack`,
@@ -232,7 +232,7 @@ serialized by Render via `file.toString()`. See
 The attribution sidecar an opted-in run writes next to each generated
 file, mapping byte ranges of output back to the generator, schema
 location, and variant that produced them. Toggled by
-`client.json#settings.anchors.enabled` or `--anchors` /
+`skmtc.config.json#settings.anchors.enabled` or `--anchors` /
 `--no-anchors` on [generate](cli/generate.md).
 
 ### Generator
@@ -276,7 +276,7 @@ Neutral naming data (name + opaque per-language `kind` + `exported` +
 
 ### `include` / `skip` filters
 
-`client.json#settings.include` and `.skip` — operation/model
+`skmtc.config.json#settings.include` and `.skip` — operation/model
 allow-lists and deny-lists; filter order is `isSupported` → `include`
 → `skip`. See
 [skip or include operations](../using/how-to/skip-or-include-operations.md).
@@ -414,6 +414,19 @@ The first engine phase — converts `SkmtcDocumentInput` to
 `SkmtcParsedDocument` under lenient input, strict diagnostics. See
 [the-three-phases](../concepts/the-three-phases.md).
 
+### Parse settings (`settings.parse`)
+
+The settings that tell the parser how to read some schemas:
+`allOf`, `not`, `anyOf`, `responseContradictions`, `danglingRefs`
+and `intersections`. Only the Parse phase reads them. The core type
+is `ParseSettings`.
+
+`settings.system` is the old, deprecated name, and `SystemSettings` is
+the old name of the type. When a config has both keys, `parse` wins
+and core logs one warning. To move a project to the new name, run
+`skmtc migrate config <project>`. See
+[the skmtc.config.json schema](settings/client-json-schema.md#settingsparse-optional).
+
 ### `ParseContext`
 
 The Parse-phase context class: parser state, the issue list, and the
@@ -529,7 +542,7 @@ artifacts + manifest. Authenticated via a stored token.
 ### Schema source
 
 The OAS or GraphQL document Skmtc generates from — positional on
-`skmtc generate <project> <source>` or pinned in `client.json#source`.
+`skmtc generate <project> <source>` or pinned in `skmtc.config.json#source`.
 
 ### `schemaToValueFn`
 
@@ -549,6 +562,16 @@ message.
 The parsed counterpart to `SkmtcDocumentInput`:
 `{ type: 'oas', value: OasDocument }` or
 `{ type: 'gql', value: GqlDocument }`.
+
+### `skmtc.config.json`
+
+The config file of a project, at
+`.skmtc/<project>/.settings/skmtc.config.json`. It holds the schema
+`source` and `settings`: `basePath`, `enrichments`, `include`, `skip`,
+`parse` and more. `client.json` is the old, deprecated name of this
+file, and it still works. To move a project to the new name, run
+`skmtc migrate config <project>`. See
+[the skmtc.config.json schema](settings/client-json-schema.md).
 
 ### Snippet
 

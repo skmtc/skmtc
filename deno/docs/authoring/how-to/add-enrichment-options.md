@@ -1,14 +1,14 @@
 # How to add enrichment options
 
 > Extend a cloned generator's enrichment schema to expose new
-> user-facing options in `client.json`.
+> user-facing options in `skmtc.config.json`.
 
 ## When to use this
 
 You want users to override some behavior of your cloned generator
 without further code changes. The mechanism is
 [enrichments](../../concepts/enrichments.md) — per-operation
-configuration passed from `client.json` to the Projection.
+configuration passed from `skmtc.config.json` to the Projection.
 
 ## Prerequisites
 
@@ -140,13 +140,16 @@ skmtc generate my-project
 
 `generate` rebuilds the bundle from your edited source first.
 
-Then add some test enrichments to `client.json` and verify the
+Then add some test enrichments to `skmtc.config.json` and verify the
 output reflects them.
 
 ## Verification
 
-Set an enrichment in `.skmtc/<project>/.settings/client.json` (the
-subject leaf under the `main` variant):
+Set an enrichment in `.skmtc/<project>/.settings/skmtc.config.json`
+(the subject leaf under the `main` variant). The old name of this
+file, `client.json`, still works, but the CLI reports it as
+deprecated. To move to the new name, run
+`skmtc migrate config <project>`.
 
 ```jsonc
 {
@@ -173,14 +176,14 @@ appear above the declaration.
   schema-key typo, or the fields declared on the umbrella root
   instead of under `subject`.
 - **The run fails with `must include a 'main' variant`** — a value in
-  `client.json` sits directly under the item key instead of under
+  `skmtc.config.json` sits directly under the item key instead of under
   `[…][variant]`, so its keys were read as variant names. Nest it
   under `main`.
 - **The run fails with `Enrichments for '<generator>' do not match its
   enrichment schema`.** A required field is missing or a type
   doesn't match. The run writes no files, and the files of the last
   good run stay. `skmtc generate` prints the error, and the message
-  names each wrong value's place in `client.json`. Use
+  names each wrong value's place in `skmtc.config.json`. Use
   `v.optional(...)` for everything that can reasonably default.
 - **Changes not visible after edit** — Check that you edited the
   clone the project's `deno.json` points at. `generate` rebuilds the
@@ -189,7 +192,7 @@ appear above the declaration.
 ## Forwards compatibility
 
 Adding new optional enrichment fields is **always safe**. Old
-`client.json` files (without your new fields) keep working —
+`skmtc.config.json` files (without your new fields) keep working —
 they just don't get the new behavior. Removing or changing
 existing fields is a breaking change.
 
@@ -300,7 +303,7 @@ For each Projection the engine builds:
    generator's composite `toEnrichmentSchema()` —
    `v.parse(config.toEnrichmentSchema(), raw)`. Because the composite schema is
    required, this parse is cast-free. A wrong-typed value throws here, with a
-   message that names each wrong value's place in `client.json`. The item's
+   message that names each wrong value's place in `skmtc.config.json`. The item's
    result is `error`, and the run fails.
 5. The parsed umbrella is delivered as `settings.enrichments` to the Projection.
 
@@ -385,7 +388,7 @@ isSupported({ context, operation }) {
   return getEnrichment(context, operation) !== undefined
 }
 
-// ✅ Right — declare capability; let client.json gate intent
+// ✅ Right — declare capability; let skmtc.config.json gate intent
 isSupported({ operation }) {
   return ['post', 'put', 'patch'].includes(operation.method) &&
     operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
@@ -402,7 +405,7 @@ Two reasons to avoid the wrong form:
    you have to invent a sentinel. Code smell.
 
 The right control for "only run for these operations" is the **`include`
-allow-list** (or `.skip` deny-list) in `client.json#settings`, applied _outside_
+allow-list** (or `.skip` deny-list) in `skmtc.config.json#settings`, applied _outside_
 the generator. See
 [`using/how-to/skip-or-include-operations.md`](../../using/how-to/skip-or-include-operations.md).
 
@@ -416,18 +419,18 @@ Two places per-field metadata can live:
   `extensionFields?: Record<string, unknown>`. Travel with the schema through
   Parse untouched.
 - **Enrichments** — declared per-generator in `enrichments.ts`, supplied by the
-  consumer in `.settings/client.json`.
+  consumer in `.settings/skmtc.config.json`.
 
 Pick along two axes:
 
 |                                 | Stable data (rarely changes)                                                           | Volatile data (changes independently of schema)                                                      |
 | ------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **You author the schema**       | OpenAPI extension — the data ships with the schema and every consumer gets it for free | Enrichment — keep the volatile bit in `client.json` where it's a local edit, not a schema re-publish |
-| **You only consume the schema** | Enrichment — you can't edit the upstream document anyway                               | Enrichment                                                                                           |
+| **You author the schema**       | OpenAPI extension — the data ships with the schema and every consumer gets it for free | Enrichment — keep the volatile bit in `skmtc.config.json` where it's a local edit, not a schema re-publish |
+| **You only consume the schema** | Enrichment — you can't edit the upstream document anyway                               | Enrichment                                                                                                 |
 
 Why the asymmetry: editing an extension means changing the schema document (and,
 if it's published, re-shipping it). Editing an enrichment is a config change in
-the consumer's `client.json`. So extensions earn their keep when the data is
+the consumer's `skmtc.config.json`. So extensions earn their keep when the data is
 _stable enough_ that the re-publish cadence is fine, and _universal enough_ that
 every consumer wants the same value.
 
@@ -450,7 +453,7 @@ const label = resolved.properties?.["firstName"]?.extensionFields?.["x-label"];
 
 ```ts
 // Schema-consumer + volatile: which list endpoint backs this field today
-// → consumer's enrichment in client.json, NOT an extension
+// → consumer's enrichment in skmtc.config.json, NOT an extension
 {
   "@scope/gen-shadcn-form": {
     "/customers": {
@@ -467,7 +470,7 @@ is always volatile by nature, so it always lives in the consumer's enrichment.
 A common smell when you _do_ own the schema: declaring an enrichment field that
 just mirrors a stable schema property — display labels, canonical descriptions,
 formats. Move it to an extension and the data stays with the schema, surviving
-any consumer's `client.json` edits.
+any consumer's `skmtc.config.json` edits.
 
 
 ### AI-driven enrichments — `EnrichmentRequest`
@@ -492,7 +495,7 @@ A generator can implement `toEnrichmentRequest(ref)` on its entry config.
 The function returns either a request descriptor (prompt + schema + content to
 feed an LLM) or `undefined` to skip. Tooling that integrates with an LLM fulfils
 the request, validates the response against the schema, and persists the result
-into `client.json` as if the user had authored it.
+into `skmtc.config.json` as if the user had authored it.
 
 The flow:
 
@@ -503,7 +506,7 @@ host AI tooling calls LLM with prompt + content
                 ↓
 LLM response parsed against schema
                 ↓
-result written into client.json#enrichments[generatorId][refName]
+result written into skmtc.config.json#enrichments[generatorId][refName]
                 ↓
 next run consumes the result like a user-authored enrichment
 ```
@@ -513,7 +516,7 @@ Two ways this fits with the wider model:
 - The leaf shape is still owned by the generator (same Valibot schema). The AI
   path doesn't bypass validation — it just defers the _author_ of the leaf from
   "the user" to "an LLM constrained by the schema."
-- The wire format is the same `client.json` slice. Tooling that doesn't fulfil
+- The wire format is the same `skmtc.config.json` slice. Tooling that doesn't fulfil
   requests ignores them; the project still works with whatever user-authored
   enrichments are present.
 

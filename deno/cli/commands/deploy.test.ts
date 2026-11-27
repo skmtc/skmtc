@@ -192,6 +192,11 @@ Deno.test('deploy and publish run the registry check (not in the skip list)', ()
   assertEquals(shouldSkipRegistryCheck(['publish', 'my-api']), false)
 })
 
+Deno.test('migrate skips the registry check: migrate config and migrate variants only touch local files', () => {
+  assertEquals(shouldSkipRegistryCheck(['migrate', 'config', 'my-api']), true)
+  assertEquals(shouldSkipRegistryCheck(['migrate', 'variants', 'my-api', '--json']), true)
+})
+
 Deno.test('deploy command - descriptor registers --version and --existing', () => {
   const descriptor = getCommandDescriptor('deploy')
 

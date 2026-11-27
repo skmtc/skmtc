@@ -48,7 +48,7 @@ export const mergeSchemasOrRefs = ({ first, second, getRef, system }: MergeArgs<
     throw new Error('Ref in second')
   }
 
-  // Under `system.anyOf: unknown` an `anyOf` of two or more members is any
+  // Under `parse.anyOf: unknown` an `anyOf` of two or more members is any
   // value, so it adds nothing to the merge: its members are left out, and the
   // keywords next to it merge as usual.
   const firstKeywords = withoutUnknownAnyOf({ schema: first, setting: system.anyOf, getRef })
@@ -61,7 +61,7 @@ export const mergeSchemasOrRefs = ({ first, second, getRef, system }: MergeArgs<
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
-    // Each member's own `allOf` merges under the `client.json` setting, also in
+    // Each member's own `allOf` merges under the `skmtc.config.json` setting, also in
     // the strict first pass over a cross product's pairs.
     const ownSystem = toOwnSystem(system)
     const mergedFirst = containsAllOf(first) ? mergeIntersection({ schema: first, getRef, system: ownSystem }) : first

@@ -8,7 +8,7 @@
 
 Publishes an OpenAPI document to skmtc-hub as a revision of the API
 `@account/slug`. It needs no Skmtc workspace: no `.skmtc` folder, no
-`client.json` and no `deno.json`. It runs in any CI.
+`skmtc.config.json` and no `deno.json`. It runs in any CI.
 
 ```
 skmtc api publish <file> --api @<account>/<slug> [--visibility public|private] [--origin-url <url>] [--env <env>] [--token <pat>] [--json] [--no-input]

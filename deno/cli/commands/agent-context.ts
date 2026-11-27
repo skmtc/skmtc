@@ -53,6 +53,13 @@ export const printAgentContext = (ctx: AgentContext, { format }: PrintOptions): 
           console.log(`      local:        ${project.generators.local.join(', ')}`)
         }
       }
+      if (ctx.deprecations.length > 0) {
+        console.log('')
+        console.log(`Deprecated config names (${ctx.deprecations.length}):`)
+        for (const deprecation of ctx.deprecations) {
+          console.log(`  - ${deprecation.old} → ${deprecation.new}   fix: ${deprecation.fix}`)
+        }
+      }
       console.log('')
       console.log(`Commands (${ctx.commands.length}):`)
       for (const cmd of ctx.commands) {

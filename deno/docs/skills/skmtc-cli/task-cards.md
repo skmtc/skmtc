@@ -40,7 +40,7 @@ generator (remote-only and hybrid projects alike).
    `skmtc-generators/` or via `deno info`) to learn the accepted
    *per-variant inner* shape. The variant axis is core-owned;
    generator schemas describe what goes inside a single variant.
-2. Edit `.skmtc/<project>/.settings/client.json` →
+2. Edit `.skmtc/<project>/.settings/skmtc.config.json` →
    `settings.enrichments[generatorId][...routingKeys][variant]`.
    Routing keys depend on the generator's factory:
    `[path][method][variant]` for OAS ops, `[refName][variant]` for
@@ -71,7 +71,7 @@ is enough) or remove the other variants.
 
 ### Card: Pinning the schema source
 
-1. Edit `.skmtc/<project>/.settings/client.json` → add `"source"` at
+1. Edit `.skmtc/<project>/.settings/skmtc.config.json` → add `"source"` at
    the top level.
 2. After this, `skmtc generate <project>` works without the schema
    positional arg.
@@ -104,9 +104,9 @@ Key facts:
 - **Directory pruning is self-limiting and anchored.** It removes only
   dirs it emptied, stops at the first non-empty ancestor, and never
   removes `basePath` or a `packages[].rootPath`. If `basePath` is
-  unset in `client.json`, dir pruning is skipped entirely.
+  unset in `skmtc.config.json`, dir pruning is skipped entirely.
 - **`clean` touches only generated output.** It never rebuilds
-  `bundle.js` or edits `client.json` / `deno.json`; when it renders
+  `bundle.js` or edits `skmtc.config.json` / `deno.json`; when it renders
   fresh content for its report, it builds in a temporary directory. To uninstall a
   *generator*, use `remove`, not `clean`.
 - **No confirmation prompt** (no Ink variant). `--dry-run` is the
@@ -117,7 +117,7 @@ Key facts:
 ### Card: Filtering operations (opt-in form generator pattern)
 
 ```jsonc
-// In client.json#settings:
+// In skmtc.config.json#settings:
 {
   "include": [
     {
@@ -186,11 +186,11 @@ exactly those ids. A folder on disk not referenced from
 hand-write them. `generate` (and `bundle`) regenerates `worker.ts`
 from `deno.json#imports`, then runs `deno bundle -o bundle.js
 worker.ts`, on every run.
-`deno.json` and `.settings/client.json` are *config*, not derived —
+`deno.json` and `.settings/skmtc.config.json` are *config*, not derived —
 hand-writing those is correct and expected.
 
 ```bash
-skmtc init lab <basePath> --json   # writes .skmtc/lab/deno.json ({}) + .settings/client.json
+skmtc init lab <basePath> --json   # writes .skmtc/lab/deno.json ({}) + .settings/skmtc.config.json
 ```
 
 Then, **by hand**, write under `.skmtc/lab/`:
@@ -219,7 +219,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
      object** — the worker does `import g from '@scope/gen-x'` and
      reads `g.id`.
    - `src/mod.ts`'s entry `id` **must equal the package name** — it's
-     the key `worker.ts` (`g.id`) and `client.json`
+     the key `worker.ts` (`g.id`) and `skmtc.config.json`
      enrichments/skip/include route on.
 
 2. Patch `.skmtc/lab/deno.json`:
@@ -247,7 +247,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
    no hand-pinning beyond the `jsr:` generator entries — published
    packages carry their own dependencies.
 
-3. Set the schema in `.skmtc/lab/.settings/client.json#source` (or
+3. Set the schema in `.skmtc/lab/.settings/skmtc.config.json#source` (or
    pass it as the `generate` positional). `basePath` is set by `init`.
 
 ```bash
@@ -302,6 +302,29 @@ env vars, spawns only `deno` (bundle) and `sh` (typecheck), and needs
 `homedir` to locate the workspace root. It uses no FFI and no remote
 imports, so those grants are dropped. Empirically validated against
 `doctor` / `generate` / `bundle`.
+
+### Card: Migrating a project off the deprecated config names
+
+Use when a run warns about `client.json` or `settings.system`, when
+`doctor` reports `config-names/<project>` as `warning`, or when a
+`--json` result has a `deprecations` array.
+
+```bash
+skmtc migrate config my-api --dry-run --json   # report the changes, write nothing
+skmtc migrate config my-api --json             # rename client.json, move settings.system → settings.parse
+skmtc migrate config --json                    # every project under .skmtc/
+```
+
+- The command is idempotent. A migrated project reports
+  `alreadyMigrated: true` ("No changes needed") and exits 0.
+- When `settings.parse` already exists, the command keeps it and drops
+  `system`. It lists each key whose value was different in
+  `conflicts`. Check those keys by hand.
+- When the project has both `client.json` and `skmtc.config.json`, the
+  command refuses it (`refused`, exit 1). Delete the file you do not
+  want, then run the command again.
+- In strict mode (`--no-input`, no TTY, or `--json`) the command does
+  not prompt. Other commands never offer the migration in that mode.
 
 ### Card: Deploying a stack version to skmtc-hub
 
@@ -366,13 +389,13 @@ Full reference: [`reference/cli/deploy.md`](https://github.com/skmtc/skmtc/blob/
 
 ### Card: Pushing a project's config to skmtc-hub
 
-Use when local `client.json` edits (config + enrichments) should land
+Use when local `skmtc.config.json` edits (config + enrichments) should land
 on the project's hub project — the project-level counterpart to
 `deploy`. `push` overwrites the hub project's config; it never creates
 a project (create it in the web app first).
 
 ```bash
-# Destination is the `project: "@account/slug"` field in client.json.
+# Destination is the `project: "@account/slug"` field in skmtc.config.json.
 skmtc login                                   # once; browser sign-in, stores the token + env
 skmtc push <project> --json
 # First push to an org project — records the destination for next time:
@@ -382,13 +405,13 @@ skmtc push <project> --project @acme-org/petstore-client --json
 Key facts:
 
 - **`<project>` is the LOCAL project** (`.skmtc/<project>/`) — the
-  source. The **hub destination** is `client.json#project` (or
+  source. The **hub destination** is `skmtc.config.json#project` (or
   `--project @account/slug`), decoupled from your identity like a git
   remote. The account may be an org; the hub slug can differ from the
   local dir name.
-- **Destination resolution:** `--project` → `client.json#project` →
+- **Destination resolution:** `--project` → `skmtc.config.json#project` →
   recipe error (no silent fallback to your handle). An explicit
-  `--project` is written back into client.json (the `git push -u`
+  `--project` is written back into skmtc.config.json (the `git push -u`
   ergonomic).
 - **Overwrites** the hub project's config. In a TTY it confirms first
   when config already exists (`--force` skips); in strict/`--json` it

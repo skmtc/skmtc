@@ -201,7 +201,7 @@ Deno.test('renderDescribe - no schema source fails with a recipe (exit 2)', asyn
     assertEquals(exitCode, 2)
     const joined = errors.join('\n')
     assertStringIncludes(joined, 'missing required argument: [schema]')
-    assertStringIncludes(joined, 'client.json#source')
+    assertStringIncludes(joined, 'skmtc.config.json#source')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }

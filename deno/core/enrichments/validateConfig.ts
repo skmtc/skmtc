@@ -17,7 +17,7 @@ export type EnrichmentValidationScope = 'subject' | 'generator' | 'stack'
  * One enrichment value that fails its generator's Valibot enrichment
  * schema — the authoritative validation verdict. Produced by
  * {@link validateConfig}; the routing fields locate the offending leaf in
- * `client.json#settings.enrichments`:
+ * `skmtc.config.json#settings.enrichments`:
  *
  *  - **operation subject** — `subject` = path, `method` = HTTP method
  *  - **model subject** — `subject` = refName (no `method`)

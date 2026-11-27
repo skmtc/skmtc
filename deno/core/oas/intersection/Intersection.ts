@@ -43,7 +43,7 @@ export type IntersectionFields = {
  * An `allOf` that keeps at least one reference: a value matches every member.
  *
  * Core merges the members of an `allOf` into one schema. A reference that
- * `client.json` `system.intersections` keeps is not merged: the schema is an
+ * `skmtc.config.json` `parse.intersections` keeps is not merged: the schema is an
  * `OasIntersection` of the kept references, and at most one other member, which
  * the other members of the `allOf` merge into. By default those are the
  * references that close a cycle.
@@ -89,8 +89,8 @@ export class OasIntersection extends OasBase {
   default?: unknown
 
   /**
-   * The schema's `not`, kept as an `OasUnknown` under `client.json`
-   * `system.not: unknown`. `undefined` otherwise.
+   * The schema's `not`, kept as an `OasUnknown` under `skmtc.config.json`
+   * `parse.not: unknown`. `undefined` otherwise.
    */
   not: OasUnknown | undefined = undefined
 

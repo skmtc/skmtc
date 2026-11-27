@@ -3,7 +3,7 @@
 > Add JSR-hosted generators to a Skmtc project.
 
 Adds JSR import entries to the project's `deno.json#imports` and
-writes default settings to `client.json`. Transitive peer
+writes default settings to `skmtc.config.json`. Transitive peer
 dependencies resolve automatically.
 
 ## Synopsis
@@ -68,16 +68,16 @@ For each generator argument, the CLI:
    ```
 3. Updates the Deno lockfile to pin the exact resolved version
 
-### `client.json` is not modified
+### `skmtc.config.json` is not modified
 
-Install does **not** modify `client.json`. The generator's
+Install does **not** modify `skmtc.config.json`. The generator's
 `install({ denoJson })` method
 (`cli/lib/generator.ts–98`) is a single call —
 `denoJson.addImport(moduleName, fullName)` — and touches the
 project's `deno.json` only. Enrichments are user-added on demand:
 read the generator's `src/enrichments.ts` Valibot schema to learn
 the shape, then type the keys into
-`client.json#settings.enrichments` yourself. See
+`skmtc.config.json#settings.enrichments` yourself. See
 [How to configure enrichments](../../using/how-to/configure-enrichments.md).
 
 ### Post-install rebundle

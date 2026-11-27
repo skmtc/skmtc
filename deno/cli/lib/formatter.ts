@@ -23,7 +23,7 @@ const quoteForShell = (value: string): string => {
 }
 
 type RunFormatterArgs = {
-  /** The consumer's command from `client.json#settings.formatter`, e.g. `"npx prettier --write"`. */
+  /** The consumer's command from `skmtc.config.json#settings.formatter`, e.g. `"npx prettier --write"`. */
   command: string
   /** Absolute paths of the files to format in place. */
   filePaths: string[]

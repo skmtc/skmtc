@@ -107,8 +107,8 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    */
   deprecated: boolean | undefined
   /**
-   * The schema's `not`, kept as an `OasUnknown` under `client.json`
-   * `system.not: unknown`: the document says "not something", and core does
+   * The schema's `not`, kept as an `OasUnknown` under `skmtc.config.json`
+   * `parse.not: unknown`: the document says "not something", and core does
    * not read what. `undefined` otherwise.
    */
   not: OasUnknown | undefined = undefined

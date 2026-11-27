@@ -1,7 +1,7 @@
 # How to skip or include operations
 
 > Filter which operations or models a generator processes via
-> `client.json#settings.include` and `settings.skip`.
+> `skmtc.config.json#settings.include` and `settings.skip`.
 
 ## When to use this
 
@@ -91,9 +91,9 @@ The engine applies filters in this order:
 
 1. **`isSupported`** (generator's capability check, hardcoded in
    the generator's source)
-2. **`include`** (allow-list from `client.json`; if non-empty,
+2. **`include`** (allow-list from `skmtc.config.json`; if non-empty,
    item must match)
-3. **`skip`** (deny-list from `client.json`; item is excluded
+3. **`skip`** (deny-list from `skmtc.config.json`; item is excluded
    even if matched by include)
 
 So an operation present in both `include` and `skip` is **skipped**.
@@ -114,7 +114,7 @@ Each result is the path to one skipped item, for example
 
 Each leaf in `results` is one of `success`, `warning`, `error`,
 `skipped`, or `notSupported`. `skipped` means an item matched a
-generator but was excluded by `client.json` filters;
+generator but was excluded by `skmtc.config.json` filters;
 `notSupported` means the generator's `isSupported` predicate
 returned false. See
 [manifest format → results](../../reference/manifest-format.md#results)
@@ -126,7 +126,7 @@ for the full shape.
   match is exact — no wildcards. Check the operation IDs against
   the OAS spec.
 - **`skip` ignored** — Confirm `skip` is inside `settings`, not at
-  the top level. The `client.json` shape is `{ source, settings:
+  the top level. The `skmtc.config.json` shape is `{ source, settings:
   { ..., skip } }`.
 - **Generator produced nothing** — `include` does not exclude
   unmentioned generators (it is per-generator). If a generator
@@ -136,5 +136,5 @@ for the full shape.
 
 ## Related
 
-- [client.json schema reference](../../reference/settings/client-json-schema.md#settingsinclude-optional)
+- [skmtc.config.json schema reference](../../reference/settings/client-json-schema.md#settingsinclude-optional)
 - [Manifest format reference](../../reference/manifest-format.md)

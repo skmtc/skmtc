@@ -11,7 +11,7 @@ import { formatContent } from '@/lib/formatter.ts'
  */
 export type EditDetectionContext = {
   lock: GeneratedLockContent | null
-  /** From `client.json#settings.formatter`; absent → raw comparison only. */
+  /** From `skmtc.config.json#settings.formatter`; absent → raw comparison only. */
   formatterCommand: string | undefined
   /** App root — cwd for formatter runs. */
   appRoot: string

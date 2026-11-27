@@ -19,7 +19,7 @@
  * expected, not typos.
  *
  * A wrong-typed value throws ({@link parseEnrichmentValue}), naming each
- * wrong value's place in `client.json`. Unknown-key detection runs first,
+ * wrong value's place in `skmtc.config.json`. Unknown-key detection runs first,
  * so a throwing leaf doesn't hide a dropped key.
  *
  * @module parseEnrichmentUmbrella

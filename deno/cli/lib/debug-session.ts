@@ -1,16 +1,18 @@
 import { join } from '@std/path/join'
 import { rootDenoJson } from '@skmtc/core/DenoJson'
+import type { ClientSettings } from '@skmtc/core/Settings'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 import { parseOrExplain } from '@/lib/parse-or-explain.ts'
+import { toEngineSettings } from '@/lib/project-config.ts'
 
 type RunDebugSessionArgs = {
   /** Absolute path to the project dir (`.skmtc/<project>`). */
   projectPath: string
   /** The parsed, clone-safe schema document (`{ type: 'oas' | 'gql', value }`). */
   document: unknown
-  /** The project's `client.json#settings`. */
-  clientSettings: unknown
+  /** The project's `skmtc.config.json#settings`. */
+  clientSettings: ClientSettings | undefined
   /** Run to completion immediately, without waiting for a debugger to attach. */
   auto: boolean
 }
@@ -143,7 +145,10 @@ export const runDebugSession = async ({
   await Deno.writeTextFile(harnessPath, DEBUG_HARNESS_SOURCE)
 
   const payloadPath = await Deno.makeTempFile({ prefix: 'skmtc-payload-', suffix: '.json' })
-  await Deno.writeTextFile(payloadPath, JSON.stringify({ document, clientSettings, projectPath }))
+  await Deno.writeTextFile(
+    payloadPath,
+    JSON.stringify({ document, clientSettings: toEngineSettings(clientSettings), projectPath })
+  )
 
   const inspectionPath = await Deno.makeTempFile({ prefix: 'skmtc-inspection-', suffix: '.json' })
 

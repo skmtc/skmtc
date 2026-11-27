@@ -5,7 +5,7 @@
 > string) before handing it to the engine.
 
 The schema source can come from a CLI argument, the project's
-`client.json`, or — when running interactively — a prompt. The CLI
+`skmtc.config.json`, or — when running interactively — a prompt. The CLI
 walks a precedence chain to find one, fetches it (HTTP or
 filesystem), detects its format, and converts Swagger 2 to OAS 3.0.
 OAS 3.0, 3.1 and 3.2 documents keep their version.
@@ -32,9 +32,9 @@ A positional argument after the project name overrides everything
 else. This is the **most-explicit** form and the recommended way to
 do one-off generates against a different spec (staging URL, fixture
 file, branch-specific schema) without mutating the project's
-`client.json`.
+`skmtc.config.json`.
 
-### 2. Top-level `source` in client.json
+### 2. Top-level `source` in skmtc.config.json
 
 ```jsonc
 {
@@ -44,8 +44,8 @@ file, branch-specific schema) without mutating the project's
 ```
 
 The project's pinned source — read from
-`.skmtc/<project>/.settings/client.json`. The `source` field lives
-at the **top level** of `client.json`, **not** inside `settings`.
+`.skmtc/<project>/.settings/skmtc.config.json`. The `source` field lives
+at the **top level** of `skmtc.config.json`, **not** inside `settings`.
 The CLI reads it as `parsed.source` (see
 `cli/lib/agent-context-headless.ts–158`).
 
@@ -69,18 +69,18 @@ prompts:
 ```
 
 The user's response is used for this run only. The CLI does **not**
-write the response back to `client.json` — that's an explicit user
+write the response back to `skmtc.config.json` — that's an explicit user
 action.
 
 ### Strict-mode behavior
 
 When `--no-input` is set (implicitly by `--json` or explicitly) and
-neither the CLI argument nor `client.json#source` provides a source,
+neither the CLI argument nor `skmtc.config.json#source` provides a source,
 the CLI exits with code `2`:
 
 ```
 Error: no schema source provided (in strict mode)
-  Provide one as a positional argument or set source in client.json
+  Provide one as a positional argument or set source in skmtc.config.json
 ```
 
 This matches the broader CLI convention: strict mode never falls
@@ -224,12 +224,12 @@ requires auth:
    file. This is the recommended approach for any spec behind auth:
    it eliminates the network dependency at generate time, makes the
    spec version-controllable, and avoids storing credentials in
-   `client.json`.
+   `skmtc.config.json`.
 2. **Run a local proxy** that injects the credential, and point
    `source` at the local proxy URL.
 
 The CLI explicitly **does not** support credential fields in
-`client.json` — to prevent credentials from being committed
+`skmtc.config.json` — to prevent credentials from being committed
 alongside generation config.
 
 ### Timeouts
@@ -281,7 +281,7 @@ A spec may reference external files:
 The CLI does **not** automatically resolve cross-file `$ref`s.
 The engine runs synchronously and does not fetch, so a `$ref` that does
 not start with `#` is a [`DANGLING_REF`](../error-codes.md#dangling_ref--error-or-warning):
-an error by default, or a kept ref when `settings.system.danglingRefs`
+an error by default, or a kept ref when `settings.parse.danglingRefs`
 lists its kind. The engine never reads its fragment in the loaded document.
 
 The fix: pre-bundle the spec into a single file before pointing
@@ -295,7 +295,7 @@ root**, not the project directory or the CLI's current working
 directory.
 
 ```jsonc
-// .skmtc/my-api/.settings/client.json
+// .skmtc/my-api/.settings/skmtc.config.json
 { "source": "./openapi.json" }
 ```
 
@@ -320,7 +320,7 @@ Absolute paths are resolved as-is.
 ### URL source, JSON
 
 ```jsonc
-// client.json
+// skmtc.config.json
 { "source": "https://api.example.com/openapi.json" }
 ```
 
@@ -331,7 +331,7 @@ and passes the result to the worker.
 ### Local YAML, Swagger 2
 
 ```jsonc
-// client.json
+// skmtc.config.json
 { "source": "./legacy-swagger.yaml" }
 ```
 
@@ -342,7 +342,7 @@ field, runs the upconversion, and passes OAS 3.0 to the worker.
 ### GraphQL SDL from URL
 
 ```jsonc
-// client.json
+// skmtc.config.json
 { "source": "https://api.example.com/graphql.schema" }
 ```
 
@@ -356,7 +356,7 @@ skmtc generate my-api ./fixtures/staging-spec.json --json
 ```
 
 The CLI uses `./fixtures/staging-spec.json` instead of whatever
-`client.json#source` says. The fixture path resolves against the
+`skmtc.config.json#source` says. The fixture path resolves against the
 workspace root.
 
 ## Common questions
@@ -445,7 +445,7 @@ runtime), then proceeds as if it were any other parsed source.
 
 ### What's the difference between `source` and the engine's `document` parameter?
 
-`source` (in `client.json`) is the **user-facing string** — a URL
+`source` (in `skmtc.config.json`) is the **user-facing string** — a URL
 or path. The engine's `document` parameter (on
 [`toArtifacts`](../api/to-artifacts.md)) is the **resolved value**
 — either a parsed OAS object or a GraphQL SDL string.
@@ -455,7 +455,7 @@ work; the engine accepts the resolved form.
 
 ## See also
 
-- [Reference: client.json schema — `source` field](client-json-schema.md#source-top-level-optional) — the configuration shape
+- [Reference: skmtc.config.json schema — `source` field](client-json-schema.md#source-top-level-optional) — the configuration shape
 - [Reference: API — toArtifacts](../api/to-artifacts.md) — the engine entry that accepts the resolved `document`
 - [The worker runtime concept](../../concepts/the-worker-runtime.md) — why OAS is host-parsed and GraphQL is worker-parsed
 - [The three phases concept](../../concepts/the-three-phases.md) — where source resolution sits in the lifecycle (it's the step *before* Parse)

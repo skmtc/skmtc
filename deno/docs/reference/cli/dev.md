@@ -24,7 +24,7 @@ The project name. Required.
 ### `[schema]`
 
 Optional schema source. If omitted, resolved from
-`client.json#source` (same fallback chain as `generate`).
+`skmtc.config.json#source` (same fallback chain as `generate`).
 
 In strict mode (no TTY), a missing schema fails with the same
 recipe error `generate` produces.
@@ -86,7 +86,7 @@ transient; the loop survives.
 Same resolution as `generate`:
 
 1. Explicit `[schema]` argument
-2. `client.json#source`
+2. `skmtc.config.json#source`
 3. Interactive prompt (TTY only)
 
 If the schema is a URL, `dev` doesn't poll it — `dev` watches the
@@ -100,7 +100,7 @@ What `dev` does and doesn't catch:
 | Change | Triggers regeneration? |
 |---|---|
 | Edit a cloned generator's `src/*.ts` | ✓ |
-| Edit `client.json` (enrichments, basePath) | ✗ — pick up at next manual `generate` |
+| Edit `skmtc.config.json` (enrichments, basePath) | ✗ — pick up at next manual `generate` |
 | Edit the schema file on disk | ✗ — use `generate --watch` for this |
 | Edit `deno.json#imports` | ✓ via worker.ts regen |
 | Add a file to `<project>/<gen-name>/src/` | ✓ |
@@ -123,7 +123,7 @@ skmtc dev my-api ./schema.json
 ### With pinned schema source
 
 ```bash
-# In client.json, set "source": "./schema.json"
+# In skmtc.config.json, set "source": "./schema.json"
 skmtc dev my-api
 ```
 

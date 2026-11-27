@@ -35,12 +35,12 @@ Deno.test('toGeneratorEnrichment — required schema + absent block throws, nami
   assertThrows(
     () => toGeneratorEnrichment(ctx, '@scope/gen-x', schema),
     Error,
-    `Enrichments for '@scope/gen-x' do not match its enrichment schema. Fix them in client.json (settings.enrichments):\n` +
+    `Enrichments for '@scope/gen-x' do not match its enrichment schema. Fix them in skmtc.config.json (settings.enrichments):\n` +
       `- '@scope/gen-x → _generator': Invalid type: Expected Object but received undefined`
   )
 })
 
-Deno.test('toGeneratorEnrichment — a wrong-typed value throws, naming its place in client.json', () => {
+Deno.test('toGeneratorEnrichment — a wrong-typed value throws, naming its place in skmtc.config.json', () => {
   const schema = v.object({ basePackage: v.string() })
   const ctx = settings({ '@scope/gen-x': { _generator: { basePackage: 7 } } })
 
@@ -58,7 +58,7 @@ Deno.test('toStackEnrichment — a wrong-typed value throws, naming its place un
   assertThrows(
     () => toStackEnrichment(ctx, schema),
     Error,
-    `Stack enrichments do not match the schema a generator reads them with. Fix them in client.json (settings.enrichments):\n` +
+    `Stack enrichments do not match the schema a generator reads them with. Fix them in skmtc.config.json (settings.enrichments):\n` +
       `- '_stack → basePackage': Invalid type: Expected string but received false`
   )
 })

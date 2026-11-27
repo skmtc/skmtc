@@ -224,12 +224,12 @@ export const toSchemaV3 = ({
 
   // OpenAPI `not` has no faithful TypeScript representation: a generated type
   // that ignored it would *widen* the contract (accepting shapes the schema
-  // forbids). Under `client.json` `system.not: strict` (the default) the schema
+  // forbids). Under `skmtc.config.json` `parse.not: strict` (the default) the schema
   // is refused rather than emit a type that lies. The throw is isolated by
   // `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers of this schema
   // are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
   //
-  // Under `system.not: unknown` the schema parses with its other keywords, and
+  // Under `parse.not: unknown` the schema parses with its other keywords, and
   // its `not` is kept as an `OasUnknown` that core does not read: a generator
   // can see that the document says "not something".
   if ('not' in schema) {
@@ -454,7 +454,7 @@ export const toSchemaV3 = ({
       context
     })
 
-    // Under `system.anyOf: unknown`, as Cloudflare's `cf` reads it, an `anyOf`
+    // Under `parse.anyOf: unknown`, as Cloudflare's `cf` reads it, an `anyOf`
     // of two or more members is any value: the schema parses with its other
     // keywords, so the properties next to it stay, without the members.
     if (isUnknownAnyOf({ members: wrapper.anyOf ?? [], setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) })) {

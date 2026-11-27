@@ -66,7 +66,7 @@ type RunTypecheckArgs = {
   /** Paths (relative to SKMTC root) of every file this generate run wrote. */
   filePaths: string[]
   /**
-   * Directory under which generated files live (`client.json#settings.basePath`,
+   * Directory under which generated files live (`skmtc.config.json#settings.basePath`,
    * resolved to absolute). We walk up from here looking for tsconfig.json.
    */
   basePathAbs: string | undefined

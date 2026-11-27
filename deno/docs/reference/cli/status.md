@@ -87,7 +87,7 @@ overall `clean` boolean. Logs and warnings go to stderr.
   `skmtc generate` once to seed it; classification activates from the
   following run.
 - **`ejected`** — user-owned by declaration
-  (`client.json#settings.ejected`, glyph `E`). Expected to differ from
+  (`skmtc.config.json#settings.ejected`, glyph `E`). Expected to differ from
   generated output, never overwritten or deleted; does not count as
   dirty for `--check`. See [eject](./eject.md) / [adopt](./adopt.md).
 
@@ -137,5 +137,5 @@ on the next generate.
 - [generate](./generate.md) — writes the lock `status` reads;
   overwrites modified files.
 - [clean](./clean.md) — deletes the full generated set.
-- [client.json schema](../settings/client-json-schema.md) —
+- [skmtc.config.json schema](../settings/client-json-schema.md) —
   `settings.formatter`, `settings.generatedSuffix`.

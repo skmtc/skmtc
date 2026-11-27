@@ -62,13 +62,13 @@ type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
 type IsUnknownAnyOfArgs = {
   /** The `anyOf` members, as the document writes them. */
   members: readonly (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
-  /** `client.json` `system.anyOf`. A test's mock context may have none. */
+  /** `skmtc.config.json` `parse.anyOf`. A test's mock context may have none. */
   setting: 'union' | 'unknown' | undefined
   getRef: GetRefFn
 }
 
 /**
- * Whether `system.anyOf: unknown` reads an `anyOf` as any value, as
+ * Whether `parse.anyOf: unknown` reads an `anyOf` as any value, as
  * Cloudflare's `cf` reads it: when it has two or more members, not counting a
  * `null` one, and one of them is not a single value.
  *
@@ -90,14 +90,14 @@ export const isUnknownAnyOf = ({ members, setting, getRef }: IsUnknownAnyOfArgs)
 /** Arguments for {@link withoutUnknownAnyOf}. */
 type WithoutUnknownAnyOfArgs = {
   schema: OpenAPIV3.SchemaObject
-  /** `client.json` `system.anyOf`. */
+  /** `skmtc.config.json` `parse.anyOf`. */
   setting: 'union' | 'unknown' | undefined
   getRef: GetRefFn
 }
 
 /**
  * `schema` with its other keywords and without an `anyOf` that
- * `system.anyOf: unknown` reads as any value ({@link isUnknownAnyOf}), so the
+ * `parse.anyOf: unknown` reads as any value ({@link isUnknownAnyOf}), so the
  * properties next to the `anyOf` stay. A `null` member makes it nullable. Any
  * other schema is returned as it is.
  */
@@ -157,12 +157,12 @@ export const logMergedUnknownAnyOf = ({ system, stackTrail, parent, context }: L
   }
 }
 
-/** One warning for a schema whose `anyOf` was read as any value (`system.anyOf: unknown`). */
+/** One warning for a schema whose `anyOf` was read as any value (`parse.anyOf: unknown`). */
 export const logUnknownAnyOf = ({ stackTrail, parent, context }: LogUnknownAnyOfArgs): void => {
   context.logIssueNoKey({
     level: 'warning',
     message:
-      'The anyOf is read as any value (system.anyOf is unknown): the schema keeps its other keywords, without the anyOf members.',
+      'The anyOf is read as any value (parse.anyOf is unknown): the schema keeps its other keywords, without the anyOf members.',
     parent,
     stackTrail,
     type: 'ANYOF_AS_UNKNOWN'

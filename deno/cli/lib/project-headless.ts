@@ -5,12 +5,12 @@
  * `create <name>` is **create-only** (never updates an existing project — that's
  * `push`, which confirms before overwriting). It composes existing hub endpoints:
  *   1. Stack  — `deno.json#name` (must already be deployed via `skmtc deploy`).
- *   2. API    — `client.json#api` if set, adding a file `client.json#source` to it
+ *   2. API    — `skmtc.config.json#api` if set, adding a file `skmtc.config.json#source` to it
  *               as a revision (`/v1/apis/{account}/{api}/revisions`, a no-op when
  *               unchanged; a URL source is not uploaded); else register
- *               `client.json#source` (`/v1/apis/upload` for a file,
+ *               `skmtc.config.json#source` (`/v1/apis/upload` for a file,
  *               `/v1/apis/import` for a URL) and write the resulting
- *               `@account/slug` back into `client.json#api`. The result's
+ *               `@account/slug` back into `skmtc.config.json#api`. The result's
  *               `schemaStep` names which branch ran.
  *   3. Project — `POST /v1/projects` binding the two. A 409 means it already
  *               exists → we STOP (no silent overwrite).
@@ -64,12 +64,12 @@ type CreateArgs = {
 }
 
 /**
- * What step 2 did with `client.json#source`:
- * - `registered`: no `client.json#api`; the source was registered as a new API.
- * - `revision-added`: the file was added to `client.json#api` as a new revision.
+ * What step 2 did with `skmtc.config.json#source`:
+ * - `registered`: no `skmtc.config.json#api`; the source was registered as a new API.
+ * - `revision-added`: the file was added to `skmtc.config.json#api` as a new revision.
  * - `unchanged`: the hub already had the file (`deduped`).
  * - `url-not-uploaded`: a URL source; the project binds the API's latest revision.
- * - `no-source`: no `client.json#source`; the project binds the API's latest revision.
+ * - `no-source`: no `skmtc.config.json#source`; the project binds the API's latest revision.
  */
 export type SchemaStep =
   | 'registered'
@@ -86,12 +86,12 @@ export type CreateResult =
       origin: string
       stack: string
       api: Scoped
-      /** Whether the API was registered now (vs taken from client.json#api). */
+      /** Whether the API was registered now (vs taken from skmtc.config.json#api). */
       apiRegistered: boolean
       schemaStep: SchemaStep
       enrichmentCount: number
       baseFilesPushed?: number
-      /** Whether `api`/`project` were written back into client.json. */
+      /** Whether `api`/`project` were written back into skmtc.config.json. */
       remoteWritten: boolean
       url?: string
     }
@@ -113,7 +113,7 @@ const errorMessage = (err: unknown): string => (err instanceof Error ? err.messa
 const isUrlSource = (source: string): boolean => /^https?:\/\//i.test(source)
 
 /**
- * Read a file `client.json#source` from the workspace root, with the filename
+ * Read a file `skmtc.config.json#source` from the workspace root, with the filename
  * the hub reads to tell JSON from YAML.
  */
 async function readSchemaFile(
@@ -129,7 +129,7 @@ async function readSchemaFile(
   return { bytes, filename }
 }
 
-/** Register `client.json#source` as a hub API; returns its `@account/slug`. */
+/** Register `skmtc.config.json#source` as a hub API; returns its `@account/slug`. */
 async function registerSchema(
   source: string,
   owner: string,
@@ -225,7 +225,7 @@ export const createHeadless = async ({
   const project = skmtcRoot.findProject(projectName)
   const contents = project.clientJson.contents
   if (!contents) {
-    return fail(projectName, `no client.json for "${projectName}"`, 'read')
+    return fail(projectName, `no skmtc.config.json for "${projectName}"`, 'read')
   }
 
   // 1. Stack — from deno.json#name.
@@ -250,14 +250,14 @@ export const createHeadless = async ({
 
   const headers = { authorization: `Bearer ${token}` }
 
-  // 2. API — use client.json#api, else register the schema and remember it.
+  // 2. API — use skmtc.config.json#api, else register the schema and remember it.
   let apiRegistered = false
   let api: Scoped | undefined
   let schemaStep: SchemaStep
   if (contents.api?.trim()) {
     api = parseScopedName(contents.api.trim()) ?? undefined
     if (!api) {
-      return fail(projectName, `invalid client.json#api "${contents.api}"`, 'api')
+      return fail(projectName, `invalid skmtc.config.json#api "${contents.api}"`, 'api')
     }
     // Add the current local schema as a revision so the project binds it (no-op if unchanged).
     if (contents.source?.trim()) {
@@ -271,7 +271,7 @@ export const createHeadless = async ({
     if (!contents.source?.trim()) {
       return fail(
         projectName,
-        'no schema to bind — set `source` in client.json (a file or URL)',
+        'no schema to bind — set `source` in skmtc.config.json (a file or URL)',
         'api'
       )
     }

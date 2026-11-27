@@ -70,7 +70,7 @@ const writeFileAtomic = async ({ projectPath, path, contents }: WriteFileAtomicA
 
 /**
  * The project as a bundle build sees it: its name, path and pins. Unlike
- * `Project.open`, it reads no `client.json` and no schema.
+ * `Project.open`, it reads no `skmtc.config.json` and no schema.
  */
 export const openBundleProject = async (
   projectName: string,

@@ -19,8 +19,8 @@ A primer for AI coding assistants and agents working with Skmtc code. **Flat and
 | Cross-generator coordination | `Map` cache keyed by `(name, exportPath)`, identifier and path are pure functions |
 | Output format | Unformatted TypeScript; no Prettier in pipeline |
 | Customization model | `install` (JSR, enrichments only) or `clone` (source, edit anything) |
-| Settings file | `.skmtc/<project>/.settings/client.json` |
-| Settings shape | `{ source, settings: { basePath, packages, skip, include, enrichments } }` |
+| Settings file | `.skmtc/<project>/.settings/skmtc.config.json` (old name `client.json`: deprecated, still read; fix with `skmtc migrate config <project>`) |
+| Settings shape | `{ source, settings: { basePath, packages, skip, include, enrichments, parse } }` (`settings.parse` was `settings.system`, deprecated) |
 | Project workspace | `.skmtc/<project>/` containing `deno.json`, `worker.ts`, `bundle.js`, `.settings/` |
 | Worker permissions | `read/write/env=true`, `net=false`, `run=false` |
 | Worker lifecycle | One-shot: spawned per generate, terminated after RESULT |
@@ -61,7 +61,7 @@ If unsure which role applies: read **The generation model** + **Read this first*
 
 The one story every rule in this document falls out of. Hold this model and the principle tables below read as consequences, not as arbitrary conventions. (The `skmtc-generator` skill carries the authoring-weighted version.)
 
-1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection` (`system.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
+1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection` (`parse.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
 
 2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | ref, variant })` per item (a model's `ref` is `{ refName, refPath }`). `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
 
@@ -77,7 +77,7 @@ The one story every rule in this document falls out of. Hold this model and the 
 
 8. **Settings tell a Projection where it lands.** The Driver computes `ContentSettings` — the identifier it will be assigned to, the file it will be written to, its enrichments, and its variant — from the Projection's static methods; the instance reads `this.settings`. Snippets have no settings: they are anonymous fragments the parent embeds anywhere via `${...}`, which is exactly what makes them shareable and reusable.
 
-9. **Authors declare enrichments; consumers provide them.** A generator's author declares, as a Valibot schema in `enrichments.ts`, the settings the generator needs that the document cannot supply; the consumer of the generator provides the values in `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
+9. **Authors declare enrichments; consumers provide them.** A generator's author declares, as a Valibot schema in `enrichments.ts`, the settings the generator needs that the document cannot supply; the consumer of the generator provides the values in `skmtc.config.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
 
 10. **The engine is language-blind.** A generator declares its target language through its import graph — projection bases and snippet base imported from a lang package that owns the concrete `File` / `Import` / `Definition` subclasses and identifier factories (fact 6 below has the full detail).
 
@@ -204,7 +204,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
 | Phase | Location | Action |
 |---|---|---|
-| **Bootstrap** | `cli/commands/generate-switch.ts` | Load client.json; locate schema; rebuild `bundle.js` (refuses two copies of `@skmtc/core`) |
+| **Bootstrap** | `cli/commands/generate-switch.ts` | Load skmtc.config.json; locate schema; rebuild `bundle.js` (refuses two copies of `@skmtc/core`) |
 | **Pre-parse** | `cli/lib/generate-worker.ts:62` | OAS → v3 (clone-safe); GraphQL stays SDL string |
 | **Spawn worker** | `cli/lib/generate-worker.ts:43-51` | `new Worker(bundle, { permissions: {...} })` |
 | **Message protocol** | `cli/lib/generate-worker.ts:83-122` | `READY` → `GENERATE` → `RESULT` (+ `ERROR` on throw) |
@@ -332,7 +332,7 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 ```
 1. transform being called?              → Check the manifest
 2. isSupported rejecting?               → Check the gate predicate
-3. skip/include filters excluding?      → Check .settings/client.json
+3. skip/include filters excluding?      → Check .settings/skmtc.config.json
 4. transform returning instead of registering?
                                         → Return value is discarded; must use register
 5. Schema shape wrong for the gate?     → e.g., gen-shadcn-form needs request body type === 'object'
@@ -503,7 +503,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Direct mutation of `context.#files` | Private for a reason; go through `register` |
 | Reading `OasSchema` params without `.resolve()` | The common parameter type is `OasSchema \| OasRef<'schema'>` |
 | Guarding resolution — `schema.isRef() ? schema.resolve() : schema` | `.resolve()` is identity on concrete schemas; call it unconditionally. `.isRef()` is for branches that genuinely differ |
-| Calling `resolve()` without expecting `DanglingRefError` | It throws for a `$ref` that names nothing or a loop of `$ref`s, when `system.danglingRefs` keeps one; test with `DanglingRefError.is` |
+| Calling `resolve()` without expecting `DanglingRefError` | It throws for a `$ref` that names nothing or a loop of `$ref`s, when `parse.danglingRefs` keeps one; test with `DanglingRefError.is` |
 
 ---
 
@@ -519,7 +519,7 @@ Self-contained playbooks. Read only the one you need.
 2. `skmtc init <project> <basePath>` creates `.skmtc/<project>/` and records `settings.basePath`. `<basePath>` is the folder that the app's `@/` import alias points to.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. `skmtc generate <project> <schema>` runs the pipeline. `<schema>` is a path or a URL.
-5. To make `skmtc generate <project>` enough for later runs, add a top-level `source` to `.skmtc/<project>/.settings/client.json`.
+5. To make `skmtc generate <project>` enough for later runs, add a top-level `source` to `.skmtc/<project>/.settings/skmtc.config.json`.
 
 #### Adding a generator to an existing project
 
@@ -530,20 +530,20 @@ Self-contained playbooks. Read only the one you need.
 #### Configuring enrichments
 
 1. Read the target generator's `gen-x/src/enrichments.ts` to know the accepted shape.
-2. Open `.skmtc/<project>/.settings/client.json`.
+2. Open `.skmtc/<project>/.settings/skmtc.config.json`.
 3. Add under `settings.enrichments[generatorId][...routingKeys][variant]` — routing keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops. The trailing `variant` level defaults to `'main'`; declare extra variants to get N artifacts per item from a variants-aware generator.
 4. `skmtc generate <project>` (no rebundle needed).
 5. If the value does not land, read `manifest.enrichmentWarnings` — a typo'd routing key or leaf key is reported there with a suggestion.
 
 #### Pinning a schema source
 
-1. Edit `.skmtc/<project>/.settings/client.json`.
+1. Edit `.skmtc/<project>/.settings/skmtc.config.json`.
 2. Add `source: "./path/to/openapi.json"` at the top level.
 3. `skmtc generate <project>` (no schema argument) uses the pinned source.
 
 #### Including or excluding operations
 
-1. Edit `.skmtc/<project>/.settings/client.json`.
+1. Edit `.skmtc/<project>/.settings/skmtc.config.json`.
 2. Per-operation: `settings.include = [{ "@skmtc/gen-x": { "/users": ["post"] } }]`.
 3. Order: `isSupported` → `include` → `skip`. Empty `include: []` means no filter.
 

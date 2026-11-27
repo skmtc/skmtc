@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -84,7 +85,7 @@ export const printCleanResult = (
   switch (format) {
     case 'json': {
       // JSON always carries the full lists; `--verbose` only affects text.
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {

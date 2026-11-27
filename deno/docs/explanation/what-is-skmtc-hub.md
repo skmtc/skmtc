@@ -36,11 +36,11 @@ it in one step.
 The **running side**: a hub project binds a stack version to a
 registered API schema and owns execution — deployments, runs, and the
 `production` alias, driven from the web app. Its editable config is
-the same `client.json` shape the CLI uses locally:
+the same `skmtc.config.json` shape the CLI uses locally:
 [`push`](../reference/cli/push.md) uploads yours,
 [`pull`](../reference/cli/pull.md) fetches the project's. The link
 between a local workspace and its hub project is the `project` field
-in `client.json` (`"@account/slug"` — the git-remote analog).
+in `skmtc.config.json` (`"@account/slug"` — the git-remote analog).
 
 ### Personal access token (PAT)
 
@@ -56,8 +56,8 @@ directly).
 | --- | --- | --- |
 | [`login`](../reference/cli/login.md) | PAT | store credential locally |
 | [`deploy`](../reference/cli/deploy.md) | stack | local project → new immutable version, deployed as a stack server |
-| [`push`](../reference/cli/push.md) | project config | local `client.json` → hub project |
-| [`pull`](../reference/cli/pull.md) | project config | hub project → local `client.json` |
+| [`push`](../reference/cli/push.md) | project config | local `skmtc.config.json` → hub project |
+| [`pull`](../reference/cli/pull.md) | project config | hub project → local `skmtc.config.json` |
 | [`project`](../reference/cli/project.md) | project | create / remove a hub project from the local setup |
 | [`api publish`](../reference/cli/api.md) | API revision | OpenAPI document → new revision of a hub API |
 | [`api link`](../reference/cli/api.md#skmtc-api-link) | link request | GitHub repository + workflow → request page for an API admin |

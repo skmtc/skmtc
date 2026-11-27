@@ -1,6 +1,6 @@
 # How to pin the schema source
 
-> Configure `source` in `client.json` so `skmtc generate <project>`
+> Configure `source` in `skmtc.config.json` so `skmtc generate <project>`
 > works without specifying the schema as an argument every time.
 
 ## When to use this
@@ -18,9 +18,9 @@ argument instead.
 
 ## Steps
 
-### Set `source` in client.json
+### Set `source` in skmtc.config.json
 
-Edit `.skmtc/<project>/.settings/client.json`:
+Edit `.skmtc/<project>/.settings/skmtc.config.json`:
 
 ```jsonc
 {
@@ -62,7 +62,7 @@ by running `skmtc agent-context --json | jq '.projects[] | select(.name=="<proje
 ## Troubleshooting
 
 - **"GET <url> returned 401"** — The schema endpoint requires
-  auth, but Skmtc doesn't support auth headers in `client.json`
+  auth, but Skmtc doesn't support auth headers in `skmtc.config.json`
   (for security reasons; see [source-resolution
   reference](../../reference/settings/source-resolution.md#authentication)).
   Bundle the spec to a local file or run a local proxy.
@@ -79,5 +79,5 @@ by running `skmtc agent-context --json | jq '.projects[] | select(.name=="<proje
 ## Related
 
 - [Source resolution reference](../../reference/settings/source-resolution.md)
-- [client.json schema reference](../../reference/settings/client-json-schema.md)
+- [skmtc.config.json schema reference](../../reference/settings/client-json-schema.md)
 - [How to update a schema and regenerate](update-a-schema.md)

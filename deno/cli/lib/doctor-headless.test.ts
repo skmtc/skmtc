@@ -496,6 +496,7 @@ Deno.test('printDoctorResult - text format emits one line per check', async () =
         cliVersion: '0.1.5',
         projects: ['a', 'b'],
         summary: 'warning',
+        deprecations: [],
         checks: [
           { id: 'check-a', status: 'ok', message: 'a is fine' },
           { id: 'check-b', status: 'warning', message: 'b is dubious', hint: 'do this' }
@@ -521,6 +522,7 @@ Deno.test('printDoctorResult - json format emits a parseable object', async () =
         cliVersion: '0.1.5',
         projects: [],
         summary: 'ok',
+        deprecations: [],
         checks: [{ id: 'c', status: 'ok', message: 'ok' }]
       },
       { format: 'json' }

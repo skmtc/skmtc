@@ -40,7 +40,7 @@ type EnrichmentDefaultsArgs = {
  * Runs Parse + a values pass: every generator that advertises
  * `toEnrichmentDefaults` is called over the subjects it supports, with no
  * transform and no render. The result mirrors the
- * `client.json#settings.enrichments` subtree (subject scope only) so a host can
+ * `skmtc.config.json#settings.enrichments` subtree (subject scope only) so a host can
  * fold it straight into settings.
  *
  * Like {@link toSupportedSubjects} it fails open: a bad schema surfaces as a

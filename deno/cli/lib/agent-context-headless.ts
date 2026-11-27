@@ -15,6 +15,7 @@
  * is a breaking change.
  */
 
+import { type ConfigDeprecation, readConfigDeprecations, toConfigPath } from '@/lib/project-config.ts'
 import { join } from '@std/path/join'
 import { homedir } from 'node:os'
 import { existsSync } from '@std/fs/exists'
@@ -52,6 +53,8 @@ export type AgentContext = {
   /** JSR registry URL — `JSR_URL` env var if set, without a trailing slash. */
   jsrUrl: string
   projects: ProjectSnapshot[]
+  /** Each deprecated config name a project still uses, with the command that fixes it. */
+  deprecations: ConfigDeprecation[]
   commands: CommandDescriptor[]
 }
 
@@ -62,12 +65,14 @@ type RunAgentContextArgs = {
 export const runAgentContext = ({ cliVersion }: RunAgentContextArgs): AgentContext => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
+  const projects = collectProjects(skmtcRootPath)
   return {
     cliVersion,
     skmtcRootPath,
     globalStateDir,
     jsrUrl: getJsrBaseUrl(),
-    projects: collectProjects(skmtcRootPath),
+    projects,
+    deprecations: projects.flatMap(project => readConfigDeprecations(toProjectPath(project.name))),
     commands: COMMAND_DESCRIPTORS
   }
 }
@@ -90,7 +95,7 @@ const collectProjects = (skmtcRootPath: string): ProjectSnapshot[] => {
 const snapshotProject = (projectName: string): ProjectSnapshot => {
   const projectPath = toProjectPath(projectName)
   const denoJsonPath = join(projectPath, 'deno.json')
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
 
   const generators = readGenerators(denoJsonPath)
   const { basePath, schemaSource } = readClientJson(clientJsonPath)

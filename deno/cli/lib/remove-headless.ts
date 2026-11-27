@@ -1,6 +1,6 @@
 /**
  * Headless `remove` path — drops a generator from a project's
- * `deno.json` and `client.json` without any Ink rendering. Strict
+ * `deno.json` and `skmtc.config.json` without any Ink rendering. Strict
  * mode invokes this directly.
  */
 

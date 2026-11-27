@@ -42,7 +42,7 @@ const setupProject = async (
   await ensureDir(join(projectPath, '.settings'))
   if (clientJson !== undefined) {
     await Deno.writeTextFile(
-      join(projectPath, '.settings', 'client.json'),
+      join(projectPath, '.settings', 'skmtc.config.json'),
       JSON.stringify(clientJson)
     )
   }
@@ -79,7 +79,7 @@ Deno.test('checkAnchorsConfig - no client.json → skipped', async () => {
     const projectPath = await setupProject(tempRoot, 'p', undefined)
     const check = checkAnchorsConfig('p', projectPath)
     assertEquals(check.status, 'skipped')
-    assertStringIncludes(check.message, 'no client.json')
+    assertStringIncludes(check.message, 'no skmtc.config.json')
   })
 })
 

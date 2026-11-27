@@ -9,6 +9,7 @@
  * malformed manifest, etc.) without having to read stack traces.
  */
 
+import { type ConfigDeprecation, readConfigDeprecations, toConfigLocation, toConfigPath } from '@/lib/project-config.ts'
 import { join } from '@std/path/join'
 import { isAbsolute } from '@std/path/is-absolute'
 import { existsSync } from '@std/fs/exists'
@@ -71,6 +72,8 @@ export type DoctorResult = {
   cliVersion: string
   projects: string[]
   checks: Check[]
+  /** Each deprecated config name a project still uses, with the command that fixes it. */
+  deprecations: ConfigDeprecation[]
   /**
    * Aggregate of `checks.status` — `ok` only when every check is
    * `ok` or `skipped`. Agents can branch on this without re-walking
@@ -148,6 +151,7 @@ export const runDoctor = async ({
     cliVersion,
     projects,
     checks,
+    deprecations: projects.flatMap(project => readConfigDeprecations(toProjectPath(project))),
     summary: aggregate(checks)
   }
 }
@@ -463,11 +467,12 @@ type CheckProjectContext = {
 const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] => {
   const projectPath = toProjectPath(projectName)
   const denoJsonPath = join(projectPath, 'deno.json')
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
 
   const checks: Check[] = []
   checks.push(checkProjectDenoJson(projectName, denoJsonPath))
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
+  checks.push(checkProjectConfigNames(projectName, projectPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
   checks.push(checkProjectManifest(projectName))
@@ -479,6 +484,41 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   checks.push(checkAnchorsCoverage(projectName, projectPath))
   checks.push(checkAnchorsStaleness(projectName, projectPath))
   return checks
+}
+
+/**
+ * The deprecated config names a project still uses (`client.json`,
+ * `settings.system`), and a `client.json` that `skmtc.config.json` hides.
+ */
+export const checkProjectConfigNames = (projectName: string, projectPath: string): Check => {
+  const id = `config-names/${projectName}`
+  const location = toConfigLocation(projectPath)
+  const deprecations = readConfigDeprecations(projectPath)
+  const names = deprecations
+    .filter(deprecation => deprecation.kind !== 'ignoredConfigFile')
+    .map(deprecation => `${deprecation.old} (now ${deprecation.new})`).join(', ')
+
+  if (location.ignoredLegacyPath) {
+    return {
+      id,
+      status: 'warning',
+      message:
+        `Project "${projectName}" has both skmtc.config.json and client.json; client.json is ignored.` +
+        (names ? ` It uses deprecated config names: ${names}.` : ''),
+      hint: `Delete the one you do not want to keep (${location.ignoredLegacyPath} is ignored). skmtc migrate config does not choose between them.`
+    }
+  }
+
+  if (deprecations.length === 0) {
+    return { id, status: 'ok', message: `Project "${projectName}" uses the current config names.` }
+  }
+
+  return {
+    id,
+    status: 'warning',
+    message: `Project "${projectName}" uses deprecated config names: ${names}.`,
+    hint: `Run: ${deprecations[0].fix}`
+  }
 }
 
 const cliImports: Record<string, string | undefined> = cliDenoJson.imports
@@ -660,7 +700,7 @@ const checkProjectPackageCopies = async ({
     return {
       id,
       status: 'skipped',
-      message: `Project "${projectName}" generates on its stack server (client.json#serverUrl); no local bundle runs.`
+      message: `Project "${projectName}" generates on its stack server (skmtc.config.json#serverUrl); no local bundle runs.`
     }
   }
 
@@ -705,7 +745,7 @@ const checkProjectPackageCopies = async ({
 const readServerUrl = (projectPath: string): string | undefined => {
   try {
     const parsed: unknown = JSON.parse(
-      Deno.readTextFileSync(join(projectPath, '.settings', 'client.json'))
+      Deno.readTextFileSync(toConfigPath(projectPath))
     )
     return parsed &&
       typeof parsed === 'object' &&
@@ -765,7 +805,7 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
     return {
       id: `project-base-path/${projectName}`,
       status: 'warning',
-      message: `Project "${projectName}" has no client.json — generate runs will need an explicit [schema] arg.`,
+      message: `Project "${projectName}" has no skmtc.config.json — generate runs will need an explicit [schema] arg.`,
       hint: `Run \`skmtc init ${projectName} <basePath>\` to scaffold it.`
     }
   }
@@ -776,7 +816,7 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
       return {
         id: `project-base-path/${projectName}`,
         status: 'warning',
-        message: `Project "${projectName}" has client.json but no settings.basePath.`,
+        message: `Project "${projectName}" has skmtc.config.json but no settings.basePath.`,
         hint: 'Set `settings.basePath` so generated files land in a known location. See the cli skill §1 mental-model table for the convention.'
       }
     }
@@ -787,7 +827,7 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
         id: `project-base-path/${projectName}`,
         status: 'error',
         message: `Project "${projectName}" has an absolute basePath: ${basePath}.`,
-        hint: 'basePath must be relative to the SKMTC root. Edit client.json or re-run `skmtc init` with a relative path.'
+        hint: 'basePath must be relative to the SKMTC root. Edit skmtc.config.json or re-run `skmtc init` with a relative path.'
       }
     }
     return {
@@ -800,7 +840,7 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
     return {
       id: `project-base-path/${projectName}`,
       status: 'error',
-      message: `Project "${projectName}" client.json is unreadable: ${error instanceof Error ? error.message : String(error)}.`
+      message: `Project "${projectName}" skmtc.config.json is unreadable: ${error instanceof Error ? error.message : String(error)}.`
     }
   }
 }
@@ -989,7 +1029,7 @@ const checkProjectEnrichments = (projectName: string): Check => {
         `Project "${projectName}" last generate reported ${actionable.length} ` +
         `enrichment warning(s): ${preview}${ellipsis}`,
       hint:
-        'Fix the flagged keys in `.settings/client.json#settings.enrichments`, then re-run ' +
+        'Fix the flagged keys in `.settings/skmtc.config.json#settings.enrichments`, then re-run ' +
         '`skmtc generate`. Full list: `manifest.enrichmentWarnings` (warnings are also printed ' +
         'by `skmtc generate`).',
       data: { enrichmentWarnings: warnings }

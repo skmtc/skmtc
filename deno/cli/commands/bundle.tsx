@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
@@ -80,7 +81,7 @@ export const printBundleResult = (
 ): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {

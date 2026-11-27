@@ -2,7 +2,7 @@
  * @fileoverview Typed readers for the run-constant enrichment scopes.
  *
  * Three enrichment scopes share one storage namespace
- * (`client.json#settings.enrichments`), distinguished only by where they
+ * (`skmtc.config.json#settings.enrichments`), distinguished only by where they
  * sit and how often they vary:
  *
  *  - **subject** — `[id][subject][variant]`, resolved *per item* by the
@@ -41,7 +41,7 @@ type EnrichmentReadContext = {
 /**
  * Read this generator's **generator-scoped** enrichment — the
  * run-constant leaf at
- * `client.json#settings.enrichments[generatorId]._generator`, validated
+ * `skmtc.config.json#settings.enrichments[generatorId]._generator`, validated
  * through the generator's own schema (typically declared as
  * `toGeneratorEnrichmentSchema` on its entry, and reused here).
  *
@@ -52,7 +52,7 @@ type EnrichmentReadContext = {
  * config passes `v.optional(v.object({...}))`.
  *
  * @throws on a malformed block, naming each wrong value's place in
- *   `client.json`. The item is recorded as `error`, and the run fails once
+ *   `skmtc.config.json`. The item is recorded as `error`, and the run fails once
  *   every generator has run, exactly as for a bad subject leaf.
  */
 export const toGeneratorEnrichment = <EnrichmentType>(
@@ -69,7 +69,7 @@ export const toGeneratorEnrichment = <EnrichmentType>(
 
 /**
  * Read the **stack-scoped** enrichment — the run-constant leaf at
- * `client.json#settings.enrichments._stack`, validated through the
+ * `skmtc.config.json#settings.enrichments._stack`, validated through the
  * caller's schema.
  *
  * The stack leaf is a single bag shared by every generator in the

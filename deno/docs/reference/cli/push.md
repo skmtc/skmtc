@@ -1,15 +1,15 @@
 # skmtc push
 
-> Push a local project's `client.json` (config + enrichments) to its
+> Push a local project's `skmtc.config.json` (config + enrichments) to its
 > skmtc-hub **project**.
 
-`push` uploads a local Skmtc project's `client.json` to an **existing**
+`push` uploads a local Skmtc project's `skmtc.config.json` to an **existing**
 hub project. There it becomes that project's editable config, the same
 flat config the web CMS edits. It is the project-level counterpart to
 [`deploy`](deploy.md): `deploy` ships and deploys an immutable *stack* version;
 `push` updates a *project's* config.
 
-The destination is recorded in `client.json` as the `project` field —
+The destination is recorded in `skmtc.config.json` as the `project` field —
 `"@<account>/<slug>"`, the git-remote analog. The account may be a user
 **or an org**, and the hub slug can differ from the local
 `.skmtc/<dir>` name. Identity (your PAT) is separate from destination
@@ -41,13 +41,13 @@ destination to push *to*.)
 
 ### `--project <@account/slug>`
 
-The hub destination. Overrides the `project` field in `client.json`.
+The hub destination. Overrides the `project` field in `skmtc.config.json`.
 On an explicit `--project`, the value is written back into
-`client.json` (the `git push -u` ergonomic) so later pushes are a bare
+`skmtc.config.json` (the `git push -u` ergonomic) so later pushes are a bare
 `skmtc push`. Resolution order:
 
 1. `--project` flag
-2. `client.json#project`
+2. `skmtc.config.json#project`
 3. Otherwise a recipe error — `push` never guesses the account from
    your identity.
 
@@ -69,7 +69,7 @@ file, the environment in that file. Then `production`.
 Also push the project's **base files** — the hand-authored app tree the
 generated code imports (package.json, components, css…) — to
 `/preview/base-files`, replacing the project's stored set. Without this flag
-`push` sends only the config (client.json). Base files are collected from the
+`push` sends only the config (skmtc.config.json). Base files are collected from the
 **app root** (`dirname(basePath)`, scoped to this app) via the same
 gitignore-style methodology as `deploy` (built-in defaults + the app root's
 `.skmtcignore`), always excluding `.skmtc/` (the stack, deployed separately)
@@ -78,7 +78,7 @@ Curate what's included with `.skmtcignore`.
 
 ### `--base-files-only`
 
-Push **only** the base files; leave the hub project's `client.json` config
+Push **only** the base files; leave the hub project's `skmtc.config.json` config
 untouched. Mutually exclusive with overwriting config. Same collection rules
 as `--base-files`.
 
@@ -95,7 +95,7 @@ See the [overview](overview.md#shared-flags).
 
 ```
 1. Resolve the destination
-     --project wins; otherwise client.json#project. Missing → fail at
+     --project wins; otherwise skmtc.config.json#project. Missing → fail at
      stage `destination` before any network call.
 
 2. GET /v1/projects/{account}/{slug}/config
@@ -105,12 +105,12 @@ See the [overview](overview.md#shared-flags).
      push prompts to confirm the overwrite.
 
 3. PUT /v1/projects/{account}/{slug}/client-config
-     Sends { source?, settings } from the local client.json. The hub
+     Sends { source?, settings } from the local skmtc.config.json. The hub
      folds the nested settings into its flat ProjectConfig and
      overwrites it, returning the result.
 
 4. Write-back (only on an explicit --project)
-     Records the destination in client.json#project.
+     Records the destination in skmtc.config.json#project.
 ```
 
 `source` in the upload is accepted but ignored — a hub project's
@@ -159,8 +159,8 @@ Possible `stage` values:
 
 | Stage | Where the failure happened |
 |---|---|
-| `read` | No `client.json` for the local project |
-| `destination` | No `--project` and no `client.json#project`, or a malformed `@account/slug`. Fails before any network call. |
+| `read` | No `skmtc.config.json` for the local project |
+| `destination` | No `--project` and no `skmtc.config.json#project`, or a malformed `@account/slug`. Fails before any network call. |
 | `push` | The destination project doesn't exist (`404`), the token isn't authorized (`403`), or the `PUT` otherwise failed |
 
 ## Text-mode output
@@ -170,7 +170,7 @@ Pushed "my-api" → acme-org/petstore-client
   origin: https://api.skmtc.dev
   enrichments: 12
   note: replaced existing config
-  note: recorded destination in client.json#project
+  note: recorded destination in skmtc.config.json#project
 ```
 
 ## Errors
@@ -199,7 +199,7 @@ Pushed "my-api" → acme-org/petstore-client
 ## Examples
 
 ```bash
-# Destination recorded in client.json#project
+# Destination recorded in skmtc.config.json#project
 skmtc push my-api
 
 # First push to an org project (records the destination for next time)

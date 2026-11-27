@@ -1,6 +1,6 @@
 # Enrichments shape
 
-> The routing structure for `client.json#settings.enrichments`.
+> The routing structure for `skmtc.config.json#settings.enrichments`.
 > Each projection-base factory reads enrichments from a different
 > key path; there is no single uniform shape across all generators.
 
@@ -40,7 +40,7 @@ parameters). `method` is the lowercase HTTP verb. `variant` is
 `"main"` unless the generator declares extra variants (and `"main"`
 must be present whenever any variant is).
 
-Example `client.json` fragment. The subject leaf's internal shape
+Example `skmtc.config.json` fragment. The subject leaf's internal shape
 is defined by the generator's Valibot schema:
 
 ```jsonc
@@ -202,7 +202,7 @@ anywhere with a context through `toGeneratorEnrichment` /
 }
 ```
 
-The underscore names exist only in `client.json`. On the umbrella
+The underscore names exist only in `skmtc.config.json`. On the umbrella
 and in `enrichments.ts` the members are `stack`, `generator` and
 `subject`: `_stack` is read into `stack` and `[id]._generator` into
 `generator`. There is no `_subject` key; the subject leaf is the value
@@ -253,7 +253,7 @@ Outcomes:
 - **Wrong-typed value**: the parse throws, and the run fails. The run
   writes no files, and the files and manifest of the last good run
   stay. The `RUN_FAILED` issue in the output of `skmtc generate` names
-  each wrong value's place in `client.json`.
+  each wrong value's place in `skmtc.config.json`.
 - **Whole payload missing**: most stock generators wrap their
   subject schema in `v.optional(...)`, so the value arrives as
   `undefined`.
@@ -324,7 +324,7 @@ result.
 ## Cross-references
 
 - [enrichments concept](../../concepts/enrichments.md) — full mental model
-- [client.json schema reference](client-json-schema.md) — the broader settings shape
+- [skmtc.config.json schema reference](client-json-schema.md) — the broader settings shape
 - [How to configure enrichments](../../using/how-to/configure-enrichments.md) — the task-level guide
 - [Add enrichment options](../../authoring/how-to/add-enrichment-options.md) — the authoring perspective
 

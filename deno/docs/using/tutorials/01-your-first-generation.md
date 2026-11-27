@@ -56,7 +56,10 @@ skmtc init petstore src/generated
 ```
 
 This scaffolds `.skmtc/petstore/`: a `deno.json` for generator imports
-and a `.settings/client.json` pre-filled with your `basePath`.
+and a `.settings/skmtc.config.json` pre-filled with your `basePath`.
+An older project can have `client.json` in place of this file.
+`client.json` is the old, deprecated name, and it still works. To
+move to the new name, run `skmtc migrate config <project>`.
 
 ## Step 3: Install a generator
 
@@ -110,7 +113,7 @@ alignment for Vite and Next.js.
 
 `generate` does not save the spec you passed. To make
 `skmtc generate petstore` enough for the next run, add a top-level
-`source` to `.skmtc/petstore/.settings/client.json`, beside the
+`source` to `.skmtc/petstore/.settings/skmtc.config.json`, beside the
 `basePath` that `init` wrote:
 
 ```jsonc
@@ -154,7 +157,7 @@ why.
 - [Tutorial 02: Multiple generators](02-multiple-generators.md) —
   add types and hooks alongside the validators
 - [Tutorial 03: Customize with enrichments](03-customize-with-enrichments.md) —
-  add per-operation overrides via `client.json`
+  add per-operation overrides via `skmtc.config.json`
 - [How to debug a failing generation](../how-to/debug-failing-generation.md) —
   if anything went wrong above
 - [Stock generators reference](../../reference/stock-generators/) —

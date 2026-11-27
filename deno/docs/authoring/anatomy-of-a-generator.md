@@ -80,7 +80,7 @@ deliberately hardcoded — they are the primary seams you edit after
 [identifier conventions](how-to/change-identifier-conventions.md)).
 
 **The enrichments schema (`src/enrichments.ts`)** declares the options
-users can set per operation or model in `client.json` — the
+users can set per operation or model in `skmtc.config.json` — the
 configuration surface, validated with Valibot. See
 [add enrichment options](how-to/add-enrichment-options.md).
 

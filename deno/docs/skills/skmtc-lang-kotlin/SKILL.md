@@ -293,7 +293,7 @@ discriminator omission. Everything else renders the honest wire type
   into each data class (verified through the pipeline 2026-08-04). From
   core 0.47, a base `$ref` that closes a cycle (a union base that lists
   the member) is kept: the member is an `OasIntersection`
-  (`system.intersections`).
+  (`parse.intersections`).
   Flattening is the right Kotlin target: the sealed interface is the
   polymorphism seam, not class inheritance.
 - **Inline unions (stage 2, shipped)**: a qualifying union ANYWHERE —

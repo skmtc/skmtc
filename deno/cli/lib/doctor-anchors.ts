@@ -2,7 +2,7 @@
  * @fileoverview Gen-maps doctor checks. Three diagnostic checks per
  * plan §5.4:
  *
- *   - `anchors-config/<project>` — anchors block well-formed in client.json
+ *   - `anchors-config/<project>` — anchors block well-formed in skmtc.config.json
  *   - `anchors-coverage/<project>` — every generated file has a sidecar
  *   - `anchors-staleness/<project>` — no sidecar is older than its file
  *
@@ -11,6 +11,7 @@
  * doctor walks projects and calls these in turn.
  */
 
+import { toConfigPath } from '@/lib/project-config.ts'
 import { join } from '@std/path/join'
 import { existsSync } from '@std/fs/exists'
 import * as v from 'valibot'
@@ -20,21 +21,21 @@ import { Manifest } from '@/lib/manifest.ts'
 import type { Check } from '@/lib/doctor-headless.ts'
 
 /**
- * Reads `client.json#settings.anchors` and reports on its shape +
+ * Reads `skmtc.config.json#settings.anchors` and reports on its shape +
  * opt-in state.
  *
- *  - No client.json or no `anchors` block → `skipped` (not opted in)
+ *  - No skmtc.config.json or no `anchors` block → `skipped` (not opted in)
  *  - `anchors.enabled: false` → `skipped` (explicit opt-out)
  *  - `anchors.enabled: true` → `ok`
  *  - Malformed `anchors` block → `warning`
  */
 export const checkAnchorsConfig = (projectName: string, projectPath: string): Check => {
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
   if (!existsSync(clientJsonPath)) {
     return {
       id: `anchors-config/${projectName}`,
       status: 'skipped',
-      message: `Project "${projectName}" has no client.json; anchors config check skipped.`
+      message: `Project "${projectName}" has no skmtc.config.json; anchors config check skipped.`
     }
   }
   let parsed: unknown
@@ -44,7 +45,7 @@ export const checkAnchorsConfig = (projectName: string, projectPath: string): Ch
     return {
       id: `anchors-config/${projectName}`,
       status: 'skipped',
-      message: `Project "${projectName}" client.json is unparseable; anchors check skipped.`
+      message: `Project "${projectName}" skmtc.config.json is unparseable; anchors check skipped.`
     }
   }
   const anchors: unknown = (parsed as { settings?: { anchors?: unknown } })?.settings?.anchors
@@ -219,7 +220,7 @@ export const checkAnchorsStaleness = (projectName: string, projectPath: string):
 // ─── Internals ─────────────────────────────────────────────────────
 
 const readAnchorsConfig = (projectPath: string): AnchorsSettings | undefined => {
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
   if (!existsSync(clientJsonPath)) return undefined
   try {
     const parsed = JSON.parse(Deno.readTextFileSync(clientJsonPath))
