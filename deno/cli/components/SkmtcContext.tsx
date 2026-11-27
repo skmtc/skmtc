@@ -4,6 +4,7 @@ import type { Project } from '@/lib/project.ts'
 import type { Key } from 'ink'
 import type { Generator } from '@/types/generator.ts'
 import type { HubEnv } from '@/lib/hub-env.ts'
+import type { AliasRoot } from '@/lib/alias-root.ts'
 
 export type ErrorMessage = {
   error: ReactNode
@@ -53,6 +54,8 @@ export type ViewStateCreateProject = {
   projectName?: string
   generators?: string[]
   basePath?: string
+  /** The folder the app's `@/` alias points to, when `init` found one. */
+  aliasRoot?: AliasRoot
 }
 
 export type ViewStateProject = {

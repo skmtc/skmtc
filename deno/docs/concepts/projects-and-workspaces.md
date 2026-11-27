@@ -258,10 +258,14 @@ The `basePath` argument:
 
 - **Must be relative** to the Skmtc root. Absolute paths are rejected
   with exit code 2 and a recipe error.
-- **Must match the consumer app's bundler alias**. The CLI doesn't
-  verify this — the user does — but `skmtc doctor`'s
-  `project-base-path/<project>` check surfaces obvious mistakes
-  (missing, absolute, etc.).
+- **Must match the consumer app's `@/` alias**. `init` reads the alias
+  from a `tsconfig.json`, `tsconfig.app.json`, `jsconfig.json`,
+  `deno.json` or `deno.jsonc`. It uses the folder of the alias when
+  you give no `basePath`, and warns when you give another folder.
+  `skmtc doctor` reports the same as `project-alias/<project>`. Its
+  `project-base-path/<project>` check reports a `basePath` that is
+  missing or absolute. An alias that only a bundler config states is
+  yours to check.
 
 ## Common questions
 

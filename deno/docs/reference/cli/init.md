@@ -222,16 +222,22 @@ that states one, in the folder that holds `.skmtc/`:
 | `deno.json`, `deno.jsonc` | `imports["@/"]` |
 
 - With no `basePath` argument, the folder of the alias is the
-  `basePath`.
+  `basePath`. At a terminal, `init` asks for the folder, and the folder
+  of the alias is the default.
 - With a `basePath` that is another folder, `init` creates the project
   and warns. `skmtc doctor` reports the same as
   `project-alias/<project>`.
 - With no alias in those files, `init` has nothing to compare and says
   nothing.
 
+The CLI reads a tsconfig's `baseUrl` through `extends`: a path from
+the config, or a package under `node_modules/`. When an extended
+config is not on disk, it may set a `baseUrl`, so the CLI reads no
+alias from that tsconfig.
+
 The CLI does not read a bundler config (`vite.config.ts`,
-`webpack.config.js`) or a tsconfig's `extends`. For an alias that only
-those state, the match is yours to check.
+`webpack.config.js`), or `paths` that only an extended tsconfig holds.
+For an alias that only those state, the match is yours to check.
 
 ## Exit codes
 

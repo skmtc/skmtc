@@ -1,6 +1,11 @@
 import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
 import { printGenerateResult } from '@/lib/print-generate-result.ts'
-import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import {
+  failWithInvalidArg,
+  failWithRecipe,
+  resolveInputMode,
+  resolveOutputFormat
+} from '@/lib/strict-mode.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { isProjectName, toProjectPath } from '@/lib/to-project-path.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
@@ -9,7 +14,8 @@ import { Manager } from '@/lib/manager.ts'
 import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
 import { offerConfigMigrations } from '@/lib/config-migration-offer.ts'
-import { saveSource, type SavedSource } from '@/lib/save-source.ts'
+import { saveSource, type SaveReport, toSaveBlocker } from '@/lib/save-source.ts'
+import { toConfigLocation } from '@/lib/project-config.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -45,19 +51,47 @@ type GenerateSwitchArgs = {
 
 const SAVE_USAGE = 'skmtc generate <project> <schema> --save'
 
+type SaveSchemaSourceArgs = {
+  projectPath: string
+  source: string
+  /** The run had an error-level issue, so the source is not known to work. */
+  runFailed: boolean
+}
+
 /**
- * Stores the schema source a run was given. Exits 1 for a project with no
- * config file: generating and then not saving would report a success that
- * leaves the next run without its schema.
+ * Checks, before the run, that `--save` has a project and a config it can
+ * write. Exits 2 for a name that is not a project, and 1 for a config that
+ * is missing or that `generate` cannot read: a run that generates and then
+ * does not save would leave the next run without its schema.
  */
-const saveSchemaSource = (projectPath: string, source: string): SavedSource => {
+const checkSaveTarget = (projectName: string): void => {
+  if (!isProjectName(projectName)) {
+    return failWithProjectRecipe()
+  }
+
+  const blocker = toSaveBlocker(toProjectPath(projectName))
+
+  if (blocker !== undefined) {
+    console.error(`Error: ${blocker}`)
+    Deno.exit(1)
+  }
+}
+
+/**
+ * Stores the schema source of a run that had no error. A source is stored
+ * only after it gave a result: `generate` takes any text a URL returns as
+ * the schema, the page of a 404 too, and a source stored before the run
+ * would replace one that works with one that does not.
+ */
+const saveSchemaSource = ({ projectPath, source, runFailed }: SaveSchemaSourceArgs): SaveReport => {
+  if (runFailed) {
+    return { type: 'skipped', source, configPath: toConfigLocation(projectPath).path }
+  }
+
   const saved = saveSource({ projectPath, source })
 
   if (saved.type === 'no-config') {
-    console.error(
-      `Error: --save found no config to write: ${saved.configPath} is missing or is not a JSON object.\n\n` +
-        'Run `skmtc init <project> <basePath>` to create it, or repair the file, then run the command again.'
-    )
+    console.error(`Error: --save found no config to write at ${saved.configPath}.`)
     return Deno.exit(1)
   }
 
@@ -77,16 +111,16 @@ export const generateSwitch = async ({
   saveFlag,
   generateLocalFn
 }: GenerateSwitchArgs) => {
-  // `--save` stores the schema argument, so it needs one.
+  // `--save` stores the schema argument, so it needs one. This is a wrong
+  // use of a flag in a terminal too, so the error does not name a mode.
   if (saveFlag && !schemaSourceString) {
-    return failWithRecipe({
-      command: 'generate',
-      arg: '<schema>',
+    return failWithInvalidArg({
+      message:
+        '--save needs the <schema> argument. It stores the schema you pass as `source` in ' +
+        'the project config. With a stored source, `skmtc generate <project>` needs no ' +
+        'schema and no --save.',
       usage: SAVE_USAGE,
-      example: 'skmtc generate my-api ./schema.json --save',
-      discover:
-        '--save stores the schema you pass as `source` in the project config. ' +
-        'With a stored source, `skmtc generate <project>` needs no schema and no --save.'
+      example: 'skmtc generate my-api ./schema.json --save'
     })
   }
 
@@ -105,6 +139,10 @@ export const generateSwitch = async ({
   }
 
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
+
+  if (saveFlag) {
+    checkSaveTarget(projectName)
+  }
 
   // generate reads the config without SkmtcRoot.open, so it offers the
   // migration itself, before the read (only in interactive mode).
@@ -138,13 +176,6 @@ export const generateSwitch = async ({
   }
 
   if (generateLocalArgs) {
-    // The schema was read, so the source is one that works. Store it before
-    // the run: a run that then fails still leaves the source for the retry.
-    const savedSource =
-      saveFlag && schemaSourceString
-        ? saveSchemaSource(generateLocalArgs.projectPath, schemaSourceString)
-        : undefined
-
     // A local project rebuilds bundle.js on every run, from the pins and
     // generator source it has now, and runs the bundle that build returns.
     // The build refuses a module graph with two copies of `@skmtc/core` or
@@ -171,6 +202,30 @@ export const generateSwitch = async ({
         })
       : undefined
 
+    // If any parseIssue came back at `error` level, the run isn't a
+    // success even when the JSON payload has `type: "generated"`.
+    // Core's CoreContext catches top-level failures and synthesizes
+    // a RUN_FAILED error so this branch can detect them — see
+    // `core/context/CoreContext.ts` around the toArtifacts catch.
+    //
+    // `?? []` covers the case where the project's bundle.js is from
+    // an older `@skmtc/core` that didn't yet emit `parseIssues` —
+    // the field is then `undefined`, and `.some()` on undefined
+    // would throw. Treating "no parseIssues field" as "no error
+    // issues" matches the original silent-success behavior for old
+    // bundles; new bundles populate the field and get the proper
+    // exit-1 signal.
+    const fatalParseIssue = (result.parseIssues ?? []).some(issue => issue.level === 'error')
+
+    const savedSource =
+      saveFlag && schemaSourceString
+        ? saveSchemaSource({
+            projectPath: generateLocalArgs.projectPath,
+            source: schemaSourceString,
+            runFailed: fatalParseIssue
+          })
+        : undefined
+
     // Both `--json` and a non-TTY shell route to the structured path;
     // the Ink-free generate flow already wrote plain text, so for
     // strict-mode we just pick the format (text vs JSON) and reuse
@@ -187,20 +242,6 @@ export const generateSwitch = async ({
       format
     })
 
-    // If any parseIssue came back at `error` level, the run isn't a
-    // success even when the JSON payload has `type: "generated"`.
-    // Core's CoreContext catches top-level failures and synthesizes
-    // a RUN_FAILED error so this branch can detect them — see
-    // `core/context/CoreContext.ts` around the toArtifacts catch.
-    //
-    // `?? []` covers the case where the project's bundle.js is from
-    // an older `@skmtc/core` that didn't yet emit `parseIssues` —
-    // the field is then `undefined`, and `.some()` on undefined
-    // would throw. Treating "no parseIssues field" as "no error
-    // issues" matches the original silent-success behavior for old
-    // bundles; new bundles populate the field and get the proper
-    // exit-1 signal.
-    const fatalParseIssue = (result.parseIssues ?? []).some(issue => issue.level === 'error')
     // A failed typecheck is non-fatal-but-noticeable: signal exit 1
     // (the convention `parseIssues` already uses for "ran but found
     // problems"). The generated files stay on disk so the operator
@@ -215,19 +256,23 @@ export const generateSwitch = async ({
   return await renderGenerate({ projectName, schemaSourceString, watch })
 }
 
+/** The error for a name that is not a project. Exits 2. */
+const failWithProjectRecipe = (): never =>
+  failWithRecipe({
+    command: 'generate',
+    arg: '<project>',
+    usage: 'skmtc generate <project> [schema]',
+    example: 'skmtc generate my-api ./schema.json',
+    discover: 'ls .skmtc/  (list existing projects)'
+  })
+
 /**
  * Builds the project's bundle and returns the URL to run. Exits 2 for a
  * name that isn't a project, and 1 when the build fails or is refused.
  */
 const buildForRun = async (projectName: string): Promise<string> => {
   if (!isProjectName(projectName)) {
-    return failWithRecipe({
-      command: 'generate',
-      arg: '<project>',
-      usage: 'skmtc generate <project> [schema]',
-      example: 'skmtc generate my-api ./schema.json',
-      discover: 'ls .skmtc/  (list existing projects)'
-    })
+    return failWithProjectRecipe()
   }
 
   try {

@@ -46,7 +46,8 @@ Deno.test('renderInit - interactive mode mounts the Ink App with the expected st
       projectName: testProjectName,
       basePath: testBasePath,
       renderFn: renderSpy as InkRenderFn,
-      AppComponent: AppSpy
+      AppComponent: AppSpy,
+      findAliasRootFn: () => ({ path: 'app/src', from: 'tsconfig.json' })
     })
 
     assertSpyCalls(renderSpy, 1)
@@ -58,7 +59,10 @@ Deno.test('renderInit - interactive mode mounts the Ink App with the expected st
             view: {
               page: 'create-project',
               projectName: testProjectName,
-              basePath: testBasePath
+              basePath: testBasePath,
+              // The view carries the alias: it is the default of the
+              // basePath prompt, and the source of the mismatch warning.
+              aliasRoot: { path: 'app/src', from: 'tsconfig.json' }
             },
             skmtcRoot,
             message: null,

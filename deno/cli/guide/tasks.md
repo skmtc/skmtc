@@ -78,7 +78,11 @@ skmtc generate <project> <schema> --save --json
 `.skmtc/<project>/.settings/skmtc.config.json`, and changes no other
 key. After this, `skmtc generate <project>` works without the schema
 positional arg. The result has `savedSource: { source, configPath,
-changed }`.
+changed, stored }`.
+
+The source is stored after a run with no error. A run with an `error`
+level issue stores nothing (`stored: false`), and the source that was
+there stays.
 
 To change the source later, run the same command with the new schema,
 or edit `"source"` in the file.

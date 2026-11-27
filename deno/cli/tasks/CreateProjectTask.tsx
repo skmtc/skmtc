@@ -6,6 +6,7 @@ import { Project } from '@/lib/project.ts'
 import { TaskBox } from '@/components/TaskBox.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 import invariant from 'tiny-invariant'
+import { isAliasRoot, toAliasMismatchText } from '@/lib/alias-root.ts'
 
 export const CreateProjectTask = () => {
   const { state, dispatchMessage } = useSkmtc()
@@ -36,7 +37,17 @@ export const CreateProjectTask = () => {
       availableGenerators
     })
       .then(project => {
-        dispatchMessage({ success: `Project "${project.name}" created` })
+        const aliasRoot = state.view.page === 'create-project' ? state.view.aliasRoot : undefined
+
+        // Generated files import each other through `@/`, so a basePath that
+        // is another folder gets the warning that `init --no-input` prints.
+        dispatchMessage({
+          success: `Project "${project.name}" created`,
+          sub:
+            aliasRoot === undefined || isAliasRoot(basePath, aliasRoot)
+              ? undefined
+              : toAliasMismatchText({ aliasRoot, basePath, projectName: project.name })
+        })
 
         taskDispatch({
           type: 'set-task-state',

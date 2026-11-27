@@ -7,6 +7,8 @@ import { TaskProvider, type Task } from '@/components/TaskContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Generator } from '@/types/generator.ts'
 import { stubRegistryGenerators } from '../tests/mocks/registry.mock.ts'
+import { MessageBox } from '@/components/MessageBox.tsx'
+import { assertStringIncludes } from '@std/assert/string-includes'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -324,6 +326,48 @@ Deno.test({
         }
       ]
     })
+
+    unmount()
+  }
+})
+
+// The trap: `skmtc init my-api ./src` at a terminal created the project with
+// no word about an app whose `@/` points to another folder. Only the run
+// with `--no-input` or `--json` printed the warning.
+Deno.test({
+  name: 'CreateProjectTask - warns when basePath is not the folder "@/" points to',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    using _projectCreateStub = stub(Project, 'create', () =>
+      Promise.resolve(createMockProject() as unknown as Project)
+    )
+    using _fetchStub = stubRegistryGenerators(mockGenerators)
+
+    const skmtcState: SkmtcState = {
+      view: { page: 'create-project', aliasRoot: { path: 'app/src', from: 'tsconfig.json' } },
+      skmtcRoot: createMockSkmtcRoot(),
+      interactive: false,
+      message: null,
+      shortcuts: [],
+      generators: []
+    }
+
+    const { lastFrame, unmount } = render(
+      <SkmtcProvider initialState={skmtcState} exit={() => {}}>
+        <TaskProvider leave={spy()} tasks={createMockTasks()}>
+          <CreateProjectTask />
+        </TaskProvider>
+        <MessageBox />
+      </SkmtcProvider>
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    const frame = (lastFrame() ?? '').replace(/\s+/g, ' ')
+
+    assertStringIncludes(frame, 'Project "test-project" created')
+    assertStringIncludes(frame, 'Warning: "@/" points to "app/src" (tsconfig.json), not to "./src"')
 
     unmount()
   }

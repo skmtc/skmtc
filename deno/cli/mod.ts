@@ -203,6 +203,18 @@ const run = async () => {
         projectName,
         schemaSourceString
       ) => {
+        // A debug session stores nothing, and a flag that does nothing is a
+        // trap: the next run would fail for a missing schema.
+        if (debug && save) {
+          const { failWithInvalidArg } = await import('@/lib/strict-mode.ts')
+          failWithInvalidArg({
+            message:
+              '--save and --debug do not go together. A debug session does not store the ' +
+              'schema source. Run once with --save, then debug with no schema argument.',
+            usage: 'skmtc generate <project> <schema> --save',
+            example: 'skmtc generate my-api ./schema.json --save'
+          })
+        }
         if (debug) {
           const { renderDebug } = await import('@/commands/debug.ts')
           await renderDebug({

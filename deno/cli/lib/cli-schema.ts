@@ -449,7 +449,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--save',
         description:
-          'Store the [schema] argument as `source` in the project config, so later runs need no schema argument.'
+          'Store the [schema] argument as `source` in the project config, so later runs need no schema argument. Stored after a run with no error. Not with --debug.'
       },
       {
         flag: '--debug',

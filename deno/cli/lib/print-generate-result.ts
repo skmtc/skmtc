@@ -15,7 +15,7 @@ import { printJsonResult } from '@/lib/project-config.ts'
 import type { GenerateLocalResult } from '@/lib/generate-local.ts'
 import { toGenerateMessageString } from '@/lib/to-generate-message-string.ts'
 import type { TypecheckResult } from '@/lib/typecheck.ts'
-import type { SavedSource } from '@/lib/save-source.ts'
+import type { SaveReport } from '@/lib/save-source.ts'
 
 type PrintGenerateResultArgs = {
   result: GenerateLocalResult
@@ -29,7 +29,7 @@ type PrintGenerateResultArgs = {
    */
   typecheck?: TypecheckResult
   /** What `--save` did with the schema source. Absent without `--save`. */
-  savedSource?: SavedSource
+  savedSource?: SaveReport
   format: 'text' | 'json'
 }
 
@@ -82,7 +82,8 @@ export const printGenerateResult = ({
               savedSource: {
                 source: savedSource.source,
                 configPath: savedSource.configPath,
-                changed: savedSource.type === 'saved'
+                changed: savedSource.type === 'saved',
+                stored: savedSource.type !== 'skipped'
               }
             }
           : {}),
@@ -117,10 +118,7 @@ export const printGenerateResult = ({
         printTypecheckText(typecheck)
       }
       if (savedSource) {
-        console.log(
-          `\nSchema source ${savedSource.type === 'saved' ? 'saved to' : 'already in'} ` +
-            `${savedSource.configPath}. Next time: skmtc generate ${projectName}`
-        )
+        console.log(`\n${toSavedSourceText(savedSource, projectName)}`)
       }
       return
     }
@@ -129,6 +127,21 @@ export const printGenerateResult = ({
       throw new Error(`Unhandled output format: ${JSON.stringify(_exhaustive)}`)
     }
   }
+}
+
+/** The line that says what `--save` did with the schema source. */
+const toSavedSourceText = (savedSource: SaveReport, projectName: string): string => {
+  if (savedSource.type === 'skipped') {
+    return (
+      'Schema source not saved: the run had an error, so the source is not known to work. ' +
+      `${savedSource.configPath} is as it was.`
+    )
+  }
+
+  return (
+    `Schema source ${savedSource.type === 'saved' ? 'saved to' : 'already in'} ` +
+    `${savedSource.configPath}. Next time: skmtc generate ${projectName}`
+  )
 }
 
 const printTypecheckText = (typecheck: TypecheckResult): void => {

@@ -1,4 +1,5 @@
 import { assertEquals } from '@std/assert/equals'
+import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
 import { findAliasRoot, isAliasRoot, toFolder } from '@/lib/alias-root.ts'
 
@@ -9,6 +10,7 @@ const withAppRoot = async <T>(files: Files, fn: (appRootPath: string) => T): Pro
 
   try {
     for (const [name, text] of Object.entries(files)) {
+      await Deno.mkdir(dirname(join(appRootPath, name)), { recursive: true })
       await Deno.writeTextFile(join(appRootPath, name), text)
     }
 
@@ -61,6 +63,52 @@ Deno.test('alias root - goes on to tsconfig.app.json when tsconfig.json has no a
   }
 
   assertEquals(await find(files), { path: 'src', from: 'tsconfig.app.json' })
+})
+
+// The trap: `paths` resolve from `baseUrl`, and a base config can set it.
+// Read as if it were `.`, `./*` gives the app root where TypeScript gives `src`.
+Deno.test('alias root - a baseUrl of an extended config applies to paths', async () => {
+  const files = {
+    'tsconfig.json': JSON.stringify({
+      extends: './config/tsconfig.base.json',
+      compilerOptions: { paths: { '@/*': ['./*'] } }
+    }),
+    'config/tsconfig.base.json': JSON.stringify({ compilerOptions: { baseUrl: '../src' } })
+  }
+
+  assertEquals(await find(files), { path: 'src', from: 'tsconfig.json' })
+})
+
+Deno.test('alias root - an extended config with no baseUrl leaves paths at the config folder', async () => {
+  const files = {
+    'tsconfig.json': JSON.stringify({
+      extends: 'astro/tsconfigs/strict',
+      compilerOptions: { paths: { '@/*': ['./src/*'] } }
+    }),
+    'node_modules/astro/tsconfigs/strict.json': JSON.stringify({ compilerOptions: { strict: true } })
+  }
+
+  assertEquals(await find(files), { path: 'src', from: 'tsconfig.json' })
+})
+
+// The trap: a package that is not installed may set a `baseUrl`. A folder
+// read without it would be a guess, and `init` would write the guess.
+Deno.test('alias root - not found when an extended config cannot be read', async () => {
+  const tsconfig = JSON.stringify({
+    extends: '@acme/tsconfig',
+    compilerOptions: { paths: { '@/*': ['./src/*'] } }
+  })
+
+  assertEquals(await find({ 'tsconfig.json': tsconfig }), undefined)
+})
+
+Deno.test('alias root - a config that extends itself is not found, with no endless read', async () => {
+  const tsconfig = JSON.stringify({
+    extends: './tsconfig.json',
+    compilerOptions: { paths: { '@/*': ['./src/*'] } }
+  })
+
+  assertEquals(await find({ 'tsconfig.json': tsconfig }), undefined)
 })
 
 Deno.test('alias root - reads the import map of deno.json, and the root as "."', async () => {

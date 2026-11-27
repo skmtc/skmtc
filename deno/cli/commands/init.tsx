@@ -6,7 +6,13 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { initHeadless, InvalidBasePathError, type InitHeadlessResult } from '@/lib/init-headless.ts'
-import { ALIAS_FILE_NAMES, type AliasRoot, findAliasRoot, isAliasRoot } from '@/lib/alias-root.ts'
+import {
+  ALIAS_FILE_NAMES,
+  type AliasRoot,
+  findAliasRoot,
+  isAliasRoot,
+  toAliasMismatchText
+} from '@/lib/alias-root.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { renderApp } from '@/commands/render-app.tsx'
 
@@ -48,6 +54,12 @@ export const renderInit = async ({
 }: RenderInitArgs) => {
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
 
+  // Generated files import each other through `@/`, so the right basePath
+  // is the folder that alias points to. With no argument, that folder is
+  // the basePath (the default of the prompt, at a terminal); with one, the
+  // result says whether the two match.
+  const aliasRoot = findAliasRootFn({ appRootPath: toAbsoluteRootPath() })
+
   if (mode === 'strict') {
     if (projectName === undefined) {
       return failWithRecipe({
@@ -58,10 +70,6 @@ export const renderInit = async ({
       })
     }
 
-    // Generated files import each other through `@/`, so the right basePath
-    // is the folder that alias points to. With no argument, that folder is
-    // the basePath; with one, the result says whether the two match.
-    const aliasRoot = findAliasRootFn({ appRootPath: toAbsoluteRootPath() })
     const resolvedBasePath = basePath ?? aliasRoot?.path
 
     if (resolvedBasePath === undefined) {
@@ -116,7 +124,12 @@ export const renderInit = async ({
   }
 
   const initialState: SkmtcState = {
-    view: { page: 'create-project', projectName, basePath },
+    view: {
+      page: 'create-project',
+      projectName,
+      basePath,
+      ...(aliasRoot === undefined ? {} : { aliasRoot })
+    },
     skmtcRoot,
     message: null,
     interactive: false,
@@ -142,10 +155,11 @@ const toAliasLine = (
 
   return alias.matches
     ? undefined
-    : `  Warning: "@/" points to "${alias.path}" (${alias.from}), not to "${result.basePath}". ` +
-        'Generated files import each other through "@/", so those imports resolve only when ' +
-        `the two are one folder. Set settings.basePath to "${alias.path}" in ` +
-        `.skmtc/${result.projectName}/.settings/skmtc.config.json, or point "@/" at "${result.basePath}".`
+    : `  ${toAliasMismatchText({
+        aliasRoot: alias,
+        basePath: result.basePath,
+        projectName: result.projectName
+      })}`
 }
 
 export const printInitResult = (

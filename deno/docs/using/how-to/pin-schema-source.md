@@ -25,8 +25,9 @@ skmtc generate <project> https://api.example.com/openapi.json --save
 ```
 
 `--save` writes the schema you pass as `source` in the project's
-config and changes no other key. To change the source later, run the
-command again with the new schema.
+config and changes no other key. It writes after a run with no error,
+so a mistyped URL does not replace a source that works. To change the
+source later, run the command again with the new schema.
 
 ### Or set `source` in skmtc.config.json
 

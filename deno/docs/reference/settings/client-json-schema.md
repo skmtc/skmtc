@@ -136,9 +136,11 @@ consuming app's bundler.
 
 Required vs optional has two layers:
 
-- **At `init` time**, `basePath` is a required positional argument
-  — `skmtc init <project> <basePath>` exits with a recipe error
-  without it.
+- **At `init` time**, `basePath` is a positional argument. Without
+  it, `skmtc init <project>` uses the folder that the app's `@/`
+  alias points to. With no alias to read, a run with `--no-input` or
+  `--json` exits with a recipe error. A run at a terminal asks for
+  the folder.
 - **In the runtime `skmtc.config.json` parse**, the field is `v.optional`
   (`core/types/Settings.ts`'s `clientSettings` schema). Removing it
   from an existing `skmtc.config.json` won't fail validation. `doctor` will

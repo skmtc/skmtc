@@ -38,14 +38,22 @@ project's config file. Later runs then need no schema argument.
 
 - The command stores the value as you typed it: a URL, or a path from
   the folder that holds `.skmtc/`.
-- The command stores the source after it reads the schema and before
-  the run. A run that then fails keeps the stored source for the next
-  try.
+- The command stores the source after a run with no error. A run with
+  an `error` level issue stores nothing, and the source that was there
+  stays. `generate` takes any text a URL returns as the schema. Thus
+  the command stores a source only after it gave a result.
 - No other key of the config changes. A project on `client.json`
   keeps that file.
-- `--save` with no `[schema]` exits with code 2 and a recipe error.
+- `--save` with no `[schema]` exits with code 2.
+- `--save` with `--debug` exits with code 2. A debug session stores
+  nothing.
+- A name that is not a project exits with code 2, as it does without
+  `--save`.
 - A project with no config file exits with code 1 and generates
   nothing. Run `skmtc init` first.
+- A config that does not fit its schema exits with code 1 and
+  generates nothing. The error names each key that does not fit.
+  Repair the file.
 
 ### `-w, --watch`
 
@@ -252,7 +260,8 @@ The manifest is overwritten on every run. See
   "savedSource": {                         // only present with --save
     "source": "./schema.json",
     "configPath": ".../.skmtc/my-api/.settings/skmtc.config.json",
-    "changed": true                        // false when it was already stored
+    "changed": true,                       // false when it was already stored
+    "stored": true                         // false when the run had an error
   }
 }
 ```

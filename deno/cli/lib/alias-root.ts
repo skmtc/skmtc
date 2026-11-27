@@ -8,14 +8,19 @@
  * of a `deno.json`. `init` proposes the folder from it, and `doctor` checks
  * a project's `basePath` against it.
  *
- * What this does not read: a tsconfig's `extends`, and an alias that only a
- * bundler config holds (`vite.config.ts`, `webpack.config.js`). For those
- * the answer is "not found", never a guess.
+ * A tsconfig's `baseUrl` is read through `extends`, because `paths` resolve
+ * from it. What this does not read: `paths` that only an extended config
+ * holds, and an alias that only a bundler config holds (`vite.config.ts`,
+ * `webpack.config.js`). For those, and for an extended config that cannot
+ * be read (a package that is not installed), the answer is "not found",
+ * never a guess.
  */
 
 import { parse } from '@std/jsonc'
 import { existsSync } from '@std/fs/exists'
+import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
+import { relative } from '@std/path/relative'
 import { join as joinPosix } from '@std/path/posix/join'
 import { normalize } from '@std/path/posix/normalize'
 
@@ -31,10 +36,42 @@ type FindAliasRootArgs = {
   appRootPath: string
 }
 
+type ReadAliasArgs = {
+  config: unknown
+  appRootPath: string
+}
+
 type AliasReader = {
   fileName: string
-  read: (config: unknown) => string | undefined
+  read: (args: ReadAliasArgs) => string | undefined
 }
+
+type FindBaseUrlArgs = {
+  config: unknown
+  /** The folder of the config file. */
+  dir: string
+  appRootPath: string
+  /** How many `extends` were followed to reach this config. */
+  depth: number
+}
+
+/** The folder that `paths` resolve from, as far as the configs on disk say. */
+type BaseUrlSearch =
+  | { type: 'found'; folder: string }
+  /** No config of the chain sets a `baseUrl`. */
+  | { type: 'none' }
+  /** A config of the chain cannot be read, and it may set a `baseUrl`. */
+  | { type: 'unreadable' }
+
+type ToExtendedPathArgs = {
+  /** A value of `extends`: `./tsconfig.base.json`, `astro/tsconfigs/strict`. */
+  name: string
+  dir: string
+  appRootPath: string
+}
+
+// A chain longer than this is a cycle.
+const MAX_EXTENDS_DEPTH = 8
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -52,10 +89,90 @@ export const toFolder = (path: string): string => {
   return folder === '' ? '.' : folder
 }
 
-/** `compilerOptions.paths["@/*"]`, read from its `baseUrl`. */
-const toTsconfigAlias = (config: unknown): string | undefined => {
+const isFile = (path: string): boolean => {
+  try {
+    return Deno.statSync(path).isFile
+  } catch {
+    return false
+  }
+}
+
+/** The file's content, or `undefined` when it is missing or does not parse. */
+const readConfig = (path: string): unknown => {
+  if (!existsSync(path)) {
+    return undefined
+  }
+
+  try {
+    return parse(Deno.readTextFileSync(path))
+  } catch {
+    return undefined
+  }
+}
+
+const toCompilerOptions = (config: unknown): Record<string, unknown> | undefined => {
   const options = isRecord(config) ? config.compilerOptions : undefined
-  const paths = isRecord(options) ? options.paths : undefined
+
+  return isRecord(options) ? options : undefined
+}
+
+/** The configs that `extends` names, last first: a later one wins. */
+const toExtendedNames = (config: unknown): string[] => {
+  const value = isRecord(config) ? config.extends : undefined
+  const names: unknown[] = Array.isArray(value) ? value : [value]
+
+  return names.filter(name => typeof name === 'string').reverse()
+}
+
+/**
+ * The file that a value of `extends` names: a path from the folder of the
+ * config, or a package under the app's `node_modules`. `undefined` when no
+ * such file is on disk.
+ */
+const toExtendedPath = ({ name, dir, appRootPath }: ToExtendedPathArgs): string | undefined => {
+  const base = name.startsWith('.') ? join(dir, name) : join(appRootPath, 'node_modules', name)
+
+  return [base, `${base}.json`, join(base, 'tsconfig.json')].find(isFile)
+}
+
+/**
+ * The `baseUrl` that applies to a config: its own, or the one of the first
+ * config it extends that sets one.
+ */
+const findBaseUrl = ({ config, dir, appRootPath, depth }: FindBaseUrlArgs): BaseUrlSearch => {
+  const baseUrl = toCompilerOptions(config)?.baseUrl
+
+  if (typeof baseUrl === 'string') {
+    return { type: 'found', folder: join(dir, baseUrl) }
+  }
+
+  if (depth > MAX_EXTENDS_DEPTH) {
+    return { type: 'unreadable' }
+  }
+
+  return toExtendedNames(config).reduce<BaseUrlSearch>(
+    (search, name) => {
+      if (search.type !== 'none') {
+        return search
+      }
+
+      const path = toExtendedPath({ name, dir, appRootPath })
+      const extended = path === undefined ? undefined : readConfig(path)
+
+      return path === undefined || extended === undefined
+        ? { type: 'unreadable' }
+        : findBaseUrl({ config: extended, dir: dirname(path), appRootPath, depth: depth + 1 })
+    },
+    { type: 'none' }
+  )
+}
+
+/**
+ * `compilerOptions.paths["@/*"]`, read from the `baseUrl` that applies.
+ * With no `baseUrl`, `paths` resolve from the folder of the config.
+ */
+const toTsconfigAlias = ({ config, appRootPath }: ReadAliasArgs): string | undefined => {
+  const paths = toCompilerOptions(config)?.paths
   const targets = isRecord(paths) ? paths['@/*'] : undefined
   const [target] = Array.isArray(targets) ? targets : []
 
@@ -63,13 +180,19 @@ const toTsconfigAlias = (config: unknown): string | undefined => {
     return undefined
   }
 
-  const baseUrl = isRecord(options) && typeof options.baseUrl === 'string' ? options.baseUrl : '.'
+  const search = findBaseUrl({ config, dir: appRootPath, appRootPath, depth: 0 })
 
-  return toFolder(joinPosix(baseUrl, target.slice(0, -2)))
+  if (search.type === 'unreadable') {
+    return undefined
+  }
+
+  const base = search.type === 'found' ? toFolder(relative(appRootPath, search.folder)) : '.'
+
+  return toFolder(joinPosix(base, target.slice(0, -2)))
 }
 
 /** `imports["@/"]` of a Deno import map. */
-const toDenoAlias = (config: unknown): string | undefined => {
+const toDenoAlias = ({ config }: ReadAliasArgs): string | undefined => {
   const imports = isRecord(config) ? config.imports : undefined
   const target = isRecord(imports) ? imports['@/'] : undefined
 
@@ -88,23 +211,10 @@ const ALIAS_READERS: AliasReader[] = [
 
 export const ALIAS_FILE_NAMES: string[] = ALIAS_READERS.map(reader => reader.fileName)
 
-/** The file's content, or `undefined` when it is missing or does not parse. */
-const readConfig = (path: string): unknown => {
-  if (!existsSync(path)) {
-    return undefined
-  }
-
-  try {
-    return parse(Deno.readTextFileSync(path))
-  } catch {
-    return undefined
-  }
-}
-
 /** The alias root from the first file that states one, or `undefined`. */
 export const findAliasRoot = ({ appRootPath }: FindAliasRootArgs): AliasRoot | undefined =>
   ALIAS_READERS.flatMap(({ fileName, read }) => {
-    const path = read(readConfig(join(appRootPath, fileName)))
+    const path = read({ config: readConfig(join(appRootPath, fileName)), appRootPath })
 
     return path === undefined ? [] : [{ path, from: fileName }]
   }).at(0)
@@ -112,3 +222,20 @@ export const findAliasRoot = ({ appRootPath }: FindAliasRootArgs): AliasRoot | u
 /** Whether `basePath` is the folder the alias points to. */
 export const isAliasRoot = (basePath: string, aliasRoot: AliasRoot): boolean =>
   toFolder(basePath) === aliasRoot.path
+
+type AliasMismatchArgs = {
+  aliasRoot: AliasRoot
+  basePath: string
+  projectName: string
+}
+
+/** What `init` says when `basePath` is not the folder the alias points to. */
+export const toAliasMismatchText = ({
+  aliasRoot,
+  basePath,
+  projectName
+}: AliasMismatchArgs): string =>
+  `Warning: "@/" points to "${aliasRoot.path}" (${aliasRoot.from}), not to "${basePath}". ` +
+  'Generated files import each other through "@/", so those imports resolve only when ' +
+  `the two are one folder. Set settings.basePath to "${aliasRoot.path}" in ` +
+  `.skmtc/${projectName}/.settings/skmtc.config.json, or point "@/" at "${basePath}".`
