@@ -1,15 +1,5 @@
-# skmtc-cli — reference companion
-
-Pull-loaded detail for the `skmtc-cli` skill: the settings file's
-full shape, the filter semantics, the JSON envelopes agents parse,
-the user-facing operational principles, and the doctor check ids.
-Sections keep their historical numbers (§6/§7/§8/§11), which SKILL.md
-cites directly; they do not line up with SKILL.md's own numbering.
-
-Read this when you are editing `skmtc.config.json`, writing a filter,
-parsing `--json` output, or checking a principle — not before.
-
-## 6. The skmtc.config.json shape
+<!-- topic config-shape: Every key of skmtc.config.json, annotated -->
+## The skmtc.config.json shape
 
 The file is `.skmtc/<project>/.settings/skmtc.config.json`.
 `client.json` (the old file name) and `settings.system` (the old name
@@ -73,10 +63,10 @@ of `settings.parse`) still work and are deprecated: run
       }
     },
 
-    // Allow-list. Empty array = no filter. See §7.
+    // Allow-list. Empty array = no filter. See `skmtc guide filters`.
     "include": [],
 
-    // Deny-list. Applied after include. See §7.
+    // Deny-list. Applied after include. See `skmtc guide filters`.
     "skip": [],
 
     // Optional. Filename suffix the engine injects into every
@@ -166,7 +156,7 @@ the stock generators declare `subject` only — so the `_generator` /
 
 Per-subject enrichments are otherwise unchanged: the routing keys and
 the mandatory `'main'` variant level (see the `skmtc.config.json` shape above
-and §7) work exactly as before. A generator reads each scope by known
+and `skmtc guide filters`) work exactly as before. A generator reads each scope by known
 key through typed helpers (`toStackEnrichment` /
 `toGeneratorEnrichment` / the per-subject path) — it never iterates the
 enrichments record itself.
@@ -186,7 +176,8 @@ nest; a nested root is a subpath export of the package around it,
 named by its own `moduleName` for importers outside the package and
 sharing the outer package's `@` for files inside it.
 
-## 7. Skip and include filters
+<!-- topic filters: How settings.skip and settings.include choose what runs -->
+## Skip and include filters
 
 Both `skip` and `include` accept three entry shapes:
 
@@ -245,7 +236,8 @@ a blanket run would produce dozens of files the team doesn't want.
 Use a variant array under a method to narrow the allow/deny to
 specific variants of a multi-variant operation.
 
-## 8. Common JSON output shapes
+<!-- topic output: The JSON that each command prints with --json -->
+## Common JSON output shapes
 
 Agents drive on these shapes. Discriminator field is usually `type`.
 
@@ -426,7 +418,8 @@ stage `upload`, exit 1. So CI can deploy every change without bumping.
 `skmtc publish` is the old name of `deploy`: same output and exit
 codes, after one notice line on stderr.
 
-## 11. Operational principles (user-facing subset)
+<!-- topic principles: Where Skmtc differs from what an agent would do by default -->
+## Operational principles (user-facing subset)
 
 Selected from the full operational principles in `llms.md`. These are
 the ones most likely to override default LLM intuitions during CLI
@@ -492,6 +485,7 @@ Mixed states are silently broken:
 Full list in
 [`llms.md`, "Operational principles for proposing changes"](https://github.com/skmtc/skmtc/blob/main/deno/docs/llms.md#operational-principles-for-proposing-changes).
 
+<!-- topic doctor-checks: What each check of skmtc doctor reads -->
 ## Doctor check ids
 
 `skmtc doctor --json` output is self-describing (every check carries

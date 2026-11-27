@@ -69,6 +69,11 @@ export const printAgentContext = (ctx: AgentContext, { format }: PrintOptions): 
         console.log(`  skmtc ${cmd.name}${argList}${flagList}`)
         console.log(`      ${cmd.description}  (agent-mode: ${cmd.agentMode})`)
       }
+      console.log('')
+      console.log(`Guide topics (${ctx.guideTopics.length}), read one with \`skmtc guide <topic>\`:`)
+      for (const topic of ctx.guideTopics) {
+        console.log(`  ${topic.id}: ${topic.summary}`)
+      }
       return
     }
     default: {

@@ -535,6 +535,15 @@ const run = async () => {
       renderAgentContext({ jsonFlag: json })
     })
 
+  const guideCommand = new Command()
+    .description(getCommandDescriptor('guide').description)
+    .arguments('[topic:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, topic) => {
+      const { renderGuide } = await import('@/commands/guide.ts')
+      renderGuide({ topicId: topic, jsonFlag: json })
+    })
+
   const projectCreateCommand = new Command()
     .description(
       'Create a new hub project named <name> from the local setup: stack from deno.json#name, API from skmtc.config.json#api (or register skmtc.config.json#source), config from skmtc.config.json. Create-only — a name clash fails (use `push` to update an existing project).'
@@ -797,6 +806,7 @@ const run = async () => {
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)
+    .command('guide', guideCommand)
     .command('migrate', migrateCommand)
     .parse(Deno.args)
 }
