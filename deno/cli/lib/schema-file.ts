@@ -4,6 +4,7 @@ import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
+import { stringToSchema } from '@skmtc/convert'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
 import { toSchemaContents } from './to-schema-contents.ts'
 
@@ -69,6 +70,14 @@ export class SchemaFile {
     switch (schemaSource.type) {
       case 'remote': {
         const response = await fetch(schemaSource.url)
+
+        if (!response.ok) {
+          await response.body?.cancel()
+          throw new Error(
+            `could not fetch the schema from ${schemaSource.url}: ${response.status} ${response.statusText}`.trimEnd()
+          )
+        }
+
         const contents = await response.text()
         const url = new URL(schemaSource.url)
         // Prefer extension-based detection (cheap, deterministic). Fall
@@ -82,7 +91,13 @@ export class SchemaFile {
         // future enhancement could detect a 405/missing-query response
         // and POST an introspection query automatically.
         const contentType = response.headers.get('content-type') ?? ''
-        const fileType = toFileTypeFromPathOrContentType(url.pathname, contentType)
+        const fileType = toFileTypeFromPathOrContentType(url, contentType)
+
+        if (fileType !== 'graphql' && !isOpenApiDocument(contents)) {
+          throw new Error(
+            `the answer from ${schemaSource.url} is not a schema: its body is not an OpenAPI or Swagger document`
+          )
+        }
 
         return {
           contents,
@@ -105,6 +120,25 @@ export class SchemaFile {
 
   static create() {
     return new SchemaFile()
+  }
+}
+
+/**
+ * Whether `contents` parses as JSON or YAML to an object with an `openapi`
+ * or `swagger` field. Uses the same parse as `toDocumentInput`.
+ */
+const isOpenApiDocument = (contents: string): boolean => {
+  try {
+    const parsed: unknown = stringToSchema(contents)
+
+    return (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      ('openapi' in parsed || 'swagger' in parsed)
+    )
+  } catch (_error) {
+    return false
   }
 }
 
@@ -135,13 +169,12 @@ const toFileType = (path: string): FileType => {
  *
  * The header may include a `; charset=...` suffix; we strip it before
  * matching. If neither path nor content-type yields a recognized type,
- * we re-throw `toFileType`'s descriptive error so the user sees the
- * full list of supported formats.
+ * the error names the URL and lists the supported formats.
  */
-const toFileTypeFromPathOrContentType = (path: string, contentType: string): FileType => {
+const toFileTypeFromPathOrContentType = (url: URL, contentType: string): FileType => {
   try {
-    return toFileType(path)
-  } catch (pathError) {
+    return toFileType(url.pathname)
+  } catch (_pathError) {
     const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
     switch (mime) {
       case 'application/graphql':
@@ -156,7 +189,7 @@ const toFileTypeFromPathOrContentType = (path: string, contentType: string): Fil
         return 'yaml'
       default:
         throw new Error(
-          `Could not determine schema format for remote source: URL pathname '${path}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+          `Could not determine schema format for remote source ${url.href}: URL pathname '${url.pathname}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
             `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
         )
     }

@@ -68,6 +68,8 @@ export type ViewStateGenerate = {
   project: Project
   schemaSourceString?: string
   watchMode?: boolean
+  /** `true` from `generate --count-tokens`. */
+  countTokens?: boolean
 }
 
 export type ViewStateDeploy = {

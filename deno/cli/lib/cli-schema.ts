@@ -452,6 +452,11 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Store the [schema] argument as `source` in the project config, so later runs need no schema argument. Stored after a run with no error. Not with --debug.'
       },
       {
+        flag: '--count-tokens',
+        description:
+          'Count the GPT tokens of the generated files: the summary line names them and --json gains stats.tokens.'
+      },
+      {
         flag: '--debug',
         description:
           'Run under the V8 inspector in source mode so a debugger can pause on breakpoints in generator code and inspect the live files map at each stop.'

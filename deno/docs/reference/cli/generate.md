@@ -9,7 +9,7 @@ the manifest.
 ## Synopsis
 
 ```
-skmtc generate <project> [schema] [--save] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--debug [--auto]] [--json] [--no-input]
+skmtc generate <project> [schema] [--save] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--count-tokens] [--debug [--auto]] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -101,6 +101,17 @@ Force gen-maps (attribution) output on or off, overriding
 `skmtc.config.json#settings.anchors.enabled`. When on, the run writes
 sidecars plus a generation map under `.skmtc/<project>/.maps/`.
 
+### `--count-tokens`
+
+Count the GPT tokens of the generated files with `gpt-tokenizer`.
+The summary line then starts `Generated <tokens> tokens, <files> files`,
+and the `--json` result gains `stats.tokens`. Without the flag, the run
+does not load the tokenizer, the summary line is
+`Generated <files> files[ under <basePath>] in <time>ms.`, and `stats`
+has no `tokens` key.
+The count grows with the output: for a large output it can take longer
+than the generation.
+
 ### `--debug`
 
 Run generation under the V8 inspector in source mode (not the
@@ -117,6 +128,12 @@ debugger to attach.
 
 Write a single structured JSON object to stdout. Implies `--no-input`.
 Mutually exclusive with `--watch`.
+
+The engine writes its log lines, such as a `[WARN]` line for a parse
+warning, to stderr, so you can pipe stdout to `jq`. The parse issues
+are also in the object's `parseIssues`. A generator that writes to
+stdout (`console.log`) breaks this, because the Worker shares the
+CLI's stdout (see [Where warnings go](#where-warnings-go)).
 
 ### `--no-input`
 
@@ -230,6 +247,17 @@ After the worker returns, the CLI writes:
 The manifest is overwritten on every run. See
 [manifest-format](../manifest-format.md).
 
+### Where warnings go
+
+The engine writes its log lines to stderr in every mode. A parse
+warning is one `[WARN]` line, and a parse error is one `[ERROR]` line.
+On stdout the engine writes only the result: the summary and the
+`Parse issues` list in text mode, or the JSON object with `--json`.
+
+The Worker runs in the CLI process, so a generator's `console.log`
+also goes to the CLI's stdout, and with `--json` it breaks the JSON.
+A generator that prints its own lines must use `console.error`.
+
 ## JSON output
 
 > **Two JSON shapes — read carefully.** The `--json` stdout shape
@@ -249,7 +277,7 @@ The manifest is overwritten on every run. See
   "basePath": "mobile-app/src",            // or null if not configured
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
   "stats": {
-    "tokens": 201029,
+    "tokens": 201029,                      // only present with --count-tokens
     "lines": 1234,
     "files": 753,
     "totalTimeMs": 180
@@ -295,8 +323,9 @@ The manifest is overwritten on every run. See
 - **`basePath`**: the resolved `basePath` from `skmtc.config.json` (string)
   or `null` if not configured.
 - **`manifestPath`**: where the manifest was written.
-- **`stats`**: aggregate counts. `tokens` counts via `gpt-tokenizer`
-  on the artifact contents.
+- **`stats`**: aggregate counts. `tokens` is present only with
+  `--count-tokens`, and counts via `gpt-tokenizer` on the artifact
+  contents. It is never `null`: test for the key.
 - **`files`**: every destination path written by this run.
   Resolved paths (after `basePath` application).
 - **`errors`**: An array of *paths* through `manifest.results`. Each
@@ -410,7 +439,7 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the bundle build failed, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the bundle build failed, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package, OR the schema could not be read (for a URL: a status that is not 2xx, or a body that is not a schema) |
 | `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed |
 
 ## Worker-side failures

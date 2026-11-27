@@ -324,6 +324,7 @@ generator.
   "projectName": "my-api",
   "basePath": "mobile-app/src",
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
+  // stats.tokens: only with --count-tokens (never null; test for the key)
   "stats": { "tokens": 201029, "lines": 1234, "files": 753, "totalTimeMs": 180 },
   "files": ["mobile-app/src/types/User.generated.ts", "..."],
   // errors: array of paths through manifest.results ending at 'error' leaves.
@@ -347,6 +348,11 @@ With `--save`, gains a `savedSource` field (`{ source, configPath, changed, stor
 the schema argument, the config file it was written to, and `changed: false`
 when that source was already stored. `stored: false` when the run had an
 `error` level issue: the source is then not written, and exit is 1.
+
+`stats.tokens` is there only with `--count-tokens`, which counts the
+GPT tokens of the output. Without the flag the run does not load the
+tokenizer, and the summary line is
+`Generated <files> files[ under <basePath>] in <time>ms.`.
 
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing

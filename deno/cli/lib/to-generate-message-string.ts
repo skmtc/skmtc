@@ -44,8 +44,10 @@ export const toGenerateMessageString = ({
 
   const destination = basePath ? ` under ${basePath}` : ''
 
+  const tokenCount = tokens === undefined ? '' : `${formatNumber(tokens)} tokens, `
+
   const lines: string[] = [
-    `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files${destination} in ${formatNumber(totalTime)}ms.`
+    `Generated ${tokenCount}${formatNumber(files)} files${destination} in ${formatNumber(totalTime)}ms.`
   ]
 
   if (errors.length) {

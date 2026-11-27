@@ -188,6 +188,11 @@ const run = async () => {
         'need no schema argument.'
     )
     .option(
+      '--count-tokens',
+      'Count the GPT tokens of the generated files and report them in the summary line ' +
+        'and in `stats.tokens` of the --json result.'
+    )
+    .option(
       '--debug',
       'Run generation under the V8 inspector in source mode (not the bundle) so a ' +
         'debugger can pause on breakpoints in generator code and inspect the live files ' +
@@ -199,7 +204,7 @@ const run = async () => {
     )
     .action(
       async (
-        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, save, debug, auto },
+        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, save, countTokens, debug, auto },
         projectName,
         schemaSourceString
       ) => {
@@ -237,7 +242,8 @@ const run = async () => {
           // Cliffy maps `--anchors` / `--no-anchors` to a `boolean |
           // undefined` field — undefined when neither was passed.
           anchorsFlag: anchors,
-          saveFlag: save
+          saveFlag: save,
+          countTokens
         })
       }
     )
