@@ -6,6 +6,7 @@
     "core/anchors/attribute.ts attribute": 9000,
     "core/anchors/postPass.ts defaultLookup": 9000,
     "core/context/GenerateContext.ts get captureSink": 9000,
+    "core/context/GenerateContext.ts get capturesRender": 9000,
     "core/context/GenerateContext.ts getFile": 5800,
     "core/context/GenerateContext.ts readEnrichment": 7400,
     "core/context/ParseContext.ts toRefKey": 7400,

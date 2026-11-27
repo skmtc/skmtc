@@ -16,6 +16,7 @@ import { oxcAdapter } from './oxcAdapter.ts'
 const channel: CaptureChannel = { sink: undefined }
 const ctx = (): GenerateContextType =>
   ({
+    capturesRender: true,
     get captureSink() {
       return channel.sink
     }

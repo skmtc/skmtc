@@ -13,6 +13,7 @@ import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 const makeCaptureContext = (): { context: GenerateContextType; channel: CaptureChannel } => {
   const channel: CaptureChannel = { sink: undefined }
   const context = {
+    capturesRender: true,
     get captureSink() {
       return channel.sink
     }

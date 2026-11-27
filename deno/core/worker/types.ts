@@ -68,8 +68,9 @@ export type GeneratePayload = {
   /**
    * Optional attribution (gen-maps) emission config. When a `postPass`
    * block is present, the worker runs the post-pass and includes
-   * `sidecars` + `generationMap` in the RESULT message. (Capture is
-   * always on in core; this only controls emission.)
+   * `sidecars` + `generationMap` in the RESULT message. (Location
+   * capture is always on in core; with no `postPass` the run's snippets
+   * are not instrumented and nothing is emitted.)
    */
   attribution?: SerializableAttribution
   /**
