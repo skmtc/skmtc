@@ -2,14 +2,15 @@ import { assertEquals, assertStringIncludes } from '@std/assert'
 import { dirname, fromFileUrl, join, relative, resolve } from '@std/path'
 
 /**
- * End-to-end smoke test for the GraphQL → CLI → output pipeline.
+ * End-to-end smoke test for the schema → CLI → output pipeline.
  *
  * Builds a self-contained project in a temp dir (deno.json + worker.ts
- * + bundle.js), drops a fixture `.graphql` schema next to it, and
- * shells out to `cli/mod.ts generate <project> <schema>` via
- * `Deno.Command`. Asserts on stdout: file count, parse-issue
- * formatting, and the precise issue lines that should fire for the
- * fixture schema.
+ * + bundle.js), drops a fixture schema next to it, and shells out to
+ * `cli/mod.ts generate <project> <schema>` via `Deno.Command`. The
+ * GraphQL tests assert on stdout: file count, parse-issue formatting,
+ * and the precise issue lines that should fire for the fixture schema.
+ * The OpenAPI tests check which stream a parse warning's log line goes
+ * to, with and without `--json`.
  *
  * Slow (one bundle build per test run, ~1s) but full end-to-end —
  * catches any wire-shape regression in the worker → host channel
@@ -158,6 +159,39 @@ const teardown = async (fixtureRoot: string): Promise<void> => {
   await Deno.remove(fixtureRoot, { recursive: true }).catch(() => {})
 }
 
+/** Runs `generate` on the fixture project and returns its stdout and stderr. */
+const runGenerate = async (
+  fixtureRoot: string,
+  schemaPath: string,
+  extraArgs: string[] = []
+): Promise<{ stdout: string; stderr: string }> => {
+  const output = await new Deno.Command(Deno.execPath(), {
+    args: [
+      'run',
+      '--allow-all',
+      '--config',
+      CLI_DENO_JSON,
+      CLI_MOD,
+      'generate',
+      PROJECT_NAME,
+      schemaPath,
+      ...extraArgs
+    ],
+    cwd: fixtureRoot,
+    stdout: 'piped',
+    stderr: 'piped'
+  }).output()
+
+  const stdout = new TextDecoder().decode(output.stdout)
+  const stderr = new TextDecoder().decode(output.stderr)
+
+  if (!output.success) {
+    throw new Error(`CLI failed.\nstdout:\n${stdout}\nstderr:\n${stderr}`)
+  }
+
+  return { stdout, stderr }
+}
+
 Deno.test({
   name: 'CLI smoke - graphql schema generates files and surfaces parseIssues',
   // Bundle build + worker spawn dominate the time; allow generous slack.
@@ -166,35 +200,13 @@ Deno.test({
   fn: async () => {
     const { fixtureRoot, schemaPath } = await setup('issues')
     try {
-      const cmd = new Deno.Command(Deno.execPath(), {
-        args: [
-          'run',
-          '--allow-all',
-          '--config',
-          CLI_DENO_JSON,
-          CLI_MOD,
-          'generate',
-          PROJECT_NAME,
-          schemaPath
-        ],
-        cwd: fixtureRoot,
-        stdout: 'piped',
-        stderr: 'piped'
-      })
-      const { success, stdout, stderr } = await cmd.output()
-
-      const out = new TextDecoder().decode(stdout)
-      const err = new TextDecoder().decode(stderr)
-
-      if (!success) {
-        throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
-      }
+      const { stdout } = await runGenerate(fixtureRoot, schemaPath)
 
       // Top-line generation summary present. The CLI emits
       // "Generated N tokens, M files under <basePath> in <ms>." —
       // assert on the stable anchors of that sentence.
-      assertStringIncludes(out, 'Generated')
-      assertStringIncludes(out, 'files under')
+      assertStringIncludes(stdout, 'Generated')
+      assertStringIncludes(stdout, 'files under')
 
       // The file is named by the model's `ref.refName`.
       const generated = join(fixtureRoot, 'generated', 'types', 'User.generated.ts')
@@ -202,18 +214,18 @@ Deno.test({
 
       // The fixture schema has 3 distinct issue categories — one of each
       // exercises a different code path in GqlParseContext.
-      assertStringIncludes(out, 'Parse issues')
-      assertStringIncludes(out, 'DROPPED_DIRECTIVE')
-      assertStringIncludes(out, 'NESTED_LIST_LOSSY')
-      assertStringIncludes(out, 'SKIPPED_FIELD_ARGUMENTS')
+      assertStringIncludes(stdout, 'Parse issues')
+      assertStringIncludes(stdout, 'DROPPED_DIRECTIVE')
+      assertStringIncludes(stdout, 'NESTED_LIST_LOSSY')
+      assertStringIncludes(stdout, 'SKIPPED_FIELD_ARGUMENTS')
 
       // Specific locations the parser should attribute issues to.
       // StackTrail locations use `:` as the segment separator on the
       // wire, so `User:grid` and `User:posts:limit` are the forms
       // that appear in the CLI's printed parse-issue list.
-      assertStringIncludes(out, '@auth')
-      assertStringIncludes(out, 'User:grid')
-      assertStringIncludes(out, 'User:posts:limit')
+      assertStringIncludes(stdout, '@auth')
+      assertStringIncludes(stdout, 'User:grid')
+      assertStringIncludes(stdout, 'User:posts:limit')
     } finally {
       await teardown(fixtureRoot)
     }
@@ -242,33 +254,11 @@ Deno.test({
         `
       )
 
-      const cmd = new Deno.Command(Deno.execPath(), {
-        args: [
-          'run',
-          '--allow-all',
-          '--config',
-          CLI_DENO_JSON,
-          CLI_MOD,
-          'generate',
-          PROJECT_NAME,
-          schemaPath
-        ],
-        cwd: fixtureRoot,
-        stdout: 'piped',
-        stderr: 'piped'
-      })
-      const { success, stdout, stderr } = await cmd.output()
+      const { stdout } = await runGenerate(fixtureRoot, schemaPath)
 
-      const out = new TextDecoder().decode(stdout)
-      const err = new TextDecoder().decode(stderr)
-
-      if (!success) {
-        throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
-      }
-
-      assertStringIncludes(out, 'Generated')
+      assertStringIncludes(stdout, 'Generated')
       // The "Parse issues" section should NOT appear for a clean schema.
-      assertEquals(out.includes('Parse issues'), false)
+      assertEquals(stdout.includes('Parse issues'), false)
     } finally {
       await teardown(fixtureRoot)
     }
@@ -297,38 +287,6 @@ const WARNING_SCHEMA = {
   })
 }
 
-const runGenerate = async (
-  fixtureRoot: string,
-  schemaPath: string,
-  extraArgs: string[]
-): Promise<{ out: string; err: string }> => {
-  const { success, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
-    args: [
-      'run',
-      '--allow-all',
-      '--config',
-      CLI_DENO_JSON,
-      CLI_MOD,
-      'generate',
-      PROJECT_NAME,
-      schemaPath,
-      ...extraArgs
-    ],
-    cwd: fixtureRoot,
-    stdout: 'piped',
-    stderr: 'piped'
-  }).output()
-
-  const out = new TextDecoder().decode(stdout)
-  const err = new TextDecoder().decode(stderr)
-
-  if (!success) {
-    throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
-  }
-
-  return { out, err }
-}
-
 Deno.test({
   name: 'CLI smoke - generate --json with a parse warning writes only JSON to stdout',
   sanitizeResources: false,
@@ -336,14 +294,14 @@ Deno.test({
   fn: async () => {
     const { fixtureRoot, schemaPath } = await setup('json-warning', WARNING_SCHEMA)
     try {
-      const { out, err } = await runGenerate(fixtureRoot, schemaPath, ['--json'])
+      const { stdout, stderr } = await runGenerate(fixtureRoot, schemaPath, ['--json'])
 
       // All of stdout is one JSON object.
-      const result: unknown = JSON.parse(out)
+      const result: unknown = JSON.parse(stdout)
       assertStringIncludes(JSON.stringify(result), '"level":"warning"')
 
       // The run's log lines go to stderr.
-      assertStringIncludes(err, '[WARN]')
+      assertStringIncludes(stderr, '[WARN]')
     } finally {
       await teardown(fixtureRoot)
     }
@@ -357,11 +315,11 @@ Deno.test({
   fn: async () => {
     const { fixtureRoot, schemaPath } = await setup('text-warning', WARNING_SCHEMA)
     try {
-      const { out, err } = await runGenerate(fixtureRoot, schemaPath, [])
+      const { stdout, stderr } = await runGenerate(fixtureRoot, schemaPath)
 
-      assertStringIncludes(out, 'Generated')
-      assertStringIncludes(err, '[WARN]')
-      assertEquals(out.includes('[WARN]'), false)
+      assertStringIncludes(stdout, 'Generated')
+      assertStringIncludes(stderr, '[WARN]')
+      assertEquals(stdout.includes('[WARN]'), false)
     } finally {
       await teardown(fixtureRoot)
     }

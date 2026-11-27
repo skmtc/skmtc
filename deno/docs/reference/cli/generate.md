@@ -215,9 +215,7 @@ The manifest is overwritten on every run. See
 The engine writes its log lines to stderr in every mode. A parse
 warning is one `[WARN]` line, and a parse error is one `[ERROR]` line.
 Stdout holds only the result: the summary and the `Parse issues` list
-in text mode, or the JSON object with `--json`. To keep the warnings
-apart from the result, redirect stderr, for example
-`skmtc generate my-api 2> generate.log`.
+in text mode, or the JSON object with `--json`.
 
 ## JSON output
 
