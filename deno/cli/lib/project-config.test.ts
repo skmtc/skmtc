@@ -162,9 +162,9 @@ Deno.test('a command that writes config writes the file it read: skmtc migrate v
 
       assertEquals(result.alreadyMigrated, false)
       assertEquals(readFile('pets', other), undefined)
-      // It writes `parse`, never `system`, and leaves the file name alone.
+      // It keeps `system` and the file name: only `migrate config` renames them.
       assertEquals(JSON.parse(readFile('pets', fileName) ?? '{}'), {
-        settings: { parse: { not: 'unknown' }, skip: [{ 'gen-a': { '/pets': { get: [] } } }] }
+        settings: { system: { not: 'unknown' }, skip: [{ 'gen-a': { '/pets': { get: [] } } }] }
       })
     })
   }
@@ -176,14 +176,15 @@ Deno.test('a command that writes config writes the file it read: Project.open cl
       const manager = createMockManager()
       await captureConsole(async () => {
         const project = await Project.open('pets', manager)
-        // A command that changes the config, as `pull -u` records a destination.
+        // A command that changes the config.
         project.clientJson.updateContents({ project: '@acme/pets' })
         await Promise.all(manager.cleanupActions.map(action => action()))
       })
       const other = fileName === 'client.json' ? 'skmtc.config.json' : 'client.json'
 
       assertEquals(readFile('pets', other), undefined)
-      assertEquals(JSON.parse(readFile('pets', fileName) ?? '{}'), { ...currentConfig, project: '@acme/pets' })
+      // It keeps `system`: a CLI before 0.11 in the same repo reads only that key.
+      assertEquals(JSON.parse(readFile('pets', fileName) ?? '{}'), { ...legacyConfig, project: '@acme/pets' })
     })
   }
 })

@@ -275,18 +275,6 @@ export const toMovedSettings = (settings: Record<string, unknown>): MovedSetting
 }
 
 /**
- * The config as a command writes it: with `parse`, never `system`
- * ({@link toMovedSettings}).
- */
-export const toWrittenConfig = <Config>(config: Config): Config => {
-  if (!isRecord(config) || !isRecord(config.settings) || !('system' in config.settings)) {
-    return config
-  }
-
-  return { ...config, settings: toMovedSettings(config.settings).settings }
-}
-
-/**
  * The settings as the CLI hands them to a project's worker or stack server:
  * the parse settings under `system`, the key every core reads. A worker that
  * pins a core older than 0.49 reads only `system`; core 0.49 and later read
@@ -306,6 +294,10 @@ export const toEngineSettings = (settings: ClientSettings | undefined): ClientSe
 const toComparable = (value: unknown): string =>
   JSON.stringify(Array.isArray(value) ? [...value].map(item => JSON.stringify(item)).sort() : value)
 
-/** The text a command writes to a config file. */
-export const toConfigFileText = (config: unknown): string =>
-  JSON.stringify(toWrittenConfig(config), null, 2)
+/**
+ * The text a command writes to a config file. It keeps the settings keys
+ * as they are: only `skmtc migrate config` moves `system` to `parse`, so a
+ * CLI before 0.11, which reads only `system`, still reads a file that
+ * another command wrote.
+ */
+export const toConfigFileText = (config: unknown): string => JSON.stringify(config, null, 2)

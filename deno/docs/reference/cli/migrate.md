@@ -19,6 +19,11 @@ names:
 The CLI still reads the old names. Each run that reads an old name
 prints a deprecation warning that names this command.
 
+Only this command changes the names. Another command that writes the
+config, such as `skmtc eject` or `skmtc adopt`, keeps
+`settings.system` as it is. A CLI before 0.11 reads only
+`settings.system`, so it can still read the file.
+
 ### Synopsis
 
 ```

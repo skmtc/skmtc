@@ -7,8 +7,6 @@ import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
 import { captureConsole, withConfigRoot } from '@/tests/config-files.mock.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
-import { Project } from '@/lib/project.ts'
-import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 // A schema that fails under the default `not: strict` and parses under `not: unknown`.
@@ -83,18 +81,9 @@ Deno.test('generate - a config written with settings.parse reaches the engine as
   const source = 'openapi.json'
 
   await withConfigRoot(
-    { legacy: { 'client.json': { source, settings: { basePath: 'src', system: { not: 'unknown' } } } } },
-    async ({ tempRoot, readFile }) => {
+    { legacy: { 'client.json': { source, settings: { basePath: 'src', parse: { not: 'unknown' } } } } },
+    async ({ tempRoot }) => {
       await Deno.writeTextFile(join(tempRoot, source), JSON.stringify(openapi))
-
-      // A command that changes the config writes it back with `parse`.
-      const manager = createMockManager()
-      await captureConsole(async () => {
-        const project = await Project.open('legacy', manager)
-        project.clientJson.updateContents({ project: '@acme/legacy' })
-        await Promise.all(manager.cleanupActions.map(action => action()))
-      })
-      assertStringIncludes(readFile('legacy', 'client.json') ?? '', '"parse"')
 
       const { value: args } = await captureConsole(() =>
         toGenerateLocalArgs({ projectName: 'legacy', schemaSourceString: undefined, watch: undefined })

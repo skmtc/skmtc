@@ -108,7 +108,7 @@ export class ClientJson {
     }
   }
 
-  /** Writes the config to the file it was read from, with `settings.parse`, never `settings.system`. */
+  /** Writes the config to the file it was read from, with its settings keys as they are (see `toConfigFileText`). */
   async write() {
     await writeFileSafeDir(this.path, toConfigFileText(this.contents))
     this.#readContents = JSON.stringify(this.contents)
