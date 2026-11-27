@@ -626,8 +626,9 @@ export type GenerateContextType = {
    * capture interval. Read by every `SnippetBase` instance's `toString`
    * wrapper; `RenderContext` opens/closes the interval through the shared
    * {@link import('@/anchors/CaptureSink.ts').CaptureChannel} that
-   * `CoreContext` wires into both contexts. Bare test mocks read
-   * `undefined` and take the pass-through path.
+   * `CoreContext` wires into both contexts. In a run with no capturing
+   * render (`capturesRender` false, as in a bare test mock) no snippet
+   * has a wrapper, so nothing reads it.
    */
   captureSink: CaptureSink | undefined
   /**
