@@ -121,8 +121,8 @@ type SetupResult = {
 
 /**
  * Build the fixture project under `cli/tests/.fixtures/<unique>/`. The
- * `<unique>` segment lets the two smoke tests run without colliding on
- * the same directory.
+ * `<unique>` segment gives each smoke test its own directory, so they
+ * do not collide.
  */
 const setup = async (
   uniqueSuffix: string,
