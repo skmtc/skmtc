@@ -364,9 +364,13 @@ log them, so they also do not show on the console:
 | After render | `render: 2 files, 1840 bytes, 3 ms` | none |
 | At the end | `toArtifacts: 2 generators, 2 files, 1840 bytes, 0 errors, 1 warning, 0 debug, 21 ms` | none |
 
+When a subject fails, the run stops after the generator lines, so it
+has no render line and no totals line.
+
 A generator's line counts each variant of a subject once. The first
 number is the subjects that `isSupported` accepts and the filters keep,
-then all the subjects of its type, then the subjects that failed. The files are the
+plus the subjects that failed before their transform. Then come all
+the subjects of its type, then the subjects that failed. The files are the
 files that the generator added. A file that an earlier generator added
 counts on the line of that generator. A generator that `settings.skip`
 names gives the line `<id>: skipped by settings.skip`.
@@ -381,9 +385,10 @@ them hold local paths.
 `@skmtc/server` returns the lines in the `logs` array of its
 `POST /artifacts` response. The server keeps the lines at `'INFO'`
 and above. Thus the array holds the `error` and `warning` issues of
-the parse phase, but not the `debug` issues.
+the parse phase and the phase lines of the run, but not the `debug`
+issues.
 
-The `trail` of a line is its key in `results`. Read it back with
+The `trail` of a subject's line is its key in `results`. Read it back with
 `StackTrail.fromString`, and use the frames in sequence as keys into
 `results`. In other languages, split the trail on `:`, then change
 `%3A` to `:` and `%25` to `%` in each frame. A frame such as the path
