@@ -13,8 +13,7 @@ context-dependent state; nothing that touches `GenerateContext`.
   enumerates the variants the engine should fan out over for one
   operation. Throws `"must include a 'main' variant"` when other
   variants are declared without `'main'`. Called from
-  `GenerateContext.#runOasOperationGenerator` and
-  `#runGqlOperationGenerator`.
+  `GenerateContext.#runSubjects`, for every kind of subject.
 
 **Workspace-path helpers** (every reader of `settings.packages` and of
 artifact paths goes through these — never re-implement the strip):

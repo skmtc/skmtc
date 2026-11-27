@@ -435,7 +435,7 @@ Generators have `context: GenerateContextType`, not
 `ParseContextType`. The `GenerateContextType` doesn't expose the
 issue-logging surface — parse issues are parse-phase only. If a
 generator detects something wrong, the right move is to throw
-(caught by `#runOasOperationGenerator`, mark the item as
+(caught by `#runSubjects`, mark the item as
 `'error'`) rather than try to log a parseIssue.
 
 ### Why is `silent` true by default?

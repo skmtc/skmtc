@@ -410,8 +410,7 @@ must include a 'main' variant. Found variants: customer, location.`
    - If you want the consumer to opt out of `'main'`, declare it
      anyway and add `(path, method, "main")` to `skip`.
 4. Where it's thrown: `core/helpers/toVariantList.ts`, invoked from
-   `GenerateContext.#runOasOperationGenerator` and
-   `#runGqlOperationGenerator`. Pinning test:
+   `GenerateContext.#runSubjects`, for every kind of subject. Pinning test:
    `core/context/GenerateContext.variants.test.ts` → "declared
    variants without `main` throws at engine dispatch".
 

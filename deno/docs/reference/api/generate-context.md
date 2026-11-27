@@ -400,12 +400,12 @@ not a coordination surface).
 
 ### What happens if `transform` throws?
 
-`#runOasOperationGenerator` (and the GQL/model variants) catches
-the throw, marks the per-item result as `'error'` in the manifest,
-and continues to the next operation. The error doesn't propagate
-to the caller — generator errors are per-item isolated. The engine
-logs one `ERROR` line with the message and stack of the error, at
-the trail of the item. `toArtifacts` returns the line in `logs`.
+`#runSubjects` catches the throw and marks the result of that
+subject as `'error'` in the manifest. It logs one `ERROR` line with
+the message and stack of the error, at the trail of the subject.
+Then it continues with the other subjects. When every generator has
+run, `toArtifacts` throws `GenerationFailure`, which lists every
+subject that failed. The run writes no files.
 
 ### Can I `insertOperation` against a generator that isn't installed?
 
