@@ -11,6 +11,8 @@ import { fromFileUrl } from '@std/path/from-file-url'
 import { existsSync } from '@std/fs/exists'
 import { ensureDir } from '@std/fs/ensure-dir'
 import type { generateLocal } from '@/lib/generate-local.ts'
+import { enableConfigMigrationOffer } from '@/lib/config-migration-offer.ts'
+import { withConfigRoot } from '@/tests/config-files.mock.ts'
 import {
   bundleWithoutCheck,
   type RegistryPackages,
@@ -243,6 +245,52 @@ Deno.test('generateSwitch - an explicit schema needs no reachable client.json#so
         assertEquals(bundles.length, 1)
       }
     )
+  })
+})
+
+Deno.test('generateSwitch - in interactive mode, asks to migrate an old-name project, and on yes generates on the new names', async () => {
+  // `serverUrl` makes generate run on the stack server, so no bundle is built.
+  const config = {
+    source: 'openapi.json',
+    serverUrl: 'https://stack.test',
+    settings: { basePath: 'src', system: { not: 'unknown' } }
+  }
+
+  await withConfigRoot({ pets: { 'client.json': config } }, async ({ tempRoot, readFile }) => {
+    await Deno.writeTextFile(join(tempRoot, 'openapi.json'), JSON.stringify({ openapi: '3.0.0', info: { title: 'p', version: '1' }, paths: {} }))
+    const questions: string[] = []
+    const settingsSeen: unknown[] = []
+    const generateLocalFn: typeof generateLocal = args => {
+      settingsSeen.push(args.clientSettings)
+      return Promise.resolve({
+        stats: { tokens: 0, lines: 0, totalTime: 0, errors: [], files: 0 },
+        parseIssues: [],
+        enrichmentWarnings: [],
+        filePaths: [],
+        protectedPaths: [],
+        escaped: []
+      })
+    }
+
+    const promptStub = globalThis.prompt
+    globalThis.prompt = (message?: string) => (questions.push(message ?? ''), 'y')
+    enableConfigMigrationOffer(true)
+
+    try {
+      await captureStdout(async () => {
+        await withCapturedExit(() =>
+          generateSwitch({ projectName: 'pets', schemaSourceString: undefined, watch: undefined, generateLocalFn })
+        )
+      })
+    } finally {
+      enableConfigMigrationOffer(false)
+      globalThis.prompt = promptStub
+    }
+
+    assertEquals(questions.length, 1)
+    assertStringIncludes(questions[0], 'pets uses client.json / settings.system')
+    assertEquals(readFile('pets', 'client.json'), undefined)
+    assertEquals(settingsSeen, [{ basePath: 'src', parse: { not: 'unknown' } }])
   })
 })
 

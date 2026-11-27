@@ -8,6 +8,7 @@ import { openBundleProject } from '@/lib/bundle-project.ts'
 import { Manager } from '@/lib/manager.ts'
 import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
+import { offerConfigMigrations } from '@/lib/config-migration-offer.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -63,6 +64,13 @@ export const generateSwitch = async ({
   }
 
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
+
+  // generate reads the config without SkmtcRoot.open, so it offers the
+  // migration itself, before the read (only in interactive mode).
+  if (isProjectName(projectName)) {
+    await offerConfigMigrations({ projectNames: [projectName] })
+  }
+
   const generateLocalArgs = await toGenerateLocalArgs({
     projectName,
     schemaSourceString,
