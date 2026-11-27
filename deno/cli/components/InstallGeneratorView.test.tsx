@@ -266,6 +266,8 @@ Deno.test(
   'InstallGenerator - all parameters provided, installs immediately',
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
+    using fetchStub = stubRegistryGenerators(mockGenerators)
+
     const mockProject = createMockProject()
     const installStub = stub(mockProject, 'installGenerator', () =>
       Promise.resolve(mockGeneratorInstance)
@@ -312,6 +314,8 @@ Deno.test(
   'InstallGenerator - no projects available shows message',
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
+    using fetchStub = stubRegistryGenerators(mockGenerators)
+
     const initialState = createInitialState({
       skmtcRoot: createMockSkmtcRoot(false)
     })
@@ -340,6 +344,8 @@ Deno.test(
   'InstallGenerator - no project loaded names the ones that did not load',
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
+    using fetchStub = stubRegistryGenerators(mockGenerators)
+
     const initialState = createInitialState({
       skmtcRoot: createMockSkmtcRoot(false, undefined, ['broken'])
     })
@@ -370,6 +376,8 @@ Deno.test(
   'InstallGenerator - unknown project name prompts for a project',
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
+    using fetchStub = stubRegistryGenerators(mockGenerators)
+
     const mockProject = createMockProject()
     const installStub = stub(mockProject, 'installGenerator', () =>
       Promise.resolve(mockGeneratorInstance)
