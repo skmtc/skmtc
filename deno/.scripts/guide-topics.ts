@@ -29,7 +29,8 @@ type Marker = {
 }
 
 type FenceState = {
-  open: boolean
+  /** The fence that opened the block the line is in, such as ```` ``` ````. */
+  open: string | undefined
   flags: boolean[]
 }
 
@@ -56,19 +57,34 @@ const MARKER_START = '<!-- topic'
 
 const HEADING = /^#{1,6} (.+)$/
 
-const FENCE = /^\s*(```|~~~)/
+const FENCE = /^\s*(`{3,}|~{3,})/
 
 const WORD = '([a-z][a-z0-9-]*)'
 
-/** For each line, whether it is in a fenced code block. A fence line is in its block. */
+/** Whether `line` closes the block that `open` started: the same character, at least as many times, and nothing after it. */
+const isClosingFence = (open: string, line: string): boolean => {
+  const fence = line.trim()
+
+  return fence.length >= open.length && [...fence].every(character => character === open[0])
+}
+
+/**
+ * For each line, whether it is in a fenced code block. A fence line is in its
+ * block. A block closes only at a fence like the one that opened it, so a
+ * `~~~` line inside a ```` ``` ```` block is text of that block.
+ */
 const toInFence = (lines: string[]): boolean[] =>
   lines.reduce<FenceState>(
     ({ open, flags }, line) => {
-      const isFence = FENCE.test(line)
+      if (open !== undefined) {
+        return { open: isClosingFence(open, line) ? undefined : open, flags: flags.concat(true) }
+      }
 
-      return { open: isFence ? !open : open, flags: flags.concat(open || isFence) }
+      const fence = line.match(FENCE)?.[1]
+
+      return { open: fence, flags: flags.concat(fence !== undefined) }
     },
-    { open: false, flags: [] }
+    { open: undefined, flags: [] }
   ).flags
 
 const toMarker = (name: string, text: string, line: number): Marker[] => {
@@ -110,11 +126,16 @@ export const parseGuideSource = ({ name, text }: GuideSource): GuideTopic[] => {
 
   return markers.map((marker, position) => {
     const end = markers[position + 1]?.line ?? lines.length
-    const body = lines.slice(marker.line + 1, end).join('\n').trim()
+    const body = lines
+      .slice(marker.line + 1, end)
+      .join('\n')
+      .trim()
     const heading = body.split('\n')[0].match(HEADING)
 
     if (!heading) {
-      throw new Error(`${name}:${marker.line + 2}: topic \`${marker.id}\` must start with a heading`)
+      throw new Error(
+        `${name}:${marker.line + 2}: topic \`${marker.id}\` must start with a heading`
+      )
     }
 
     return {

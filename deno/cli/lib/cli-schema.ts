@@ -46,8 +46,8 @@ export type CommandDescriptor = {
    * `--no-input` + recipe errors):
    *   - `full`      : every facet supported
    *   - `json-only` : structured output without an Ink variant
-   *   - `none`      : interactive only / no Ink (callable but not
-   *                   ergonomic for agents)
+   *   - `none`      : no `--json` (callable, but its output is not
+   *                   structured for agents)
    */
   agentMode: 'full' | 'json-only' | 'none'
 }
@@ -511,7 +511,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   },
   {
     name: 'create',
-    description: 'Create new generator (interactive only)',
+    description: 'Create new generator',
     args: ['<project>', '<generator>', '<type>'],
     flags: [],
     agentMode: 'none'

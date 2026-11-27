@@ -48,7 +48,8 @@ Deno.test('text before the first marker is an error, with its line', () => {
 
 Deno.test('a marker with a wrong shape is an error, not text of the topic before it', () => {
   assertThrows(
-    () => parseGuideSource({ name: 'tasks.md', text: `${TASKS}\n<!-- topic Deploy -->\n## Deploy\n` }),
+    () =>
+      parseGuideSource({ name: 'tasks.md', text: `${TASKS}\n<!-- topic Deploy -->\n## Deploy\n` }),
     Error,
     'tasks.md:11: a topic marker is'
   )
@@ -58,7 +59,11 @@ Deno.test('a marker with a wrong shape is an error, not text of the topic before
 // topic it was meant to start would be missing with no error.
 Deno.test('an indented marker is an error', () => {
   assertThrows(
-    () => parseGuideSource({ name: 'tasks.md', text: `${TASKS}\n <!-- topic deploy: Deploy -->\n## Deploy\n` }),
+    () =>
+      parseGuideSource({
+        name: 'tasks.md',
+        text: `${TASKS}\n <!-- topic deploy: Deploy -->\n## Deploy\n`
+      }),
     Error,
     'tasks.md:11: a topic marker is'
   )
@@ -78,8 +83,33 @@ Deno.test('a marker in a code block is an example, and text of its topic', () =>
 
   const topics = parseGuideSource({ name: 'concepts.md', text })
 
-  assertEquals(topics.map(topic => topic.id), ['authoring'])
+  assertEquals(
+    topics.map(topic => topic.id),
+    ['authoring']
+  )
   assertEquals(topics[0].body.includes('<!-- topic setup: Create a project -->'), true)
+})
+
+// The trap: a `~~~` line in a ``` block would close the block, and the marker
+// after it would start a topic.
+Deno.test('a code block closes only at a fence like the one that opened it', () => {
+  const text = [
+    '<!-- topic authoring: How to write a topic -->',
+    '## Writing a topic',
+    '',
+    '```md',
+    '~~~',
+    '<!-- topic setup: Create a project -->',
+    '```',
+    ''
+  ].join('\n')
+
+  const topics = parseGuideSource({ name: 'concepts.md', text })
+
+  assertEquals(
+    topics.map(topic => topic.id),
+    ['authoring']
+  )
 })
 
 Deno.test('a topic that does not start with a heading is an error', () => {
