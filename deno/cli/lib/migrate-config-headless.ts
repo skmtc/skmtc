@@ -47,6 +47,15 @@ type Plan = {
   text: string | undefined
 }
 
+/** The parsed JSON at `path`; `undefined` when it is not JSON. */
+const readJson = (path: string): unknown => {
+  try {
+    return JSON.parse(Deno.readTextFileSync(path))
+  } catch {
+    return undefined
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -89,7 +98,17 @@ const planProject = ({ projectName, dryRun }: PlanArgs): Plan | undefined => {
   }
 
   const before = hasConfig ? configPath : legacyPath
-  const config: unknown = JSON.parse(Deno.readTextFileSync(before))
+  const config = readJson(before)
+
+  if (config === undefined) {
+    return {
+      result: {
+        ...unchanged(before),
+        refused: `${before} is not valid JSON. Nothing was changed: fix the file, then run it again.`
+      },
+      text: undefined
+    }
+  }
   const settings = isRecord(config) && isRecord(config.settings) ? config.settings : undefined
   const moved = settings ? toMovedSettings(settings) : undefined
   const changesSettings = settings !== undefined && 'system' in settings
@@ -109,6 +128,25 @@ const planProject = ({ projectName, dryRun }: PlanArgs): Plan | undefined => {
       conflicts: moved?.conflicts ?? []
     },
     text: JSON.stringify(migrated, null, 2)
+  }
+}
+
+/** A named project with no config file: refused, so a mistyped name is not a success. */
+const toMissingPlan = (projectName: string, dryRun: boolean): Plan => {
+  const { path } = toConfigPaths(toProjectPath(projectName))
+
+  return {
+    result: {
+      project: projectName,
+      configPath: { before: path, after: path },
+      renamedFile: false,
+      movedKeys: [],
+      conflicts: [],
+      alreadyMigrated: false,
+      dryRun,
+      refused: `${projectName} has no skmtc.config.json or client.json in .skmtc/${projectName}/.settings/.`
+    },
+    text: undefined
   }
 }
 
@@ -156,7 +194,10 @@ export const migrateConfigHeadless = async ({
   confirm
 }: MigrateConfigArgs = {}): Promise<MigrateConfigResult> => {
   const projectNames = projectName === undefined ? toProjectNames() : [projectName]
-  const plans = projectNames.flatMap(name => planProject({ projectName: name, dryRun }) ?? [])
+  // A project named on the command line must have a config; one found by listing `.skmtc/` may not.
+  const plans = projectNames.flatMap(
+    name => planProject({ projectName: name, dryRun }) ?? (projectName === undefined ? [] : [toMissingPlan(name, dryRun)])
+  )
   const changes = plans.filter(plan => plan.text !== undefined)
 
   const exitCode = plans.some(plan => plan.result.refused !== undefined) ? 1 : 0
@@ -177,17 +218,13 @@ export const migrateConfigHeadless = async ({
 
 /**
  * The migration of one project, when it can run: `undefined` when the
- * project is already migrated, has no config, or has both files.
+ * project is already migrated, has no config, has both files, or has a
+ * config that is not JSON.
  */
 export const toPendingConfigMigration = (projectName: string): MigrateConfigProjectResult | undefined => {
-  try {
-    const plan = planProject({ projectName, dryRun: true })
+  const plan = planProject({ projectName, dryRun: true })
 
-    return plan && plan.text !== undefined ? plan.result : undefined
-  } catch {
-    // A config that is not JSON: reading the project reports it.
-    return undefined
-  }
+  return plan && plan.text !== undefined ? plan.result : undefined
 }
 
 /** One line for each change a project result names. */

@@ -493,17 +493,19 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
 export const checkProjectConfigNames = (projectName: string, projectPath: string): Check => {
   const id = `config-names/${projectName}`
   const location = toConfigLocation(projectPath)
+  const deprecations = readConfigDeprecations(projectPath)
+  const names = deprecations.map(deprecation => `${deprecation.old} (now ${deprecation.new})`).join(', ')
 
   if (location.ignoredLegacyPath) {
     return {
       id,
       status: 'warning',
-      message: `Project "${projectName}" has both skmtc.config.json and client.json; client.json is ignored.`,
+      message:
+        `Project "${projectName}" has both skmtc.config.json and client.json; client.json is ignored.` +
+        (names ? ` It uses deprecated config names: ${names}.` : ''),
       hint: `Delete the one you do not want to keep (${location.ignoredLegacyPath} is ignored). skmtc migrate config does not choose between them.`
     }
   }
-
-  const deprecations = readConfigDeprecations(projectPath)
 
   if (deprecations.length === 0) {
     return { id, status: 'ok', message: `Project "${projectName}" uses the current config names.` }
@@ -512,9 +514,7 @@ export const checkProjectConfigNames = (projectName: string, projectPath: string
   return {
     id,
     status: 'warning',
-    message: `Project "${projectName}" uses deprecated config names: ${deprecations
-      .map(deprecation => `${deprecation.old} (now ${deprecation.new})`)
-      .join(', ')}.`,
+    message: `Project "${projectName}" uses deprecated config names: ${names}.`,
     hint: `Run: ${deprecations[0].fix}`
   }
 }

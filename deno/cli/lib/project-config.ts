@@ -139,9 +139,9 @@ const toDeprecationWarning = (projectName: string, deprecation: ConfigDeprecatio
       `it is now ${deprecation.new}. Run: ${deprecation.fix}`
 
 /** What this run has warned about, so each warning prints once. */
-const reported = {
-  keys: new Set<string>(),
-  deprecations: [] as ConfigDeprecation[]
+const reported: { keys: Set<string>; deprecations: ConfigDeprecation[] } = {
+  keys: new Set(),
+  deprecations: []
 }
 
 type ReportConfigDeprecationsArgs = {

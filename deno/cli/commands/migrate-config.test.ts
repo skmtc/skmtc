@@ -211,6 +211,30 @@ Deno.test('migrate config - interactive mode with --force applies without a prom
   })
 })
 
+Deno.test('migrate config - a config that is not JSON is refused, exit 1, and the other projects still migrate', async () => {
+  await withConfigRoot({ pets: { 'client.json': legacyConfig }, shop: {} }, async ({ readFile, settingsPath }) => {
+    await Deno.writeTextFile(join(settingsPath('shop'), 'client.json'), '{ "settings": {}, }')
+
+    const { value: result, stderr } = await captureConsole(() => renderMigrateConfig({ mode: 'strict', ask: neverAsked }))
+
+    assertEquals(result.exitCode, 1)
+    assertEquals(readFile('pets', 'skmtc.config.json'), migratedText)
+    assertEquals(readFile('shop', 'client.json'), '{ "settings": {}, }')
+    assertStringIncludes(stderr.join('\n'), 'is not valid JSON')
+  })
+})
+
+Deno.test('migrate config - a named project with no config file is refused, exit 1', async () => {
+  await withConfigRoot({ pets: { 'client.json': legacyConfig } }, async () => {
+    const { value: result, stderr } = await captureConsole(() =>
+      renderMigrateConfig({ projectName: 'petz', mode: 'strict', ask: neverAsked })
+    )
+
+    assertEquals(result.exitCode, 1)
+    assertStringIncludes(stderr.join('\n'), 'petz has no skmtc.config.json or client.json')
+  })
+})
+
 Deno.test('migrate config - without a project name, every project is migrated', async () => {
   const projects = {
     pets: { 'client.json': legacyConfig },

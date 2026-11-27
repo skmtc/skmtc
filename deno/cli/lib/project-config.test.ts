@@ -9,7 +9,7 @@ import {
 } from '@/lib/project-config.ts'
 import { runAgentContext } from '@/lib/agent-context-headless.ts'
 import { printAgentContext } from '@/commands/agent-context.ts'
-import { runDoctor } from '@/lib/doctor-headless.ts'
+import { checkProjectConfigNames, runDoctor } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { migrateVariantsHeadless } from '@/lib/migrate-variants-headless.ts'
 import { Project } from '@/lib/project.ts'
@@ -159,6 +159,18 @@ Deno.test('doctor - lists the deprecations, in text and with --json', async () =
     const { stdout: text } = await captureConsole(() => printDoctorResult(result, { format: 'text' }))
     assertStringIncludes(text.join('\n'), 'config-names/pets')
     assertStringIncludes(text.join('\n'), 'skmtc migrate config pets')
+  })
+})
+
+Deno.test('doctor - with both files, the check also names settings.system in the file it reads', async () => {
+  const files = { 'skmtc.config.json': legacyConfig, 'client.json': legacyConfig }
+
+  await withConfigRoot({ pets: files }, ({ tempRoot }) => {
+    const check = checkProjectConfigNames('pets', join(tempRoot, '.skmtc', 'pets'))
+
+    assertEquals(check.status, 'warning')
+    assertStringIncludes(check.message, 'has both skmtc.config.json and client.json')
+    assertStringIncludes(check.message, 'settings.system (now settings.parse)')
   })
 })
 

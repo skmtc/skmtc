@@ -92,7 +92,7 @@ the reason.
 | Code | Meaning |
 |---|---|
 | 0 | Each project was migrated, or had nothing to change |
-| 1 | The command refused one or more projects (for example, a project with both files) |
+| 1 | The command refused one or more projects: a project with both files, a config file that is not valid JSON, or a named project that has no config file |
 
 ### JSON output
 
