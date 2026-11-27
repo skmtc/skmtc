@@ -99,3 +99,31 @@ ${toBranches(11)}
   assertEquals(codes, ['skmtc/complexity'])
   assertEquals(exitCode, 1)
 })
+
+// The trap: a formatter moves a long arrow to the line below its name, and
+// `deno lint` matches a directive to the line where the report starts. A
+// report at the function left the directive above the name with no effect.
+Deno.test('deno lint: the directive signs off a function whose arrow starts on a later line', async () => {
+  const source = `// deno-lint-ignore skmtc/complexity -- a table of fixed codes, read top to bottom
+export const curried =
+  (m: number) =>
+  (n: number): number => {
+${toBranches(11)}
+    return m
+  }
+
+export const table = {
+  // deno-lint-ignore skmtc/complexity -- a table of fixed codes, read top to bottom
+  toCode:
+    (n: number): number => {
+${toBranches(11)}
+      return -1
+    }
+}
+`
+
+  const { codes, exitCode } = await lintProject({ lint: { plugins: [PLUGIN_PATH] } }, source)
+
+  assertEquals(codes, [])
+  assertEquals(exitCode, 0)
+})

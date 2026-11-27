@@ -122,6 +122,38 @@ Deno.test('complexity: the value of a class field and a default export are units
   ])
 })
 
+// The trap: `deno lint --json` does not escape a line break in a message,
+// so one name that spans lines makes the whole report unreadable.
+Deno.test('complexity: a name that spans lines is quoted on one line', () => {
+  const source = `export const {
+    name,
+    path
+  } = [1].reduce((acc, n) => {
+    ${toIfs(10)}
+    return acc
+  }, { name: '', path: '' })`
+
+  assertEquals(messagesFrom(RULE, source), [
+    '{ name, path } has a complexity of 11; the limit is 10'
+  ])
+})
+
+// The trap: the report was at the function. For `const x =\n  (n) => …` that
+// is one line below the name, and `deno lint` matches an ignore directive to
+// the line where the report starts.
+Deno.test('complexity: the report is at the name of the unit', () => {
+  const source = `export const curried =
+  (m: number) =>
+  (n: number): number => {
+    ${toIfs(10)}
+    return m + n
+  }`
+
+  const [diagnostic] = lint(RULE, source)
+
+  assertEquals(source.slice(diagnostic.range[0], diagnostic.range[1]), 'curried')
+})
+
 Deno.test('complexity: silent outside generator source', () => {
   const source = `function decide() {\n${toIfs(12)}\n}`
 
@@ -172,6 +204,21 @@ const PARITY_SOURCES: Record<string, string> = {
       count = items.length
     }
     export default (schema: { nullable?: boolean }) => (schema.nullable ? 'a' : 'b')`,
+  keys: `
+    const table = {
+      'quoted-key': (x: boolean) => (x ? 1 : 2),
+      [computed]: (x: boolean) => (x ? 1 : 2),
+      get label() { return a || 'none' },
+      [flag ? 'a' : 'b']() { return 1 }
+    }
+    const typed: (n: number) => number = n => (n ? 1 : 2)
+    class Keyed {
+      [computed]() { return a ? 1 : 2 }
+      [flag ? 'a' : 'b']() { return 1 }
+      @dec(a ? 1 : 2) decorated() { return a ? 1 : 2 }
+      accessor names = items.map(item => item ?? '')
+      accessor fn = (x: boolean) => (x ? 1 : 2)
+    }`,
   nested: `
     function outer(a: boolean) {
       const inner = (b: boolean) => (b ? 1 : 2)

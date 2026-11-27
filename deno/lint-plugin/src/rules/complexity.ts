@@ -1,4 +1,4 @@
-import { toKeyName } from '../shared/nodes.ts'
+import { toInlineText } from '../shared/nodes.ts'
 import { isGeneratorSource } from '../shared/target.ts'
 
 /**
@@ -19,7 +19,9 @@ import { isGeneratorSource } from '../shared/target.ts'
  *
  * - A **unit** is a named function: a declaration, a method, a constructor,
  *   an accessor, or a function that a variable or a property holds. A
- *   callback written inline counts toward the unit around it.
+ *   callback written inline counts toward the unit around it. A method, a
+ *   getter and a setter start at the member, so a branch in a decorator or
+ *   in a computed key counts too.
  * - With no unit around it, a function with no name is a unit too
  *   (`<default>` for `export default`, `<anonymous>` otherwise), and so is
  *   the value of a class field or of a variable.
@@ -30,6 +32,17 @@ import { isGeneratorSource } from '../shared/target.ts'
  * `deno lint` gives a plugin rule no options, so the limit is fixed. To
  * sign off one function, put `// deno-lint-ignore skmtc/complexity` and
  * the reason above it. To drop the rule, list it in `lint.rules.exclude`.
+ *
+ * The report is at the name of the unit, not at the function. `deno lint`
+ * matches a directive to the line where the report starts, and the function
+ * of `const toValue =\n  (schema) => …` starts one line below its name.
+ *
+ * The rule reads generator source only ({@link isGeneratorSource}): not a
+ * test, and not a file under a folder such as `examples/`, `fixtures/` or
+ * `scripts/` (`shared/target.ts` has the list). The script reads each `.ts`
+ * file under the folder it is given, tests and `.d.ts` files left out. So a
+ * file under `src/examples/` is in the script's count only, and a `mod.ts`
+ * beside `src/` is in the rule's count only.
  *
  * ## Known false negatives
  *
@@ -44,12 +57,20 @@ type Unit = {
   name: string
   score: number
   cases: number
+  /** The node the report goes to. */
+  at: Deno.lint.Node
 }
 
-/** The node that starts a unit, and the unit's name. */
-type Owner = {
-  node: Deno.lint.Node
+/** Where a unit's report goes, and the unit's name. */
+type UnitStart = {
   name: string
+  /** The name of the unit in the source, or the function when it has none. */
+  at: Deno.lint.Node
+}
+
+/** The node that starts a unit, with its name and the place of its report. */
+type Owner = UnitStart & {
+  node: Deno.lint.Node
 }
 
 type RuleOptions = {
@@ -61,7 +82,20 @@ type FunctionLike =
   | Deno.lint.FunctionExpression
   | Deno.lint.ArrowFunctionExpression
 
-type Initializer = Deno.lint.VariableDeclarator | Deno.lint.PropertyDefinition
+/**
+ * A class field. `accessor name = …` is an `AccessorProperty` node, which
+ * the `Deno.lint.Node` union leaves out, so it is read as a
+ * `PropertyDefinition`: the count reads `key`, `computed` and `value`, and
+ * the two nodes both have them.
+ */
+type Field = Deno.lint.PropertyDefinition
+
+type Initializer = Deno.lint.VariableDeclarator | Field
+
+/** A method, a getter or a setter, of a class or of an object. */
+type Member = Deno.lint.MethodDefinition | Deno.lint.Property
+
+type Keyed = Member | Field
 
 export const COMPLEXITY_LIMIT = 10
 
@@ -78,14 +112,26 @@ const isFunctionLike = (node: Deno.lint.Node): node is FunctionLike =>
   node.type === 'FunctionExpression' ||
   node.type === 'ArrowFunctionExpression'
 
+const FIELD_TYPES = new Set<string>(['PropertyDefinition', 'AccessorProperty'])
+
+const isField = (node: Deno.lint.Node): node is Field => FIELD_TYPES.has(node.type)
+
 /** A variable or a class field whose value is not a function. */
 const isInitializer = (node: Deno.lint.Node): node is Initializer => {
   if (node.type === 'VariableDeclarator') {
     return node.init !== null && !isFunctionLike(node.init)
   }
 
-  return node.type === 'PropertyDefinition' && node.value !== null && !isFunctionLike(node.value)
+  return isField(node) && node.value !== null && !isFunctionLike(node.value)
 }
+
+const isMember = (node: Deno.lint.Node): node is Member =>
+  node.type === 'MethodDefinition' ||
+  (node.type === 'Property' && (node.method || node.kind !== 'init'))
+
+/** The function of a member. It is in the unit that the member started. */
+const isMemberFunction = (node: Deno.lint.Node, parent: Deno.lint.Node | undefined): boolean =>
+  isFunctionLike(node) && parent !== undefined && isMember(parent)
 
 const isClass = (
   node: Deno.lint.Node
@@ -96,8 +142,29 @@ const isClass = (
 const toClassName = (ancestors: Deno.lint.Node[]): string =>
   ancestors.findLast(isClass)?.id?.name ?? '<class>'
 
-const toKeyText = (sourceCode: Deno.lint.SourceCode, key: Deno.lint.Node): string =>
-  toKeyName(key) ?? sourceCode.getText(key)
+/**
+ * Whether a key is written in brackets. The parser leaves `computed` false
+ * on a method (`[key]() {}`), so the source decides for it: only a computed
+ * key comes straight after a `[`.
+ */
+const isComputedKey = (sourceCode: Deno.lint.SourceCode, { key, computed }: Keyed): boolean =>
+  computed || sourceCode.getText().slice(0, key.range[0]).trimEnd().endsWith('[')
+
+/**
+ * A key as the source writes it, on one line: `name`, `#name`,
+ * `'quoted-key'`, `[computed]`. The script names a unit the same way.
+ */
+const toKeyText = (sourceCode: Deno.lint.SourceCode, keyed: Keyed): string => {
+  const text = toInlineText(sourceCode, keyed.key)
+
+  return isComputedKey(sourceCode, keyed) ? `[${text}]` : text
+}
+
+/** The name of a variable. A pattern is quoted on one line, without its type. */
+const toVariableName = (
+  sourceCode: Deno.lint.SourceCode,
+  { id }: Deno.lint.VariableDeclarator
+): string => (id.type === 'Identifier' ? id.name : toInlineText(sourceCode, id))
 
 /**
  * The name of what holds a function or a value: a class member with its
@@ -109,53 +176,84 @@ const toHolderName = (
   holder: Deno.lint.Node,
   ancestors: Deno.lint.Node[]
 ): string | undefined => {
-  if (holder.type === 'MethodDefinition' || holder.type === 'PropertyDefinition') {
-    return `${toClassName(ancestors)}.${toKeyText(sourceCode, holder.key)}`
+  if (holder.type === 'MethodDefinition' || isField(holder)) {
+    return `${toClassName(ancestors)}.${toKeyText(sourceCode, holder)}`
   }
 
   if (holder.type === 'Property') {
-    return toKeyText(sourceCode, holder.key)
+    return toKeyText(sourceCode, holder)
   }
 
   if (holder.type === 'VariableDeclarator') {
-    return sourceCode.getText(holder.id)
+    return toVariableName(sourceCode, holder)
   }
 
   return holder.type === 'ExportDefaultDeclaration' ? '<default>' : undefined
 }
 
-/** The name of a function, or `undefined` for a callback written inline. */
-const toFunctionName = (
+/** The node that names what `holder` holds: a key, or the name of a variable. */
+const toNameNode = (holder: Deno.lint.Node): Deno.lint.Node => {
+  if (holder.type === 'VariableDeclarator') {
+    return holder.id
+  }
+
+  return holder.type === 'MethodDefinition' || holder.type === 'Property' || isField(holder)
+    ? holder.key
+    : holder
+}
+
+/** The unit that `holder` names, or `undefined` when it names none. */
+const toHeldStart = (
+  sourceCode: Deno.lint.SourceCode,
+  holder: Deno.lint.Node,
+  ancestors: Deno.lint.Node[]
+): UnitStart | undefined => {
+  const name = toHolderName(sourceCode, holder, ancestors)
+
+  return name === undefined ? undefined : { name, at: toNameNode(holder) }
+}
+
+/** The unit of a function, or `undefined` for a callback written inline. */
+const toFunctionStart = (
   sourceCode: Deno.lint.SourceCode,
   fn: FunctionLike,
   ancestors: Deno.lint.Node[]
-): string | undefined => {
+): UnitStart | undefined => {
   if (fn.type === 'FunctionDeclaration') {
-    return fn.id?.name ?? '<default>'
+    return { name: fn.id?.name ?? '<default>', at: fn.id ?? fn }
   }
 
   const holder = ancestors.at(-1)
 
-  return holder === undefined
-    ? undefined
-    : toHolderName(sourceCode, holder, ancestors.slice(0, -1))
+  return holder === undefined ? undefined : toHeldStart(sourceCode, holder, ancestors.slice(0, -1))
 }
 
 /**
- * The name of the unit that starts at `node`, or `undefined` when the node
- * belongs to the unit around it. `ancestors` are the nodes above `node`.
+ * The unit that starts at `node`, or `undefined` when the node belongs to
+ * the unit around it. `ancestors` are the nodes above `node`.
  */
-const toUnitName = (
+const toUnitStart = (
   sourceCode: Deno.lint.SourceCode,
   node: Deno.lint.Node,
   ancestors: Deno.lint.Node[],
   inUnit: boolean
-): string | undefined => {
-  if (isFunctionLike(node)) {
-    return toFunctionName(sourceCode, node, ancestors) ?? (inUnit ? undefined : '<anonymous>')
+): UnitStart | undefined => {
+  if (isMember(node)) {
+    return toHeldStart(sourceCode, node, ancestors)
   }
 
-  return !inUnit && isInitializer(node) ? toHolderName(sourceCode, node, ancestors) : undefined
+  if (isMemberFunction(node, ancestors.at(-1))) {
+    return undefined
+  }
+
+  if (isFunctionLike(node)) {
+    return (
+      toFunctionStart(sourceCode, node, ancestors) ??
+      (inUnit ? undefined : { name: '<anonymous>', at: node })
+    )
+  }
+
+  return !inUnit && isInitializer(node) ? toHeldStart(sourceCode, node, ancestors) : undefined
 }
 
 /** A router: more than half of its branches are the cases of a `switch`. */
@@ -184,9 +282,14 @@ export const toComplexityRule = ({ limit }: RuleOptions): Deno.lint.Rule => ({
       const path = sourceCode.getAncestors(node)
 
       return path.reduce<Owner | undefined>((current, ancestor, index) => {
-        const name = toUnitName(sourceCode, ancestor, path.slice(0, index), current !== undefined)
+        const start = toUnitStart(
+          sourceCode,
+          ancestor,
+          path.slice(0, index),
+          current !== undefined
+        )
 
-        return name === undefined ? current : { node: ancestor, name }
+        return start === undefined ? current : { node: ancestor, ...start }
       }, undefined)
     }
 
@@ -195,7 +298,7 @@ export const toComplexityRule = ({ limit }: RuleOptions): Deno.lint.Rule => ({
 
       if (owner === undefined) return
 
-      const unit = units.get(owner.node) ?? { name: owner.name, score: 1, cases: 0 }
+      const unit = units.get(owner.node) ?? { name: owner.name, score: 1, cases: 0, at: owner.at }
 
       unit.score += 1
       unit.cases += isCase ? 1 : 0
@@ -223,10 +326,10 @@ export const toComplexityRule = ({ limit }: RuleOptions): Deno.lint.Rule => ({
       },
 
       'Program:exit'() {
-        for (const [node, unit] of units) {
+        for (const unit of units.values()) {
           if (toLimitedScore(unit) <= limit) continue
 
-          context.report({ node, message: toMessage(unit, limit), hint: HINT })
+          context.report({ node: unit.at, message: toMessage(unit, limit), hint: HINT })
         }
       }
     }
