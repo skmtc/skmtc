@@ -9,6 +9,7 @@
  *
  * JSON shape is deliberately flat-ish and stable so agents can pin to
  * it. New fields can be added; existing fields shouldn't change shape.
+ * `stats.tokens` is present only with `--count-tokens` (since cli 0.13).
  */
 
 import { printJsonResult } from '@/lib/project-config.ts'

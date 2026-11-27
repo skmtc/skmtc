@@ -226,13 +226,18 @@ Deno.test('toGenerationStats - returns complete stats object, without tokens unl
 })
 
 Deno.test('toGenerationStats - counts tokens with countTokens', async () => {
-  const manifest: Partial<ManifestContent> = {
+  const manifest: ManifestContent = {
+    deploymentId: 'd',
+    traceId: 't',
+    spanId: 's',
     startAt: 0,
     endAt: 1000,
     files: {
       './models.ts': { lines: 1, characters: 37, destinationPath: './models.ts' }
     },
-    results: {}
+    previews: {},
+    results: {},
+    parseIssues: []
   }
 
   const artifacts = {
@@ -240,7 +245,7 @@ Deno.test('toGenerationStats - counts tokens with countTokens', async () => {
   }
 
   const stats = await toGenerationStats({
-    manifest: manifest as ManifestContent,
+    manifest,
     artifacts,
     countTokens: true
   })
