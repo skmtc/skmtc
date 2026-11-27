@@ -43,14 +43,14 @@ export abstract class DefinitionBase<
   value: V
 
   /**
-   * The models this Definition's model reached while its projection was
-   * being constructed that were pending then: the models further up the
-   * stack it refers back to, directly or through the models it refers to.
-   * A reference to this model is inside a cycle while one of them is still
-   * pending. Set by the `ModelDriver`; `undefined` for a Definition it did
-   * not construct.
+   * The model lowest on the pending stack that this Definition's model led
+   * back to while its projection was being constructed
+   * (`PendingDefinition.leadsTo`). A reference to this model is inside a
+   * cycle for as long as that cycle is open (`toOpenEnd`). Set by the
+   * `ModelDriver`; `undefined` for a model that led back to none, and for a
+   * Definition the Driver did not construct.
    */
-  reaches: ReadonlySet<PendingDefinition> | undefined
+  leadsTo: PendingDefinition | undefined
 
   constructor({ context, identifier, value }: DefinitionBaseArgs<V>) {
     super({ context, generatorKey: value.generatorKey })
