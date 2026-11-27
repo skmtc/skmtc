@@ -40,14 +40,14 @@ export class InvalidBasePathError extends Error {
 }
 
 /**
- * Validates `basePath` against the conventions documented in the
- * `skmtc-cli` skill (§1, §6 footnote on §24). Returns the basePath
- * unchanged on success; throws `InvalidBasePathError` with a
- * caller-actionable message otherwise.
+ * Validates `basePath` against the conventions documented in
+ * `skmtc guide model`. Returns the basePath unchanged on success;
+ * throws `InvalidBasePathError` with a caller-actionable message
+ * otherwise.
  *
  * The single rule today is "no absolute paths" — see friction #13.
  * Other rules (e.g. "must resolve to the consumer app's `@` alias
- * root") are conventions documented in the skill but not enforceable
+ * root") are conventions documented in that topic but not enforceable
  * here because the consumer's bundler config isn't visible.
  */
 export const validateBasePath = (basePath: string): string => {

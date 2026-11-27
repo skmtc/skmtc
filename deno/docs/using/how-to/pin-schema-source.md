@@ -55,9 +55,9 @@ the CLI reports a parse error with the source URL/path it tried.
 ## Verification
 
 Generation succeeds without a positional schema argument. Confirm
-by running `skmtc agent-context --json | jq '.projects[] | select(.name=="<project>") | .schema'`
-— it should report the configured `source` and a recent
-`lastFetched` timestamp.
+by running `skmtc agent-context --json | jq '.projects[] | select(.name=="<project>") | .schemaSource'`.
+It prints the `source` that you set. It prints `null` when the project
+has none.
 
 ## Troubleshooting
 

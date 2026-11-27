@@ -46,8 +46,8 @@ export type CommandDescriptor = {
    * `--no-input` + recipe errors):
    *   - `full`      : every facet supported
    *   - `json-only` : structured output without an Ink variant
-   *   - `none`      : interactive only / no Ink (callable but not
-   *                   ergonomic for agents)
+   *   - `none`      : no `--json` (callable, but its output is not
+   *                   structured for agents)
    */
   agentMode: 'full' | 'json-only' | 'none'
 }
@@ -487,6 +487,14 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'guide',
+    description:
+      'Print a topic of the guide this CLI carries: the workspace model, the agent contract, the config reference and task recipes. Lists the topics when none is named. Works offline.',
+    args: ['[topic]'],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
+  },
+  {
     name: 'migrate config',
     description:
       "Move a project's config to the current names: .settings/client.json becomes .settings/skmtc.config.json, and settings.system becomes settings.parse. Every project under .skmtc/ when no project is named. Idempotent. Exits 1, changing nothing, for a project that has both files.",
@@ -503,7 +511,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   },
   {
     name: 'create',
-    description: 'Create new generator (interactive only)',
+    description: 'Create new generator',
     args: ['<project>', '<generator>', '<type>'],
     flags: [],
     agentMode: 'none'

@@ -1,15 +1,5 @@
-# skmtc-cli — task cards
-
-Pull-loaded workflows for the `skmtc-cli` skill: end-to-end
-recipes for the common jobs, referenced from SKILL.md §7.
-
-Read the card for the job in front of you. The command surface lives
-in the binary (`skmtc --help`, `skmtc <cmd> -h`) — you do not need a
-card to run one command.
-
-## Task cards
-
-### Card: Setting up Skmtc in a project
+<!-- topic setup: Create a project, install generators and generate -->
+## Setting up Skmtc in a project
 
 ```bash
 cd path/to/your-app                           # this becomes the Skmtc root
@@ -22,9 +12,10 @@ The final `--json` run returns `{ files, stats, errors, parseIssues, ... }`.
 Inspect `errors` and `parseIssues` for any non-success outcomes.
 
 `generate` does not save the schema you passed. For later runs, pass it
-again or follow "Card: Pinning the schema source".
+again or pin it: `skmtc guide pin-source`.
 
-### Card: Adding a generator to an existing project
+<!-- topic add-generator: Add a generator to a project that exists -->
+## Adding a generator to an existing project
 
 ```bash
 skmtc install @skmtc/gen-<name> <project> --json
@@ -34,7 +25,8 @@ If `installed` is non-empty and `bundle.type === "bundled"` → ready
 to `generate`; the install built the bundle to check the new
 generator (remote-only and hybrid projects alike).
 
-### Card: Configuring enrichments
+<!-- topic enrichments: Give a generator the settings it declares, for one operation or model -->
+## Configuring enrichments
 
 1. Read the target generator's `gen-x/src/enrichments.ts` (in
    `skmtc-generators/` or via `deno info`) to learn the accepted
@@ -69,14 +61,16 @@ If you see `must include a 'main' variant` at engine start, you wrote
 non-`'main'` variant keys without `'main'`. Add it (often `"main": {}`
 is enough) or remove the other variants.
 
-### Card: Pinning the schema source
+<!-- topic pin-source: Store the schema source, so generate needs no schema argument -->
+## Pinning the schema source
 
 1. Edit `.skmtc/<project>/.settings/skmtc.config.json` → add `"source"` at
    the top level.
 2. After this, `skmtc generate <project>` works without the schema
    positional arg.
 
-### Card: Cleaning a project's generated output
+<!-- topic clean: Delete every generated file of a project -->
+## Cleaning a project's generated output
 
 Use when stale output has accumulated and you want a guaranteed fresh
 tree, or before deleting a project. `clean` reads the manifest,
@@ -114,7 +108,8 @@ Key facts:
 - A project with no manifest (never generated, or already cleaned) →
   no-op, exit 0, `noManifest: true`.
 
-### Card: Filtering operations (opt-in form generator pattern)
+<!-- topic filter-operations: Run a generator for the operations you list and no others -->
+## Filtering operations (opt-in form generator pattern)
 
 ```jsonc
 // In skmtc.config.json#settings:
@@ -145,7 +140,8 @@ Other operations route through other generators normally. Other
 generators not mentioned in `include` are unaffected — they continue
 producing their normal output.
 
-### Card: Customizing a published generator
+<!-- topic customize: Clone a published generator into the project and edit it -->
+## Customizing a published generator
 
 ```bash
 skmtc clone <project> -g @skmtc/gen-<name> --json
@@ -154,9 +150,10 @@ skmtc clone <project> -g @skmtc/gen-<name> --json
 skmtc dev <project>                           # rebundle + regenerate on save
 ```
 
-Hand off to `skmtc-generator` for the editing work.
+For the editing work, follow the `skmtc-generator` skill.
 
-### Card: Registering an agent-authored local generator (programmatic / sandbox use)
+<!-- topic local-generator: Register generator source that is already on disk -->
+## Registering an agent-authored local generator (programmatic / sandbox use)
 
 Use this when generator **source already exists on disk** (authored
 programmatically, not scaffolded) and you want the CLI to run it —
@@ -260,7 +257,8 @@ step-2 wiring took, check the generated `worker.ts` imports the
 local `@<scope>/gen-<name>` id — a missing entry means the import
 key isn't a `gen-*` entry in `deno.json#imports`.
 
-### Card: Using Skmtc in CI
+<!-- topic ci: Install a pinned CLI and generate in CI -->
+## Using Skmtc in CI
 
 ```bash
 # Setup (once per CI run) — the installer bootstraps Deno if needed;
@@ -303,7 +301,8 @@ env vars, spawns only `deno` (bundle) and `sh` (typecheck), and needs
 imports, so those grants are dropped. Empirically validated against
 `doctor` / `generate` / `bundle`.
 
-### Card: Migrating a project off the deprecated config names
+<!-- topic migrate-config: Move a project off client.json and settings.system -->
+## Migrating a project off the deprecated config names
 
 Use when a run warns about `client.json` or `settings.system`, when
 `doctor` reports `config-names/<project>` as `warning`, or when a
@@ -326,7 +325,8 @@ skmtc migrate config --json                    # every project under .skmtc/
 - In strict mode (`--no-input`, no TTY, or `--json`) the command does
   not prompt. Other commands never offer the migration in that mode.
 
-### Card: Deploying a stack version to skmtc-hub
+<!-- topic deploy: Store a stack version on skmtc-hub and deploy it -->
+## Deploying a stack version to skmtc-hub
 
 Use when the project should run on the hub as a stack. `skmtc deploy`
 stores an immutable semver version of the stack, then deploys it as a
@@ -368,8 +368,8 @@ Key facts:
   another `--version`, run `skmtc deploy <project>`, or run
   `skmtc deploy <project> --version <v> --existing`". A stored
   `deno.json` version does not stop: `deploy` deploys the next patch
-  and sets `versionPicked: true` (see the Version rule in
-  [reference.md](reference.md#deploy)).
+  and sets `versionPicked: true` (see the Version rule under `deploy` in
+  `skmtc guide output`).
 - **Missing version fails fast** (`stage: "version"`, exit 1, before
   any network call) with the recipe: set `deno.json#version` or pass
   `--version`.
@@ -387,7 +387,8 @@ Key facts:
 
 Full reference: [`reference/cli/deploy.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/deploy.md).
 
-### Card: Pushing a project's config to skmtc-hub
+<!-- topic push: Send a project's config to its hub project -->
+## Pushing a project's config to skmtc-hub
 
 Use when local `skmtc.config.json` edits (config + enrichments) should land
 on the project's hub project — the project-level counterpart to
@@ -429,9 +430,16 @@ Key facts:
 
 Full reference: [`reference/cli/push.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/push.md).
 
-### Card: When to hand off
+<!-- topic handoff: When the job is no longer a CLI job -->
+## When to hand off
 
-- "I want to edit this generator" → `skmtc-generator`
+The guide ends at the CLI surface. Hand off when:
+
+- The next step edits a `.ts`/`.tsx` file under
+  `<root>/.skmtc/<project>/<gen-name>/` → the `skmtc-generator` skill
+- The cause is in Skmtc itself, or the user wants a feature → with the
+  user's agreement, send it with `skmtc feedback --kind problem|feature_request`
+  (no tokens or personal data: it becomes a public GitHub issue)
 - "Why is my generation failing / wrong / empty" → verify before
   proposing a fix: manifest first, then parse issues, then a
   reproduction —

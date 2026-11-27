@@ -800,13 +800,11 @@ Deno.test('runDoctor - on a gate-enforcing Deno the hint both claims and prints 
 
 Deno.test('doctor - every check id is documented in both catalogues', async () => {
   // The docs are what an agent reads to reason about a check without
-  // running it, and two files carry the same table. Adding a check
+  // running it, and two files carry the same table: the reference page
+  // and the `doctor-checks` topic of `skmtc guide`. Adding a check
   // without a row makes it invisible to exactly those readers — which is
   // how `cli-version-current` shipped undocumented in review.
-  const catalogues = [
-    '../../docs/reference/cli/doctor.md',
-    '../../docs/skills/skmtc-cli/reference.md'
-  ]
+  const catalogues = ['../../docs/reference/cli/doctor.md', '../guide/reference.md']
   const ids = await toCheckIds()
   // Guard the guard: a broken extraction would vacuously pass.
   assertEquals(ids.length > 10, true)

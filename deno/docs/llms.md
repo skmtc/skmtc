@@ -25,6 +25,7 @@ A primer for AI coding assistants and agents working with Skmtc code. **Flat and
 | Worker permissions | `read/write/env=true`, `net=false`, `run=false` |
 | Worker lifecycle | One-shot: spawned per generate, terminated after RESULT |
 | Agent context dump | `skmtc agent-context --json` |
+| The CLI's own guide | `skmtc guide` lists the topics; `skmtc guide <topic>` prints one |
 
 ---
 
@@ -633,13 +634,14 @@ If you see `Registered definition mismatch: 'X' in file 'Y'`:
 
 #### Inspecting project state for an AI agent
 
-`skmtc agent-context --json` produces a structured dump:
-- Available commands and their descriptors
-- Installed generators and their versions
-- Settings and source pinning
-- Recent run state
+`skmtc agent-context --json` prints one JSON object:
+- Each command, with its arguments and flags
+- Each project: its `basePath`, its schema source and its generators
+- Each deprecated config name a project uses
+- The topics of the guide that the CLI carries
 
-Use this as the first read when an agent enters a Skmtc project cold.
+Use this as the first read when an agent enters a Skmtc project cold. Then
+read the guide topic for the job with `skmtc guide <topic>`.
 
 ---
 

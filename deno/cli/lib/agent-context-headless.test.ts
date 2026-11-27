@@ -43,6 +43,9 @@ Deno.test('runAgentContext - empty root returns no projects', async () => {
     assert(names.includes('generate'))
     assert(names.includes('doctor'))
     assert(names.includes('agent-context'))
+    assert(names.includes('guide'))
+    // The topics an agent can read with `skmtc guide <id>`.
+    assert(ctx.guideTopics.some(topic => topic.id === 'setup'))
     assert(names.includes('deploy'))
   })
 })
@@ -168,7 +171,8 @@ Deno.test('printAgentContext - json format is parseable and complete', async () 
             flags: [{ flag: '--json', description: 'JSON output.' }],
             agentMode: 'full'
           }
-        ]
+        ],
+        guideTopics: []
       },
       { format: 'json' }
     )
@@ -205,12 +209,17 @@ Deno.test('printAgentContext - text format shows commands with flags', async () 
             flags: [{ flag: '--json', description: 'JSON' }],
             agentMode: 'full'
           }
+        ],
+        guideTopics: [
+          { id: 'setup', group: 'tasks', title: 'Setting up', summary: 'Create a project' }
         ]
       },
       { format: 'text' }
     )
   })
   const joined = logs.join('\n')
+  assertStringIncludes(joined, 'Guide topics (1), read one with `skmtc guide <topic>`:')
+  assertStringIncludes(joined, '  setup: Create a project')
   assertStringIncludes(joined, 'CLI 0.1.5')
   assertStringIncludes(joined, 'demo')
   assertStringIncludes(joined, '@skmtc/gen-zod')

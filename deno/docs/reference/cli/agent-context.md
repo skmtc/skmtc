@@ -1,16 +1,12 @@
 # skmtc agent-context
 
-> Write a structured project state dump designed for consumption by
-> AI agents. Unlike `doctor` (which classifies checks as pass/fail),
-> `agent-context` provides raw state — installed generators, schema
-> location, recent generation history, etc. — for an agent to reason
-> about.
+> Print what an agent needs to start work. The output has the projects
+> of the workspace, each command with its flags, and the topics of the
+> CLI's guide.
 
-`agent-context` is the CLI's "tell me everything you know about the
-workspace" command. It's the recommended starting point for agents
-beginning a Skmtc-related task: a single JSON document describing
-what the workspace looks like, what generators are present, where
-the spec lives, and what the last successful generation produced.
+`agent-context` is the first command an agent runs. It reads the
+workspace and the CLI and changes nothing. [`doctor`](doctor.md) tells
+you whether something is wrong. `agent-context` tells you what is there.
 
 ## Synopsis
 
@@ -18,228 +14,152 @@ the spec lives, and what the last successful generation produced.
 skmtc agent-context [--json]
 ```
 
-Like `doctor`, takes no positional arguments — always operates on
-the current workspace.
+The command takes no arguments. It reads the workspace of the current
+directory.
 
 ## Options
 
 ### `--json`
 
-Write structured JSON output to stdout. Strongly recommended for
-agent use.
+Write one JSON object to stdout. Use it from an agent or a script.
+Without `--json`, the command prints the same data as text.
 
-`agent-context` only defines `--json`; it has no `--no-input` flag
-(the command is non-interactive by nature). Without `--json`, the
-CLI writes a human-readable summary table; the JSON form is the
-canonical interface, the human form is for spot-checking.
+The command has no `--no-input` flag, because it never prompts.
 
-## Behavior
-
-### Information included
-
-The output is organized into top-level keys:
-
-#### `workspace`
-
-Workspace-level metadata:
+## Output
 
 ```jsonc
 {
-  "workspace": {
-    "root": "/path/to/workspace",
-    "denoVersion": "1.46.3",
-    "cliVersion": "0.0.150",
-    "corePin": "@skmtc/core@^0.0.150"
-  }
-}
-```
-
-- **`root`** — absolute path to the workspace root.
-- **`denoVersion`** — output of `deno --version`.
-- **`cliVersion`** — the CLI's own version (matches its package).
-- **`corePin`** — the `@skmtc/core` version the CLI is pinned to.
-
-#### `projects`
-
-Array of per-project state:
-
-```jsonc
-{
+  "cliVersion": "0.12.0",
+  "skmtcRootPath": "/path/to/app/.skmtc",
+  "globalStateDir": "/home/me/.skmtc",
+  "jsrUrl": "https://jsr.io",
   "projects": [
     {
-      "name": "my-api",
-      "schema": {
-        "url": "https://api.example.com/openapi.json",
-        "lastFetched": "2026-05-12T08:15:00Z"
-      },
-      "generators": [
-        {
-          "name": "@skmtc/gen-zod",
-          "source": "jsr",
-          "version": "^0.0.55"
-        },
-        {
-          "name": "@local/my-form",
-          "source": "local",
-          "path": "./my-form/mod.ts"
-        }
-      ],
-      "bundle": {
-        "present": true,
-        "path": ".skmtc/my-api/bundle.js",
-        "mtime": "2026-05-12T08:20:00Z"
-      },
-      "lastGenerate": {
-        "timestamp": "2026-05-12T08:22:00Z",
-        "durationMs": 1850,
-        "artifactCount": 47,
-        "diagnostics": {
-          "errors": 0,
-          "warnings": 2
-        }
-      },
-      "settings": {
-        "basePath": "src/generated",
-        "enrichmentsConfigured": true,
-        "skipCount": 0,
-        "excludeCount": 1
+      "name": "petstore",
+      "basePath": "src/generated",
+      "schemaSource": null,
+      "generators": {
+        "remote": ["@skmtc/gen-zod"],
+        "local": []
       }
     }
-  ]
-}
-```
-
-#### `anomalies`
-
-A short list of detected anomalies — issues that aren't full
-diagnostics-level failures but that an agent might want to surface:
-
-```jsonc
-{
-  "anomalies": [
+  ],
+  "deprecations": [],
+  "commands": [
     {
-      "type": "missing-operationId",
-      "project": "my-api",
-      "detail": "12 operations in spec have no operationId"
+      "name": "init",
+      "description": "Initialize a new project in current directory",
+      "args": ["[projectName]", "[basePath]"],
+      "flags": [
+        { "flag": "--json", "description": "Emit structured JSON output (implies --no-input)." },
+        { "flag": "--no-input", "description": "Disable interactive prompts; fail on missing args." }
+      ],
+      "agentMode": "full"
+    }
+  ],
+  "guideTopics": [
+    {
+      "id": "setup",
+      "group": "tasks",
+      "title": "Setting up Skmtc in a project",
+      "summary": "Create a project, install generators and generate"
     }
   ]
 }
 ```
 
-Anomalies overlap with `doctor` warnings but are oriented toward
-"things an agent might want to mention to the user" rather than
-"things to fix before generating."
+| Key | What it holds |
+|---|---|
+| `cliVersion` | The version of the CLI that ran. |
+| `skmtcRootPath` | The `.skmtc/` folder the CLI reads. |
+| `globalStateDir` | `~/.skmtc`, where the hub sign-in is stored. |
+| `jsrUrl` | The registry: `JSR_URL` when it is set, with no trailing slash. |
+| `projects` | One entry for each folder in `.skmtc/`, sorted by name. |
+| `deprecations` | Each deprecated config name that a project uses. |
+| `commands` | Each command of the CLI. |
+| `guideTopics` | Each topic of the guide. [`skmtc guide <id>`](guide.md) prints one. |
 
-### Output format
+### `projects`
 
-The complete shape:
+- `basePath` is `settings.basePath` of the project's
+  `skmtc.config.json`, or `null`.
+- `schemaSource` is the top-level `source` of that file, or `null`
+  when the project has none. `skmtc generate <project>` then needs the
+  schema as an argument.
+- `generators.remote` lists the generators that the project's
+  `deno.json` imports from JSR. `generators.local` lists the ones it
+  imports from a path: a cloned generator or a local one.
 
-```jsonc
-{
-  "command": "agent-context",
-  "workspace": { ... },
-  "projects": [ ... ],
-  "anomalies": [ ... ],
-  "deprecations": [ ... ],
-  "verifyWith": "skmtc list <project> --json"
-}
-```
+A project can have no `deno.json` or no `skmtc.config.json`, or one
+that does not parse. The command still lists that project, with empty
+lists and `null` values. `skmtc doctor` reports why.
 
-`deprecations` lists each deprecated config name that a project uses
-(`client.json` or `settings.system`). Each entry has `kind`
-(`configFile` or `settingsKey`), `old`, `new`, and `fix`. The `fix`
-is the command that migrates the project, for example
-`skmtc migrate config my-api`. A project that has both files gets an
-entry of kind `ignoredConfigFile`: skmtc ignores `client.json`, and
-the `fix` deletes it. The text output lists the same entries
-under "Deprecated config names".
+### `deprecations`
 
-The full document is intended to be embedded in an agent's context
-window for it to reason about. Typical size: 2–10 KB for small
-workspaces, up to ~50 KB for large multi-project workspaces.
+Each entry has `kind` (`configFile` or `settingsKey`), `old`, `new`
+and `fix`. The `fix` is the command that migrates the project, for
+example `skmtc migrate config my-api`. A project that has both
+`client.json` and `skmtc.config.json` gets an entry of kind
+`ignoredConfigFile`: skmtc ignores `client.json`, and the `fix`
+deletes it. The text output lists the same entries under "Deprecated
+config names".
+
+### `commands`
+
+- `args` are usage patterns. You must give `<x>`, you can give `[x]`,
+  and `[x...]` takes any number of values, or none.
+- `flags` are the flags of the command, as you type them.
+- `agentMode` says how the command works for an agent:
+  - `full`: it has `--json` and `--no-input`.
+  - `json-only`: it has `--json` and never prompts.
+  - `none`: it has no `--json` (`dev` and `create`).
+
+A subcommand has a name with a space, such as `migrate config`.
+
+### `guideTopics`
+
+The CLI carries a guide: the workspace model, the agent contract, the
+config reference and one topic for each common task. Each entry gives
+a topic's `id`, its `group`, its `title` and a one-line `summary`.
+Read a topic with [`skmtc guide <id>`](guide.md).
 
 ## Examples
 
-### Bootstrap an agent session
+### Start an agent session
 
 ```bash
-skmtc agent-context --json > skmtc-state.json
+skmtc agent-context --json
+skmtc guide contract
 ```
 
-Then the agent can read `skmtc-state.json` at the start of its
-session to orient.
-
-### Filter to one project's generators
+### List the generators of one project
 
 ```bash
 skmtc agent-context --json | jq '.projects[] | select(.name == "my-api") | .generators'
 ```
 
-## How `agent-context` differs from `doctor`
+## What the output does not have
 
-| Aspect | `doctor` | `agent-context` |
-|--------|----------|-----------------|
-| **Purpose** | Pass/fail health checks | Raw state dump |
-| **Output orientation** | Remediation-focused | Information-focused |
-| **Output size** | Small, focused on failures | Larger, comprehensive |
-| **Exit code** | Non-zero on failure | Always `0` (informational) |
-| **Typical consumer** | CI gates, "is this broken?" checks | Agent reasoning, dashboards |
-
-Run both: `doctor` to gate execution, `agent-context` to inform
-decisions.
-
-## What `agent-context` does *not* include
-
-- **OAS schema contents** — too large; the URL is provided so an
-  agent can fetch separately.
-- **Generated artifact contents** — also too large; the count and
-  diagnostics summary are enough for orientation.
-- **Generator source code** — agents can read those files directly
-  if needed.
-- **Secrets** — the CLI explicitly redacts any `Authorization`
-  headers or API keys from the schema-fetch metadata.
-
-The principle: include what an agent needs to *orient*, not
-everything an agent might *ever* need.
+- The schema document. `schemaSource` says where it is.
+- The generated files and the result of the last run. Read
+  `.skmtc/<project>/.settings/manifest.json` for those.
+- Generator source.
+- Tokens. The command does not read `~/.skmtc/auth.json`.
 
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success — context written (may be empty if no projects) |
-| `1` | Internal error gathering context |
+| `0` | The context was printed. A workspace with no project gives an empty `projects` list. |
+| `1` | `JSR_URL` is set to a value that is not a URL. |
 
-Unlike `doctor`, `agent-context` doesn't have a "found issues" exit
-code — anomalies are reported in-band as part of the output.
-
-## Common failure modes
-
-### Not in a workspace
-
-```
-Error: not in a SKMTC workspace (no deno.json found)
-```
-
-`cd` to a Skmtc workspace root, or run `skmtc init` to create one.
-
-### Schema fetch timeout
-
-The `schema.lastFetched` field may be absent if the CLI's last
-fetch attempt timed out. Not a `doctor` failure — the spec could
-have been temporarily down — but the agent should treat the absence
-as a soft signal.
-
-### Bundle metadata unavailable
-
-If `bundle.present` is `false` and `bundle.path` is absent, the
-project has never been bundled. That is not a problem:
-`skmtc generate` builds `bundle.js` before every run.
+The command needs no network.
 
 ## See also
 
-- [`skmtc doctor`](doctor.md) — pass/fail health checks
-- [`skmtc list`](list.md) — focused generator inventory
-- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — where
-  `agent-context` fits in a debugging session
-- [CLI overview](overview.md) — broader
-  CLI workflow
+- [`skmtc guide`](guide.md) — read a topic of the guide
+- [`skmtc doctor`](doctor.md) — checks that pass or fail
+- [`skmtc list`](list.md) — the generators of one project
+- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md)
+- [CLI overview](overview.md)

@@ -11,6 +11,8 @@ export const COMMANDS_THAT_SKIP_REGISTRY_CHECK: ReadonlySet<string> = new Set<st
   'dev',
   'doctor',
   'agent-context',
+  // guide prints text that is part of the binary.
+  'guide',
   'clean',
   // status is read-only against the local manifest + lock. Its fresh
   // render builds a bundle outside the project from the locked pins,
