@@ -28,7 +28,13 @@ const isModuleGraph = (value: unknown): value is ModuleGraph =>
 /** The module graph `deno info` reads from `root`, static and dynamic imports both. */
 const toModuleGraph = async (root: string): Promise<ModuleGraph> => {
   const { success, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
-    args: ['info', '--json', fromFileUrl(import.meta.resolve(root))],
+    args: [
+      'info',
+      '--json',
+      '--config',
+      fromFileUrl(import.meta.resolve('@/deno.json')),
+      fromFileUrl(import.meta.resolve(root))
+    ],
     stdout: 'piped',
     stderr: 'piped'
   }).output()

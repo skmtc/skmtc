@@ -172,7 +172,7 @@ export const generateSwitch = async ({
   // Interactive mode + no resolvable args → mount Ink for the user
   // to fill in the gaps.
   const { renderGenerate } = await import('@/commands/generate.tsx')
-  return await renderGenerate({ projectName, schemaSourceString, watch })
+  return await renderGenerate({ projectName, schemaSourceString, watch, countTokens })
 }
 
 /**

@@ -23,6 +23,8 @@ type GenerateArgs = {
    * stack server over HTTP instead of the local `bundle.js`.
    */
   stackUrl?: string
+  /** `true` from `--count-tokens`: count the GPT tokens of the output into `stats.tokens`. */
+  countTokens?: boolean
 }
 
 export const generate = async ({
@@ -32,7 +34,8 @@ export const generate = async ({
   schemaContents,
   fileType,
   clientSettings,
-  stackUrl
+  stackUrl,
+  countTokens
 }: GenerateArgs) => {
   try {
     const { artifacts, manifest, logs } = await GenerateArtifacts.generateWithWorker({
@@ -54,7 +57,7 @@ export const generate = async ({
 
     writeLogLines({ manifestPath, logs })
 
-    const stats = await toGenerationStats({ manifest, artifacts })
+    const stats = await toGenerationStats({ manifest, artifacts, countTokens })
 
     await skmtcRoot.manager.cleanup()
 

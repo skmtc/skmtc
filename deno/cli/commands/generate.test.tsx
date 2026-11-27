@@ -37,6 +37,7 @@ Deno.test('renderGenerate - should call render and App with expected props', asy
     projectName: testProjectName,
     schemaSourceString: testSchemaSourceString,
     watch: testWatch,
+    countTokens: true,
     renderFn: renderSpy as InkRenderFn,
     AppComponent: AppSpy
   })
@@ -53,6 +54,9 @@ Deno.test('renderGenerate - should call render and App with expected props', asy
   assertEquals(element.type, AppSpy)
 
   // Verify the initialState structure
-  const props = element.props as { initialState: { view: { page: string } } }
+  const props = element.props as {
+    initialState: { view: { page: string; countTokens?: boolean } }
+  }
   assertEquals(props.initialState.view.page, 'generate')
+  assertEquals(props.initialState.view.countTokens, true)
 })

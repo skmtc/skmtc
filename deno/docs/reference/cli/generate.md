@@ -83,7 +83,8 @@ Count the GPT tokens of the generated files with `gpt-tokenizer`.
 The summary line then starts `Generated <tokens> tokens, <files> files`,
 and the `--json` result gains `stats.tokens`. Without the flag, the run
 does not load the tokenizer, the summary line is
-`Generated <files> files in <time>`, and `stats` has no `tokens` key.
+`Generated <files> files[ under <basePath>] in <time>ms.`, and `stats`
+has no `tokens` key.
 The count grows with the output: for a large output it can take longer
 than the generation.
 

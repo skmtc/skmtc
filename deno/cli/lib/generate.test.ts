@@ -32,7 +32,11 @@ const errorLine: LogLine = {
 }
 
 /** Runs the interactive `generate` against a worker result of `response`. */
-const generateWith = async (manifestPath: string, response: GenerateResponse) => {
+const generateWith = async (
+  manifestPath: string,
+  response: GenerateResponse,
+  countTokens?: boolean
+) => {
   const manager = createMockManager()
   const project = Object.assign(createMockProject(manager), { toManifestPath: () => manifestPath })
   const workerStub = stub(GenerateArtifacts, 'generateWithWorker', () => Promise.resolve(response))
@@ -44,7 +48,8 @@ const generateWith = async (manifestPath: string, response: GenerateResponse) =>
       skmtcRoot: createMockSkmtcRoot(manager, { projects: [project] }),
       schemaContents: '{}',
       fileType: 'json',
-      clientSettings: undefined
+      clientSettings: undefined,
+      countTokens
     })
   } finally {
     workerStub.restore()
@@ -65,6 +70,22 @@ Deno.test('generate - writes logs.ndjson beside manifest.json, and removes it wi
     await generateWith(manifestPath, { artifacts: {}, manifest })
 
     assertEquals(existsSync(logLinesPath), false)
+  } finally {
+    Deno.removeSync(settingsPath, { recursive: true })
+  }
+})
+
+Deno.test('generate - counts tokens only with countTokens', async () => {
+  const settingsPath = Deno.makeTempDirSync()
+  const manifestPath = join(settingsPath, 'manifest.json')
+  const response = { artifacts: { [join(settingsPath, 'a.ts')]: 'export const a = 1\n' }, manifest }
+
+  try {
+    const uncounted = await generateWith(manifestPath, response)
+    const counted = await generateWith(manifestPath, response, true)
+
+    assertEquals('tokens' in uncounted, false)
+    assertEquals(typeof counted.tokens, 'number')
   } finally {
     Deno.removeSync(settingsPath, { recursive: true })
   }

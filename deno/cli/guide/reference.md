@@ -346,7 +346,8 @@ A `failed` typecheck → exit 1; generated files stay on disk.
 
 `stats.tokens` is there only with `--count-tokens`, which counts the
 GPT tokens of the output. Without the flag the run does not load the
-tokenizer, and the summary line is `Generated <files> files in <time>`.
+tokenizer, and the summary line is
+`Generated <files> files[ under <basePath>] in <time>ms.`.
 
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing
