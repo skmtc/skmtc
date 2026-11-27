@@ -195,11 +195,11 @@ under `gen-shadcn-form`:
    `toOasOperationGeneratorKey({generatorId, operation, variant})`,
    a 4-segment string with the variant as the trailing segment.
 
-The model arm is structurally identical with two substitutions:
-`#runSubjects` reads `enrichments[id][refName][variant]`,
+The model arm is structurally identical with three substitutions.
+`#runSubjects` reads `enrichments[id][refName]`.
 `context.toModelContentSettings({ref, projection, variant})`
-builds the settings, and the registered `generatorKey` is
-`toModelGeneratorKey({generatorId, ref, variant})` — a 3-segment
+builds the settings. The registered `generatorKey` is
+`toModelGeneratorKey({generatorId, ref, variant})`, a 3-segment
 string ending in the variant.
 
 ## When NOT to use variants

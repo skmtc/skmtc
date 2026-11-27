@@ -653,9 +653,10 @@ export class GenerateContext implements GenerateContextType {
           return
         }
         // GraphQL operations don't yet have skip/include support
-        // at the per-operation level. The whole-generator gate
-        // above does apply (so `include: ['my-gql-gen']` works as
-        // expected), but per-(rootKind, fieldName) filtering is a
+        // at the per-operation level. Only a whole-generator `skip`
+        // acts on a GraphQL generator: `settings.include` and
+        // `settings.skip` have no per-operation filter for GraphQL
+        // operations. Per-(rootKind, fieldName) filtering is a
         // follow-up that needs the same dispatch shape added for
         // GqlOperation. Tracked alongside the existing GQL-skip
         // gap.

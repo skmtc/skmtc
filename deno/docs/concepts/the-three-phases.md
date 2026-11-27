@@ -215,14 +215,13 @@ an in-memory map of files-to-render.
 ### The outer loop
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`) iterates
-the configured generators. For each generator, it applies filter checks, then
-dispatches by generator type:
+the configured generators. For each generator, it applies the whole-generator
+`skip` check, then dispatches by generator type:
 
 ```ts
 generators.forEach(generatorConfig => {
   stackTrail.trace(generatorConfig.id, st => {
     if (this.settings?.skip?.includes(generatorConfig.id)) return
-    if (/* include filter excludes this generator */) return
 
     switch (generatorConfig.type) {
       case 'oasOperation': this.#runSubjects(generatorConfig, operationSubjects, filters, st)
@@ -234,10 +233,11 @@ generators.forEach(generatorConfig => {
 })
 ```
 
-`#runSubjects` iterates the subjects (operations, webhooks or refNames) and
-the variants of each. For each variant, it calls the generator's
-`isSupported({ operation })` capability gate, applies item-level filters, then calls
-`generatorConfig.transform({ context, operation, variant })`. The transform is
+`#runSubjects` iterates the subjects and the variants of each. A subject is an
+OpenAPI operation, a webhook, a GraphQL operation or a refName. For each
+variant, it calls the generator's `isSupported` capability gate, applies
+item-level filters, then calls `generatorConfig.transform`. Both get the
+subject (`operation`, `webhook` or `ref`). The transform is
 where the generator produces its output — but not by returning strings (it
 returns `void`). Instead, the transform calls
 `context.insertOperation({ projection: MyProjection, operation })` or
