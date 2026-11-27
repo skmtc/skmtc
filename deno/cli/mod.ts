@@ -7,8 +7,7 @@ import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-regis
 import { shouldSkipRegistryCheck } from '@/lib/registry-check.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
 import { ProjectLoadError } from '@/lib/project-load-error.ts'
-import { resolveInputMode } from '@/lib/strict-mode.ts'
-import { enableConfigMigrationOffer, shouldOfferConfigMigration } from '@/lib/config-migration-offer.ts'
+import { enableConfigMigrationOffer, toRunOffersConfigMigration } from '@/lib/config-migration-offer.ts'
 import {
   ENV_DESCRIPTION,
   getCommandDescriptor,
@@ -33,15 +32,7 @@ const FORCE_DESC =
 const run = async () => {
   // In interactive mode, a command that reads a project on a deprecated
   // config name offers to migrate it (`lib/config-migration-offer.ts`).
-  enableConfigMigrationOffer(
-    shouldOfferConfigMigration({
-      args: Deno.args,
-      inputMode: resolveInputMode({
-        noInputFlag: Deno.args.includes('--no-input'),
-        jsonFlag: Deno.args.includes('--json')
-      })
-    })
-  )
+  enableConfigMigrationOffer(toRunOffersConfigMigration(Deno.args))
 
   if (!shouldSkipRegistryCheck(Deno.args)) {
     try {

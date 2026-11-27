@@ -15,7 +15,7 @@ import {
   toPendingConfigMigration
 } from '@/lib/migrate-config-headless.ts'
 import { type ConfigDeprecation, readConfigDeprecations } from '@/lib/project-config.ts'
-import type { InputMode } from '@/lib/strict-mode.ts'
+import { type InputMode, resolveInputMode } from '@/lib/strict-mode.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
 const offer = {
@@ -38,6 +38,19 @@ export const shouldOfferConfigMigration = ({ args, inputMode }: ShouldOfferArgs)
 
   return inputMode === 'interactive' && !args.includes('--json') && !isMigrateConfig
 }
+
+/**
+ * Whether a run with `args` offers the migration: {@link shouldOfferConfigMigration}
+ * with the input mode `resolveInputMode` reads from the flags and the TTY.
+ */
+export const toRunOffersConfigMigration = (args: readonly string[]): boolean =>
+  shouldOfferConfigMigration({
+    args,
+    inputMode: resolveInputMode({
+      noInputFlag: args.includes('--no-input'),
+      jsonFlag: args.includes('--json')
+    })
+  })
 
 /** Turns the offer on or off for this run. Off until the CLI's entry point turns it on. */
 export const enableConfigMigrationOffer = (enabled: boolean): void => {

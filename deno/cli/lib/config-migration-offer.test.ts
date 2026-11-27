@@ -5,10 +5,10 @@ import {
   askYesNo,
   enableConfigMigrationOffer,
   offerConfigMigrations,
-  shouldOfferConfigMigration
+  shouldOfferConfigMigration,
+  toRunOffersConfigMigration
 } from '@/lib/config-migration-offer.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { resolveInputMode } from '@/lib/strict-mode.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { captureConsole, withConfigRoot } from '@/tests/config-files.mock.ts'
 
@@ -100,7 +100,7 @@ Deno.test('SkmtcRoot.open - on no, the command continues on the old names, with 
   })
 })
 
-/** Whether the run offers the migration, decided as `mod.ts` decides it, with stdin and stdout a TTY or not. */
+/** Whether a run with `args` offers the migration (what `mod.ts` calls), with stdin and stdout a TTY or not. */
 const toRunOffer = (args: string[], tty: boolean): boolean => {
   const stdinIsTerminal = Deno.stdin.isTerminal
   const stdoutIsTerminal = Deno.stdout.isTerminal
@@ -108,11 +108,7 @@ const toRunOffer = (args: string[], tty: boolean): boolean => {
   Deno.stdout.isTerminal = () => tty
 
   try {
-    const inputMode = resolveInputMode({
-      noInputFlag: args.includes('--no-input'),
-      jsonFlag: args.includes('--json')
-    })
-    return shouldOfferConfigMigration({ args, inputMode })
+    return toRunOffersConfigMigration(args)
   } finally {
     Deno.stdin.isTerminal = stdinIsTerminal
     Deno.stdout.isTerminal = stdoutIsTerminal
@@ -161,6 +157,19 @@ Deno.test('offerConfigMigrations - a project the migration would refuse is not o
     const { stderr } = await captureConsole(() => SkmtcRoot.open(createMockManager()))
     assertStringIncludes(stderr.join('\n'), 'has both skmtc.config.json and client.json')
     assertStringIncludes(stderr.join('\n'), 'does not choose between them')
+  })
+})
+
+Deno.test('offerConfigMigrations - after a no, a second read in the same run does not ask again', async () => {
+  await withConfigRoot({ pets: { 'client.json': legacyConfig } }, async () => {
+    const { questions, ask } = recordingAsk(false)
+
+    await withOffer(async () => {
+      await offerConfigMigrations({ projectNames: ['pets'], ask })
+      await offerConfigMigrations({ projectNames: ['pets'], ask })
+    })
+
+    assertEquals(questions.length, 1)
   })
 })
 
