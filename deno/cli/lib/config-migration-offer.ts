@@ -69,11 +69,23 @@ const toUnique = (names: string[]): string[] => [...new Set(names)]
 
 /** `a`, `a and b`, `a, b and c`. */
 const toNameList = (names: string[]): string =>
-  names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  names.length <= 1
+    ? names.join('')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+
+/** The order the question names the deprecated names in. */
+const DEPRECATION_ORDER: readonly ConfigDeprecation['kind'][] = [
+  'configFile',
+  'settingsKey',
+  'ignoredConfigFile'
+]
 
 /** One question for all the projects in `pending`, naming each of them. */
 const toOfferQuestion = (pending: PendingOffer[]): string => {
-  const deprecations = pending.flatMap(entry => entry.deprecations)
+  // In a fixed order: the directory listing's order differs between systems.
+  const deprecations = pending
+    .flatMap(entry => entry.deprecations)
+    .toSorted((a, b) => DEPRECATION_ORDER.indexOf(a.kind) - DEPRECATION_ORDER.indexOf(b.kind))
   const oldNames = toUnique(deprecations.map(deprecation => deprecation.old))
   const newNames = toUnique(deprecations.map(deprecation => deprecation.new))
   const projectNames = pending.map(entry => entry.projectName).toSorted()
@@ -108,7 +120,10 @@ type OfferArgs = {
  * A project the migration would refuse (it has both files) is not
  * offered: reading it prints the warning with the reason.
  */
-export const offerConfigMigrations = async ({ projectNames, ask = askYesNo }: OfferArgs): Promise<void> => {
+export const offerConfigMigrations = async ({
+  projectNames,
+  ask = askYesNo
+}: OfferArgs): Promise<void> => {
   if (!offer.enabled) {
     return
   }
