@@ -97,7 +97,9 @@ export class Reach {
    * The keys of the models an operation names: `paths[path][method]`, with
    * what every operation of the path has, which is the path item's
    * `parameters`, and any ref kept at the path item itself. The parser does
-   * not read a path item's own `$ref` yet, so that last place is empty.
+   * not read a path item's own `$ref` yet, so that last place is empty. A
+   * path item parameter the operation overrides is still named: one model too
+   * many is safe for a plan, one too few is not.
    */
   namedByOperation({ path, method }: OperationPlace): readonly string[] {
     return this.#namedAt([
