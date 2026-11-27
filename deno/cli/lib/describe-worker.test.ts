@@ -134,6 +134,39 @@ Deno.test('describeWithWorker - handles READY and posts a DESCRIBE message (OAS 
   }
 })
 
+Deno.test('describeWithWorker - posts the parse settings under system, which a core before 0.49 reads', async () => {
+  let capturedPayload: unknown = null
+
+  globalThis.Worker = class {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      const instance = new MockWorker(url.toString(), options)
+      instance.postMessage = (data: unknown) => {
+        const message = data as { type: string; payload: unknown }
+        if (message.type === 'DESCRIBE') {
+          capturedPayload = message.payload
+          setTimeout(() => instance.simulateMessage(createMockDescribeResult()), 0)
+        }
+      }
+      setTimeout(() => instance.simulateMessage({ type: 'READY' }), 0)
+      return instance as unknown as Worker
+    }
+  } as unknown as typeof Worker
+
+  try {
+    await describeWithWorker({
+      schemaContents: createMockSchemaContents(),
+      clientSettings: { basePath: 'src', parse: { not: 'unknown' } },
+      fileType: 'json' as const,
+      bundlePath: './worker.ts'
+    })
+
+    const payload = capturedPayload as DescribePayload
+    assertEquals(payload.clientSettings, { basePath: 'src', system: { not: 'unknown' } })
+  } finally {
+    globalThis.Worker = OriginalWorker
+  }
+})
+
 Deno.test('describeWithWorker - resolves with subjects/descriptors/defaults on RESULT', async () => {
   const expected = createMockDescribeResult()
 
