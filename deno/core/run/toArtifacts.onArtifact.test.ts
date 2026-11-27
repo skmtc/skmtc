@@ -28,6 +28,8 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
+import { oxcAdapter } from '@/anchors/oxcAdapter.ts'
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 
 const schema = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 const json = (name: string) => ({ description: 'ok', content: { 'application/json': { schema: schema(name) } } })
@@ -91,6 +93,9 @@ const ShapeBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
+/** The models whose shape throws when it is rendered. A test adds to it and clears it. */
+const brokenShapes = new Set<string>()
+
 class Shape extends ShapeBase {
   names: string[]
 
@@ -110,6 +115,10 @@ class Shape extends ShapeBase {
   }
 
   override toString(): string {
+    if (brokenShapes.has(this.ref.refName)) {
+      throw new Error('toString broke')
+    }
+
     return `shape(${this.names.join(', ')})`
   }
 }
@@ -194,9 +203,11 @@ type RunArgs = {
   /** One more model generator, with no list, that runs `transform` for each model. */
   extra?: (args: { context: GenerateContextType; ref: RefParts }) => void
   inspect?: boolean
+  /** Asks for attribution with a post-pass, which writes a sidecar for each file. */
+  postPass?: boolean
 }
 
-const run = ({ onArtifact, onTransform, extra, inspect }: RunArgs = {}) => {
+const run = ({ onArtifact, onTransform, extra, inspect, postPass }: RunArgs = {}) => {
   const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
     // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field
     shapes: toModelEntry({
@@ -249,6 +260,7 @@ const run = ({ onArtifact, onTransform, extra, inspect }: RunArgs = {}) => {
     silent: true,
     stackTrail: new StackTrail(['TEST']),
     inspect,
+    attribution: postPass === true ? { postPass: { parser: oxcAdapter, schemaSrc: 'openapi.json' } } : undefined,
     onArtifact
   })
 }
@@ -409,4 +421,152 @@ Deno.test('toArtifacts - a run with inspect gives every file at the end', () => 
 
   assertEquals(events.slice(firstGiven).every(event => event.startsWith('give')), true)
   assertEquals(events.slice(firstGiven).length, Object.keys(plain.artifacts).length)
+})
+
+// A capturing render reads every file at the end of the run. A file that is
+// rendered before then has no sidecar.
+Deno.test('toArtifacts - a run with attribution.postPass gives every file at the end, each with its sidecar', () => {
+  const events: string[] = []
+  const plain = run({ postPass: true })
+
+  const released = run({
+    postPass: true,
+    onTransform: subject => events.push(`run ${subject}`),
+    onArtifact: path => events.push(`give ${path}`)
+  })
+
+  const firstGiven = events.findIndex(event => event.startsWith('give'))
+
+  assertEquals(events.slice(firstGiven).every(event => event.startsWith('give')), true)
+  assertEquals(Object.keys(released.sidecars ?? {}).length, Object.keys(plain.artifacts).length)
+})
+
+// The read guards: a generator that only looks up a file that was given,
+// and writes nothing, fails the run as a write does.
+Deno.test('toArtifacts - a generator that reads a file that was given fails the run, and the error names the file', () => {
+  const lookups = [
+    (context: GenerateContextType) => context.getFile('@/models/Tag.generated.txt'),
+    (context: GenerateContextType) =>
+      context.getFileByWorkspacePath(normalizeWorkspacePath('@/models/Tag.generated.txt'))
+  ]
+
+  lookups.forEach(lookup => {
+    const result = run({
+      onArtifact: () => {},
+      extra: ({ context, ref }) => {
+        if (ref.refName === 'Zed') {
+          lookup(context)
+        }
+      }
+    })
+
+    const [failure] = toRunFailed(result)
+
+    assert(failure !== undefined, 'the run fails')
+    assert(failure.message.includes('@/models/Tag.generated.txt'), failure.message)
+  })
+})
+
+// A file that is complete is rendered in the generate phase, with the phase
+// name set to render, so that a throw in it is reported as in a plain run.
+Deno.test('toArtifacts - a toString that throws is a render failure, with onArtifact or without it', () => {
+  brokenShapes.add('Tag')
+
+  try {
+    const events: string[] = []
+
+    const runs = [
+      run(),
+      run({
+        onTransform: subject => events.push(`run ${subject}`),
+        onArtifact: path => events.push(`give ${path}`)
+      })
+    ]
+
+    // Tag's file is complete before the last model runs, so it is rendered in the generate phase.
+    assert(!events.includes('run Zed'), events.join('\n'))
+
+    runs.forEach(result => {
+      const [failure] = toRunFailed(result)
+
+      assert(failure !== undefined, 'the run fails')
+      assert(failure.message.startsWith('render phase failed'), failure.message)
+    })
+  } finally {
+    brokenShapes.clear()
+  }
+})
+
+// What the order does not keep: a model generator that writes every model to
+// one file, after an operation generator that inserts its projection. Run
+// generator by generator, the operations create the models in their order.
+// Run subject by subject, the models run first, in document order.
+Deno.test('toArtifacts - a file that one model generator writes for every model can change its order with onArtifact', () => {
+  const EveryBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
+    id: 'every',
+    toIdentifierName: ({ ref }) => `${ref.refName}Every`,
+    toIdentifierType: () => ({ type: 'entity' }),
+    toExportPath: () => '@/models/all.txt',
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
+
+  class Every extends EveryBase {
+    override toString(): string {
+      return 'every'
+    }
+  }
+
+  const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+    // @ts-expect-error see `run`
+    asks: toOasOperationEntry({
+      id: 'asks',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      projections: [Every],
+      transform: ({ context, operation }) => {
+        const response = operation.toSuccessResponse()?.resolve().toSchema()
+
+        if (response?.isRef() === true) {
+          context.insertModel(Every, response)
+        }
+      }
+    }),
+    // @ts-expect-error see `run`
+    every: toModelEntry({
+      id: 'every',
+      toEnrichmentSchema: () => emptyEnrichmentSchema,
+      projections: [Every],
+      transform: ({ context, ref }) => {
+        context.insertModel(Every, ref)
+      }
+    })
+  })
+
+  const toAll = (onArtifact?: (path: string, content: string) => void) => {
+    const sink = toSink()
+
+    const result = toArtifacts({
+      traceId: 'trace',
+      spanId: 'span',
+      document: { type: 'oas', value: document },
+      settings: { basePath: './src' },
+      toGeneratorConfigMap: generators,
+      startAt: 0,
+      silent: true,
+      stackTrail: new StackTrail(['TEST']),
+      onArtifact: onArtifact === undefined ? undefined : sink.onArtifact
+    })
+
+    const all = { ...result.artifacts, ...sink.given }['src/models/all.generated.txt']
+    const names = ['Order', 'Tag'].map(name => `${name}Every`)
+
+    assert(all !== undefined)
+
+    return names.map(name => all.indexOf(name))
+  }
+
+  const [orderPlain, tagPlain] = toAll()
+  const [orderGiven, tagGiven] = toAll(() => {})
+
+  assert(tagPlain < orderPlain, 'without onArtifact, /tags runs before /orders')
+  assert(orderGiven < tagGiven, 'with onArtifact, Order runs before Tag, in document order')
 })
