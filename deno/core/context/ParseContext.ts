@@ -772,12 +772,6 @@ export class ParseContext {
   }
 
   /**
-   * `stackTrail` without the frames `parse()` was called with, so it starts
-   * at a document key (`components`, `paths`, a GraphQL type name). A trail
-   * that does not start with those frames, such as one `log()` builds from a
-   * location, is returned unchanged.
-   */
-  /**
    * Where `issue` is in the input document, without the run's frames: a
    * JSON Pointer for OAS (`#/paths/~1owners/get`), the dotted path for
    * GraphQL (`Query.post.return`).
@@ -788,6 +782,12 @@ export class ParseContext {
     return protocol === 'oas' ? documentTrail.toJsonPointer() : documentTrail.stackTrail.join('.')
   }
 
+  /**
+   * `stackTrail` without the frames `parse()` was called with, so it starts
+   * at a document key (`components`, `paths`, a GraphQL type name). A trail
+   * that does not start with those frames, such as one `log()` builds from a
+   * location, is returned unchanged.
+   */
   #toDocumentTrail(stackTrail: StackTrail): StackTrail {
     const frames = stackTrail.stackTrail
     const rootFrames = this.#rootFrames

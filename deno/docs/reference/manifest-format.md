@@ -353,7 +353,9 @@ such as `#/paths/~1owners/get` for OpenAPI, or a dotted path such as
 level, the location as in `parseIssues`, and the parent object. These
 lines have no `trail`, and they record no result.
 
-When `silent` is `false`, the run also logs these `INFO` lines:
+When `silent` is `false` and `logLevel` is `'INFO'` or `'DEBUG'`, the
+run also logs these `INFO` lines. At the default `'WARN'`, it does not
+log them, so they also do not show on the console:
 
 | Line | Example | `trail` |
 | --- | --- | --- |
@@ -363,8 +365,8 @@ When `silent` is `false`, the run also logs these `INFO` lines:
 | At the end | `toArtifacts: 2 generators, 2 files, 1840 bytes, 0 errors, 1 warning, 0 debug, 21 ms` | none |
 
 A generator's line counts each variant of a subject once. The first
-number is the subjects that its transform ran on, then all the
-subjects of its type, then the subjects that failed. The files are the
+number is the subjects that `isSupported` accepts and the filters keep,
+then all the subjects of its type, then the subjects that failed. The files are the
 files that the generator added. A file that an earlier generator added
 counts on the line of that generator. A generator that `settings.skip`
 names gives the line `<id>: skipped by settings.skip`.

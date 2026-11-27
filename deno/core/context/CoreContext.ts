@@ -6,6 +6,7 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
+import { LogLevels } from '@std/log/levels'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
@@ -224,6 +225,13 @@ export class CoreContext {
   #logLines: LogLinesHandler
 
   /**
+   * Whether the run logs its phase lines at INFO: when it is not silent and
+   * its `logLevel` keeps INFO lines. At the default `'WARN'` it logs none,
+   * so the console of a CLI run does not change.
+   */
+  #logsPhaseLines: boolean
+
+  /**
    * The phase that is running. Set when a phase starts, before its
    * context is set up, so a failure names the phase it happened in.
    */
@@ -275,6 +283,7 @@ export class CoreContext {
     this.logger = this.#setupLogger({ spanId, logsPath, logLines: this.#logLines })
 
     this.silent = silent
+    this.#logsPhaseLines = !silent && LogLevels[logLevel] <= LogLevels.INFO
   }
 
   /**
@@ -511,14 +520,17 @@ export class CoreContext {
         return this.#phase.context.render(st)
       })
 
-      const fileCount = toCountPhrase(Object.keys(renderOutput.artifacts).length, 'file')
-      const byteCount = toCountPhrase(toByteCount(renderOutput.artifacts), 'byte')
-      this.#logInfo(`render: ${fileCount}, ${byteCount}, ${toElapsedMs(renderStartedAt)} ms`)
-      this.#logInfo(
-        `toArtifacts: ${toCountPhrase(Object.keys(toGeneratorConfigMap()).length, 'generator')}, ` +
-          `${fileCount}, ${byteCount}, ${toIssueCounts(phase.context.issues)}, ` +
-          `${toElapsedMs(runStartedAt)} ms`
-      )
+      if (this.#logsPhaseLines) {
+        const fileCount = toCountPhrase(Object.keys(renderOutput.artifacts).length, 'file')
+        const byteCount = toCountPhrase(toByteCount(renderOutput.artifacts), 'byte')
+
+        this.logger.info(`render: ${fileCount}, ${byteCount}, ${toElapsedMs(renderStartedAt)} ms`)
+        this.logger.info(
+          `toArtifacts: ${toCountPhrase(Object.keys(toGeneratorConfigMap()).length, 'generator')}, ` +
+            `${fileCount}, ${byteCount}, ${toIssueCounts(phase.context.issues)}, ` +
+            `${toElapsedMs(runStartedAt)} ms`
+        )
+      }
 
       return {
         ...renderOutput,
@@ -695,15 +707,19 @@ export class CoreContext {
     }
   }
 
-  /** Logs a phase line at INFO, unless silent, as parse issues are. */
+  /** Logs a phase line at INFO when {@link #logsPhaseLines}. */
   #logInfo(message: string): void {
-    if (!this.silent) {
+    if (this.#logsPhaseLines) {
       this.logger.info(message)
     }
   }
 
   /** The line after parse: the protocol, the operations and models, the issues and the time. */
   #logParseLine(document: SkmtcParsedDocument, issues: ParseIssue[], startedAt: number): void {
+    if (!this.#logsPhaseLines) {
+      return
+    }
+
     const issueCounts = toIssueCounts(issues)
     const milliseconds = toElapsedMs(startedAt)
 
@@ -799,7 +815,7 @@ export class CoreContext {
       captureCurrentResult: this.captureCurrentResult.bind(this),
       toGeneratorConfigMap,
       captureChannel,
-      silent: this.silent
+      logsGeneratorLines: this.#logsPhaseLines
     })
 
     return { type: 'generate', context: generateContext }

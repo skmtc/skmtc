@@ -130,19 +130,19 @@ type ConstructorArgs = {
    */
   captureChannel?: CaptureChannel
   /**
-   * Whether to leave out the INFO line each generator logs after it ran.
-   * Defaults to `true`, as `ParseContext`'s does.
+   * Whether each generator logs an INFO line after it ran. Defaults to
+   * `false`; `CoreContext` turns it on when the run keeps INFO lines.
    */
-  silent?: boolean
+  logsGeneratorLines?: boolean
 }
 
 /** What one generator did with its subjects, one count per subject variant. */
 type SubjectCounts = {
   /** Every subject variant the generator was offered. */
   offered: number
-  /** The ones its transform ran on: not unsupported, not skipped. */
+  /** The ones that were not unsupported and not skipped: their transform ran, or they failed before it. */
   transformed: number
-  /** The ones whose transform threw. */
+  /** The ones that threw. */
   failed: number
 }
 
@@ -360,8 +360,8 @@ export class GenerateContext implements GenerateContextType {
   /** See {@link currentSubjectTrail}. */
   #currentSubjectTrail: StackTrail | undefined
 
-  /** Whether to leave out the line each generator logs after it ran. */
-  #silent: boolean
+  /** Whether each generator logs a line after it ran. */
+  #logsGeneratorLines: boolean
 
   /** The counts of the generator {@link toArtifacts} is running. */
   #subjectCounts: SubjectCounts = { offered: 0, transformed: 0, failed: 0 }
@@ -373,10 +373,10 @@ export class GenerateContext implements GenerateContextType {
     captureCurrentResult,
     toGeneratorConfigMap,
     captureChannel,
-    silent = true
+    logsGeneratorLines = false
   }: ConstructorArgs) {
     this.logger = logger
-    this.#silent = silent
+    this.#logsGeneratorLines = logsGeneratorLines
     this.#files = new Map()
     this.#previews = {}
     this.document = document
@@ -557,12 +557,13 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Logs `message` at INFO with the generator's trail, unless silent. The
-   * count of files is of the files the generator added: a file another
-   * generator added first is counted on that generator's line.
+   * Logs `message` at INFO with the generator's trail, when
+   * {@link #logsGeneratorLines}. The count of files is of the files the
+   * generator added: a file another generator added first is counted on
+   * that generator's line.
    */
   #logGeneratorLine(generatorTrail: StackTrail, message: string): void {
-    if (this.#silent) {
+    if (!this.#logsGeneratorLines) {
       return
     }
 
