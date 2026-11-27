@@ -99,8 +99,9 @@ export const generateSwitch = async ({
     // A local project builds bundle.js from the pins and generator source it
     // has now, and runs the bundle that build returns. It skips the build
     // when `.settings/bundle-inputs.json` records that bundle.js was built
-    // from those same inputs (see `@/lib/bundle-inputs.ts`). The build refuses a module graph with two copies of `@skmtc/core` or
-    // a `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
+    // from those same inputs (see `@/lib/bundle-inputs.ts`). The build
+    // refuses a module graph with two copies of `@skmtc/core` or a
+    // `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
     // runs on the stack server and builds nothing locally.
     const bundlePath = generateLocalArgs.stackUrl ? undefined : await buildForRun(projectName)
 
