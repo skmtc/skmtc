@@ -306,9 +306,9 @@ combine to make it work:
 So whichever generator's `transform` runs first for a given
 `(projection, operation)` pair triggers the construction. Later generators that
 depend on the same projection (e.g., a form depending on a mutation hook) get a
-cache hit. The output `#files` map has the same files and the same
-definitions in each order of the outer loop. Only the order of the
-definitions in a file that more than one generator inserts into can change.
+cache hit. The output `#files` map has the same files in each order of the
+outer loop. Some parts of a file can change with the order. See
+[the other order](#the-other-order-subject-by-subject).
 
 This is what underlies "generators run in any order" — it's a structural
 property, not a feature you have to maintain.

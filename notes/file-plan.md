@@ -76,8 +76,9 @@ Five ideas, each with one home. The tickets are listed further down.
    behavior; it adds the plan and its tests. A file that no declared
    projection maps a subject to is not in the plan, and stays to the end.
 4. **Subject order, and release.** The run goes subject by subject: for one
-   subject, every generator. Three rules keep the output of the stock
-   generators as it is today: the models in document order, the operations
+   subject, every generator. When the model generators are first in the
+   config, three rules keep the output of the stock generators as it is
+   today: the models in document order, the operations
    in document order, and an operation when each model up to the last one
    it can get to has run. A file that more than one generator inserts into
    can still change its order. With an operation generator listed before the
