@@ -95,8 +95,8 @@ Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipe
 ## 3. Boundary with other skills
 
 - **skmtc-generator** — everything engine-side; load it first.
-- **skmtc-lang-typescript / skmtc-lang-kotlin** — the target-language
-  layer, exactly as for OAS generators.
+- **skmtc-generator `references/typescript.md` / skmtc-lang-kotlin** —
+  the target-language layer, exactly as for OAS generators.
 - Deep dive: `concepts/the-graphql-pipeline.md`; the
   operation-reference protocol's GraphQL example is in
   `concepts/cross-generator-coordination.md`.

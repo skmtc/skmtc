@@ -9,7 +9,7 @@ description: >
   @SerialName placement, plus the current-API worked example (the
   shipped gen-kotlin-* packages are API-stale — do not copy their call
   shapes). Use ALONGSIDE skmtc-generator whenever a generator emits
-  Kotlin. Headings mirror skmtc-lang-typescript.
+  Kotlin. Headings mirror skmtc-generator's references/typescript.md.
 metadata:
   internal: true
 ---
@@ -240,7 +240,8 @@ every mature Kotlin generator solves inline objects the same way:
   string enums synthesize the same way (`enum class` sibling).
 - Never fabricate a ref or drive the peer's identity statics to
   force a declaration into existence — that is the two-doors rule
-  (skmtc-generator §4), and the result couples you to the peer's
+  (skmtc-generator `references/engine.md`, "Another generator's
+  output"), and the result couples you to the peer's
   private snippet shape.
 
 ## 8c. Discriminated unions — sealed interfaces (shipped 2026-08-04)

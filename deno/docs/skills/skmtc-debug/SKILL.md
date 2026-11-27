@@ -427,7 +427,8 @@ for '<METHOD> <path>' — peer has no enrichments configured. Only
    block. The Driver's `assertPeerVariantExists` guard fires before
    the Projection is even constructed.
 2. Almost always the auto-inherit-variant anti-pattern (see
-   `skmtc-generator` skill §8) — the caller's source has
+   `skmtc-generator` skill, `references/engine.md`, "Variants") — the
+   caller's source has
    `this.insertOperation(Peer, op, { variant: this.settings.variant })`
    against a variants-unaware peer.
 3. Fix in the caller's source:
