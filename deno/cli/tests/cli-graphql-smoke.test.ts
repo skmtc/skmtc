@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from '@std/assert'
+import { assertEquals, assertMatch, assertStringIncludes } from '@std/assert'
 import { dirname, fromFileUrl, join, relative, resolve } from '@std/path'
 
 /**
@@ -184,11 +184,40 @@ Deno.test({
         throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
       }
 
-      // Top-line generation summary present. The CLI emits
-      // "Generated N tokens, M files under <basePath> in <ms>." —
+      // Top-line generation summary present. Without --count-tokens the
+      // CLI emits "Generated M files under <basePath> in <ms>ms." —
       // assert on the stable anchors of that sentence.
       assertStringIncludes(out, 'Generated')
       assertStringIncludes(out, 'files under')
+      assertEquals(out.includes(' tokens, '), false)
+
+      // With --count-tokens, mod.ts passes the flag through and the line
+      // names the count.
+      const counted = await new Deno.Command(Deno.execPath(), {
+        args: [
+          'run',
+          '--allow-all',
+          '--config',
+          CLI_DENO_JSON,
+          CLI_MOD,
+          'generate',
+          PROJECT_NAME,
+          schemaPath,
+          '--count-tokens'
+        ],
+        cwd: fixtureRoot,
+        stdout: 'piped',
+        stderr: 'piped'
+      }).output()
+      const countedOut = new TextDecoder().decode(counted.stdout)
+
+      if (!counted.success) {
+        throw new Error(
+          `CLI failed with --count-tokens.\nstdout:\n${countedOut}\nstderr:\n${new TextDecoder().decode(counted.stderr)}`
+        )
+      }
+
+      assertMatch(countedOut, /Generated \d[\d,]* tokens, /)
 
       // The file is named by the model's `ref.refName`.
       const generated = join(fixtureRoot, 'generated', 'types', 'User.generated.ts')
