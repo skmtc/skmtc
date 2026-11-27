@@ -55,8 +55,17 @@ export type BundleInputs =
 const configSchema = v.object({
   imports: v.optional(v.record(v.string(), v.string())),
   workspace: v.optional(v.array(v.string())),
-  lock: v.optional(v.unknown())
+  lock: v.optional(v.unknown()),
+  importMap: v.optional(v.unknown()),
+  scopes: v.optional(v.unknown()),
+  links: v.optional(v.unknown()),
+  patch: v.optional(v.unknown())
 })
+
+type Config = v.InferOutput<typeof configSchema>
+
+/** Fields that resolve modules from files the fingerprint does not read. */
+const unreadResolutionFields = ['importMap', 'scopes', 'links', 'patch'] as const
 
 const lockSchema = v.object({
   specifiers: v.optional(v.record(v.string(), v.string()))
@@ -97,28 +106,37 @@ const isLocalPath = (specifier: string): boolean =>
 const manifestNames = ['deno.json', 'deno.jsonc', 'jsr.json', 'package.json']
 
 /** The nearest folder at or above `directory` that holds a package manifest. */
-const findPackageRoot = async (directory: string): Promise<string> => {
+const findPackageRoot = async (directory: string): Promise<string | undefined> => {
   for (const name of manifestNames) {
     if (await exists(join(directory, name), { isFile: true })) return directory
   }
   const parent = dirname(directory)
-  return parent === directory ? directory : await findPackageRoot(parent)
+  return parent === directory ? undefined : await findPackageRoot(parent)
 }
 
 /**
  * The folder whose files a local-path import can load: the folder itself
- * for a folder, and the package the file belongs to for a file.
+ * for a folder, and the package the file belongs to for a file — or the
+ * file's own folder when no manifest is above it. `basePath` is the folder
+ * of the `deno.json` that names the import.
  */
-const toImportFolder = async (projectPath: string, specifier: string): Promise<string> => {
-  const path = specifier.startsWith('file:')
-    ? fromFileUrl(specifier)
-    : resolve(projectPath, specifier)
+const toImportFolder = async (basePath: string, specifier: string): Promise<string> => {
+  const path = specifier.startsWith('file:') ? fromFileUrl(specifier) : resolve(basePath, specifier)
   const info = await Deno.stat(path)
-  return info.isDirectory ? path : await findPackageRoot(dirname(path))
+  if (info.isDirectory) return path
+  return (await findPackageRoot(dirname(path))) ?? dirname(path)
 }
 
 const isInside = (parent: string, child: string): boolean =>
-  child === parent || child.startsWith(`${parent}${SEPARATOR}`)
+  child === parent ||
+  child.startsWith(parent.endsWith(SEPARATOR) ? parent : `${parent}${SEPARATOR}`)
+
+const toLocalImportFolders = (basePath: string, config: Config): Promise<string[]> =>
+  Promise.all(
+    Object.values(config.imports ?? {})
+      .filter(isLocalPath)
+      .map(specifier => toImportFolder(basePath, specifier))
+  )
 
 type Chunk = { label: string; bytes: Uint8Array }
 
@@ -148,6 +166,14 @@ const toDigest = async (chunks: Chunk[]): Promise<string> => {
     return offset + part.byteLength
   }, 0)
   return encodeHex(new Uint8Array(await crypto.subtle.digest('SHA-256', total)))
+}
+
+const findAsync = async <T>(
+  items: T[],
+  predicate: (item: T) => Promise<boolean>
+): Promise<T | undefined> => {
+  const matches = await Promise.all(items.map(predicate))
+  return items.find((_item, index) => matches[index])
 }
 
 const readOptional = async (path: string): Promise<Uint8Array | undefined> => {
@@ -184,11 +210,35 @@ export const toBundleInputs = async ({
     }
 
     const workspaceFolders = workspace.map(member => resolve(projectPath, member))
-    const importFolders = await Promise.all(
-      Object.values(config.imports ?? {})
-        .filter(isLocalPath)
-        .map(specifier => toImportFolder(projectPath, specifier))
+    const jsoncMember = await findAsync(workspaceFolders, folder =>
+      exists(join(folder, 'deno.jsonc'), { isFile: true })
     )
+    if (jsoncMember !== undefined) {
+      return { type: 'unpinned', reason: `${jsoncMember} has a deno.jsonc.` }
+    }
+    const members = await Promise.all(
+      workspaceFolders.map(async folder => {
+        const bytes = await readOptional(join(folder, 'deno.json'))
+        const memberConfig: Config =
+          bytes === undefined ? {} : v.parse(configSchema, JSON.parse(decoder.decode(bytes)))
+        return { folder, config: memberConfig }
+      })
+    )
+
+    const configs = [config, ...members.map(member => member.config)]
+    const unreadField = unreadResolutionFields.find(field =>
+      configs.some(each => each[field] !== undefined)
+    )
+    if (unreadField !== undefined) {
+      return { type: 'unpinned', reason: `a deno.json sets \`${unreadField}\`.` }
+    }
+
+    const importFolders = (
+      await Promise.all([
+        toLocalImportFolders(projectPath, config),
+        ...members.map(member => toLocalImportFolders(member.folder, member.config))
+      ])
+    ).flat()
     const folders = Array.from(new Set([...workspaceFolders, ...importFolders]))
 
     const resolvedProjectPath = resolve(projectPath)
@@ -227,16 +277,8 @@ export const toBundleInputs = async ({
     }
     const specifiers = v.parse(lockSchema, JSON.parse(decoder.decode(lockBytes))).specifiers ?? {}
 
-    const memberImports = await Promise.all(
-      workspaceFolders.map(async folder => {
-        const bytes = await readOptional(join(folder, 'deno.json'))
-        return bytes === undefined
-          ? {}
-          : (v.parse(configSchema, JSON.parse(decoder.decode(bytes))).imports ?? {})
-      })
-    )
-    const unlocked = [config.imports ?? {}, ...memberImports]
-      .map(imports => findUnlockedImport(imports, specifiers))
+    const unlocked = configs
+      .map(each => findUnlockedImport(each.imports ?? {}, specifiers))
       .find(specifier => specifier !== undefined)
     if (unlocked !== undefined) {
       return { type: 'unpinned', reason: `deno.lock does not hold ${unlocked}.`, sourceDigest }

@@ -26,7 +26,8 @@ export type InstallHeadlessResult = {
    * Result of the post-install rebundle. Always `type: 'bundled'`.
    * Building here confirms the new generator bundles before the
    * command reports success — the install-side counterpart to
-   * `cloneHeadless`. (`generate` rebuilds the bundle on every run.)
+   * `cloneHeadless`. (`generate` builds the bundle again when its
+   * inputs changed.)
    */
   bundle: BundleHeadlessResult
 }

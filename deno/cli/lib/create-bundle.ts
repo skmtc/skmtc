@@ -99,13 +99,19 @@ export const createBundle = async ({
   }
 
   // The record goes before the rename and comes back after it, so it never
-  // describes a bundle.js other than the one on disk. It is read again
-  // after the build, which may have written deno.lock, and kept only when
-  // nothing else changed while the build ran.
+  // describes a bundle.js other than the one on disk. The inputs are read
+  // again after the build and kept only when nothing changed while it ran
+  // — except a deno.lock the build itself wrote, which happens only when
+  // the inputs before it had no lock or a pin the lock did not hold.
   await removeBundleRecord(projectPath)
   await Deno.rename(temporaryBundlePath, toBundleFsPath(projectPath))
   const builtInputs = await toBundleInputs({ projectPath, versions })
-  if (builtInputs.type === 'fingerprinted' && builtInputs.sourceDigest === inputs.sourceDigest) {
+  const unchangedWhileBuilding =
+    inputs.type === 'fingerprinted'
+      ? builtInputs.type === 'fingerprinted' &&
+        builtInputs.record.fingerprint === inputs.record.fingerprint
+      : builtInputs.sourceDigest !== undefined && builtInputs.sourceDigest === inputs.sourceDigest
+  if (builtInputs.type === 'fingerprinted' && unchangedWhileBuilding) {
     await writeBundleRecord(projectPath, builtInputs.record)
   }
 

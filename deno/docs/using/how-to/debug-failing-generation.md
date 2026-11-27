@@ -177,9 +177,9 @@ isn't installed. E.g., `gen-shadcn-form` imports from
 `@skmtc/gen-tanstack-query-supabase-zod`. If you have the fetch
 variant installed instead, the generated import won't resolve.
 Either install the expected peer or clone `gen-shadcn-form` and swap
-the import. (`generate` rebuilds the bundle from a cloned
-generator's source on every run, so the output always reflects your
-latest edit.)
+the import. (`generate` builds the bundle again when a file of a
+cloned generator changed, so the output always reflects your latest
+edit.)
 
 ## Verification
 

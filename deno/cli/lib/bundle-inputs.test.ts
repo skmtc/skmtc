@@ -312,6 +312,67 @@ Deno.test('createBundle reuse - a file edited while the build runs: it writes no
   })
 })
 
+Deno.test('createBundle reuse - deno.lock changed by another tool while the build runs: it writes no record', async () => {
+  await withClonedProject(async ({ projectName, projectPath }) => {
+    await generateBuild({ projectName })
+    await Deno.writeTextFile(
+      join(projectPath, 'gen-c', 'src', 'label.ts'),
+      "export const label = 'second'\n"
+    )
+    const lockPath = join(projectPath, 'deno.lock')
+
+    await countCommands(
+      () => generateBuild({ projectName }),
+      options => {
+        if (options?.args?.[0] === 'bundle') {
+          Deno.writeTextFileSync(lockPath, `${Deno.readTextFileSync(lockPath)}\n`)
+        }
+      }
+    )
+
+    assertEquals(existsSync(toBundleRecordPath(projectPath)), false)
+  })
+})
+
+Deno.test('createBundle reuse - a file a cloned generator imports by path from outside the project: it builds when it changes', async () => {
+  await withClonedProject(async ({ projectName, projectPath }) => {
+    const sharedPath = join(projectPath, '..', '..', 'shared')
+    await Deno.mkdir(sharedPath)
+    await Deno.writeTextFile(
+      join(sharedPath, 'deno.json'),
+      JSON.stringify({ name: '@local/shared' })
+    )
+    await Deno.writeTextFile(join(sharedPath, 'mod.ts'), "export const shared = 'one'\n")
+    await updateJson(join(projectPath, 'gen-c', 'deno.json'), json => {
+      json.imports = { '@local/shared': '../../../shared/mod.ts' }
+    })
+    await Deno.writeTextFile(
+      join(projectPath, 'gen-c', 'mod.ts'),
+      "import { shared } from '@local/shared'\nexport default { id: '@skmtc/gen-c', shared }\n"
+    )
+
+    await generateBuild({ projectName })
+    assertEquals(await countGenerateBuild({ projectName }), 0)
+
+    await Deno.writeTextFile(join(sharedPath, 'mod.ts'), "export const shared = 'two'\n")
+    assert((await countGenerateBuild({ projectName })) > 0)
+    assert((await Deno.readTextFile(join(projectPath, 'bundle.js'))).includes('two'))
+  })
+})
+
+Deno.test('createBundle reuse - deno.json with `importMap`: it builds every time', async () => {
+  await withClonedProject(async ({ projectName, projectPath }) => {
+    await Deno.writeTextFile(join(projectPath, 'import_map.json'), JSON.stringify({ imports: {} }))
+    await updateJson(join(projectPath, 'deno.json'), json => {
+      json.importMap = './import_map.json'
+    })
+    await generateBuild({ projectName }).catch(() => undefined)
+
+    assert((await countGenerateBuild({ projectName }).catch(() => 1)) > 0)
+    assertEquals(existsSync(toBundleRecordPath(projectPath)), false)
+  })
+})
+
 Deno.test('createBundle - without reuse it always builds, and writes the record', async () => {
   await withClonedProject(async ({ projectName, projectPath }) => {
     for (const _run of [1, 2]) {

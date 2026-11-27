@@ -63,8 +63,9 @@ clone.
 ### Bundle behavior when installed
 
 Identical to cloned: `skmtc generate` regenerates `worker.ts` from
-`deno.json#imports` and compiles `bundle.js` before every run,
-resolving the `jsr:` specifiers through the project's import map. A
+`deno.json#imports` and compiles `bundle.js` when an input of the
+build changed. It resolves the `jsr:` specifiers through the
+project's import map. A
 project with only installed generators still builds its `bundle.js`
 — it is the only artifact `generate` loads.
 
