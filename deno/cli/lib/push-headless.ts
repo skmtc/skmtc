@@ -25,8 +25,32 @@
  * destination (the `project` field), exactly like git.
  */
 
+import type { SkmtcClientConfig } from '@skmtc/core/Settings'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
+
+/**
+ * The body of a `PUT …/client-config`, from `push` and from the
+ * `skmtc project create` seed. The parse settings go as `parse`, never as
+ * `system`: the hub reads only `parse`, and a project not yet migrated
+ * still has `system`.
+ */
+export const toClientConfigBody = (contents: SkmtcClientConfig) => {
+  const settings = contents.settings
+
+  return {
+    source: contents.source,
+    settings: {
+      basePath: settings.basePath ?? '.',
+      packages: settings.packages,
+      include: settings.include,
+      skip: settings.skip,
+      enrichments: settings.enrichments,
+      inputDirs: settings.inputDirs,
+      parse: settings.parse ?? settings.system
+    }
+  }
+}
 
 type PushHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -193,20 +217,7 @@ export const pushHeadless = async ({
   // enrichmentCount then reflects the EXISTING hub config from the pre-check GET.
   let pushedConfig: unknown = existing
   if (!baseFilesOnly) {
-    const settings = contents.settings
-    const body = {
-      source: contents.source,
-      settings: {
-        basePath: settings.basePath ?? '.',
-        packages: settings.packages,
-        include: settings.include,
-        skip: settings.skip,
-        enrichments: settings.enrichments,
-        inputDirs: settings.inputDirs,
-        // The hub reads only `parse`; a project not yet migrated still has `system`.
-        parse: settings.parse ?? settings.system
-      }
-    }
+    const body = toClientConfigBody(contents)
 
     try {
       const putResponse = await fetch(`${origin}/v1/projects/${account}/${slug}/client-config`, {
