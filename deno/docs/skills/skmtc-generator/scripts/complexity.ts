@@ -27,7 +27,7 @@ export type Unit = {
   name: string
   score: number
   cases: number
-  /** A function that no class holds. */
+  /** A function that no class holds. The value of a variable is not a function. */
   outsideClass: boolean
 }
 
@@ -181,7 +181,7 @@ export const scoreSource = ({ file, text }: ScoreSourceArgs): Unit[] => {
             name,
             score: 1,
             cases: 0,
-            outsideClass: !isInClass(node)
+            outsideClass: isFunctionLike(node) && !isInClass(node)
           }
 
     if (unit !== undefined && unit !== current) {

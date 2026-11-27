@@ -138,6 +138,25 @@ Deno.test('the value of a field or of a module variable is a unit when it branch
   assertEquals(toScores(text), { labels: 2, 'Entries.names': 2, 'Entries.toString': 1 })
 })
 
+// The trap: the list of functions outside a class asks for a reason for each
+// one, and a value is not a function.
+Deno.test('a module variable that branches is not a function outside a class', () => {
+  const text = `
+    const items: (string | undefined)[] = []
+    const labels = items.map(item => (item === undefined ? '' : item))
+    const toLabel = (item: string | undefined) => item ?? ''`
+
+  const units = scoreSource({ file: 'x.ts', text })
+
+  assertEquals(
+    units.map(unit => [unit.name, unit.outsideClass]),
+    [
+      ['labels', false],
+      ['toLabel', true]
+    ]
+  )
+})
+
 Deno.test('the limit is read from --max 5 and from --max=5', () => {
   assertEquals(toOptions(['src']), { root: 'src', max: 10 })
   assertEquals(toOptions(['src', '--max', '5']), { root: 'src', max: 5 })
