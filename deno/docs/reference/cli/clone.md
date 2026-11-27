@@ -173,7 +173,7 @@ so the root decides their version: the clone runs on the project's
 that the same command clones, resolves to its clone.
 
 After you edit a pin in either `deno.json`, run `skmtc generate`
-again. It rebuilds the bundle from the current pins on every run.
+again. It builds the bundle again from the changed pins.
 
 ### deno.json#imports updated
 
@@ -214,8 +214,8 @@ generator bundles and that the project still resolves one copy of
 }
 ```
 
-`generate` does not use this bundle: it rebuilds the bundle on every
-run, so your edits to the cloned source apply on the next
+`generate` builds the bundle again when a file of the clone changed,
+so your edits to the cloned source apply on the next
 `skmtc generate`.
 
 ## JSON output

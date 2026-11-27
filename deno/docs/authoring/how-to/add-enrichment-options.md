@@ -186,8 +186,8 @@ appear above the declaration.
   names each wrong value's place in `skmtc.config.json`. Use
   `v.optional(...)` for everything that can reasonably default.
 - **Changes not visible after edit** — Check that you edited the
-  clone the project's `deno.json` points at. `generate` rebuilds the
-  bundle from that source on every run.
+  clone the project's `deno.json` points at. `generate` builds the
+  bundle again when a file of that source changed.
 
 ## Forwards compatibility
 

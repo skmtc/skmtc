@@ -199,8 +199,9 @@ exactly those ids. A folder on disk not referenced from
 
 **`worker.ts` and `bundle.js` are the only derived artifacts** — never
 hand-write them. `generate` (and `bundle`) regenerates `worker.ts`
-from `deno.json#imports`, then runs `deno bundle -o bundle.js
-worker.ts`, on every run.
+from `deno.json#imports` on every run, then runs `deno bundle -o
+bundle.js worker.ts` (`generate` only when an input of the build
+changed; `bundle` always).
 `deno.json` and `.settings/skmtc.config.json` are *config*, not derived —
 hand-writing those is correct and expected.
 
@@ -267,7 +268,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
 
 ```bash
 skmtc bundle lab --json   # optional build check → { type: "bundled", bundlePath }
-skmtc generate lab <schema> --json --typecheck   # rebuilds worker.ts + bundle.js, then generates
+skmtc generate lab <schema> --json --typecheck   # writes worker.ts, builds bundle.js if an input changed, then generates
 ```
 
 `bundle` returns `type: "bundled"` for every project. To confirm the

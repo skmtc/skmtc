@@ -59,6 +59,8 @@ const DEFAULT_IGNORE = [
   // the error stacks they hold carry local paths.
   '.settings/manifest.json',
   '.settings/logs.ndjson',
+  // The local bundle's record of its inputs: it describes this machine's bundle.js.
+  '.settings/bundle-inputs.json',
   '.git/',
   'node_modules/',
   '.DS_Store',

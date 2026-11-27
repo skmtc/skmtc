@@ -49,7 +49,9 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
   let running = false
   let queued = false
 
-  const runOnce = async (): Promise<void> => {
+  // Only the first run may reuse the bundle on disk; a run after a change
+  // always builds.
+  const runOnce = async (reuse = false): Promise<void> => {
     if (running) {
       queued = true
       return
@@ -58,7 +60,7 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
     try {
       const bundleStart = performance.now()
       log('bundling…')
-      const bundlePath = await createBundle({ project })
+      const bundlePath = await createBundle({ project, reuse })
       const bundleMs = Math.round(performance.now() - bundleStart)
       log(`bundled in ${bundleMs}ms · generating…`)
 
@@ -89,7 +91,7 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
     }
   }
 
-  await runOnce()
+  await runOnce(true)
 
   log(`watching ${projectPath}`)
 

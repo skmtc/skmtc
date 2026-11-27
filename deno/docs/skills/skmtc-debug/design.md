@@ -221,8 +221,9 @@ the typical root cause:
 
 #### Scenario D: The bundle build fails
 
-- `generate` rebuilds the bundle from `deno.json` and generator
-  source on every run, so the failure is about the project now.
+- `generate` builds the bundle from `deno.json` and generator
+  source when one of them changed, so the failure is about the
+  project now.
 - Read the `deno bundle` error; fix the import or pin it names.
 - Re-run `generate`; there is no separate rebuild step.
 
