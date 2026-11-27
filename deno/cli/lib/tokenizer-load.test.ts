@@ -10,6 +10,7 @@ type GraphDependency = {
 type GraphModule = {
   specifier: string
   dependencies?: GraphDependency[]
+  error?: string
 }
 
 type ModuleGraph = {
@@ -36,7 +37,9 @@ const toModuleGraph = async (root: string): Promise<ModuleGraph> => {
       '--json',
       '--config',
       fromFileUrl(import.meta.resolve('@/deno.json')),
-      fromFileUrl(import.meta.resolve(root))
+      // A file URL, not a path: on Windows `deno info` takes a path as an
+      // unloadable root and reports no dependencies for it.
+      import.meta.resolve(root)
     ],
     stdout: 'piped',
     stderr: 'piped'
@@ -54,16 +57,21 @@ const toModuleGraph = async (root: string): Promise<ModuleGraph> => {
  * Specifiers of the code the graph's root loads. With `followDynamic: false`,
  * only the static imports: what loading the module loads before any of it runs.
  *
- * The walk starts from the root `deno info` names, which on Windows can differ
- * from `import.meta.resolve` in the drive letter's case.
+ * The walk starts from the root `deno info` names, and throws when that root
+ * failed to load or imports nothing, so a broken graph cannot pass as clean.
  */
 const toLoadedSpecifiers = (graph: ModuleGraph, followDynamic: boolean): Set<string> => {
   const modules = new Map(graph.modules.map(module => [module.specifier, module]))
   const resolve = (specifier: string) => graph.redirects[specifier] ?? specifier
   const [rootSpecifier] = graph.roots
 
-  if (rootSpecifier === undefined || !modules.has(resolve(rootSpecifier))) {
+  const rootModule = rootSpecifier === undefined ? undefined : modules.get(resolve(rootSpecifier))
+
+  if (rootSpecifier === undefined || rootModule === undefined) {
     throw new Error(`deno info has no module for its root ${rootSpecifier}`)
+  }
+  if (rootModule.error !== undefined || !rootModule.dependencies?.length) {
+    throw new Error(`deno info could not read the imports of ${rootSpecifier}: ${rootModule.error}`)
   }
 
   const loaded = new Set<string>([resolve(rootSpecifier)])
