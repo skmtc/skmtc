@@ -9,7 +9,7 @@ type RunDebugSessionArgs = {
   projectPath: string
   /** The parsed, clone-safe schema document (`{ type: 'oas' | 'gql', value }`). */
   document: unknown
-  /** The project's `client.json#settings`. */
+  /** The project's `skmtc.config.json#settings`. */
   clientSettings: unknown
   /** Run to completion immediately, without waiting for a debugger to attach. */
   auto: boolean

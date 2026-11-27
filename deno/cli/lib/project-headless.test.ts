@@ -20,7 +20,7 @@ const makeFixture = async ({ api, source }: { api?: string; source?: string }): 
   await Deno.mkdir(join(projectPath, '.settings'), { recursive: true })
   await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ name: '@acme/stack' }))
   await Deno.writeTextFile(
-    join(projectPath, '.settings', 'client.json'),
+    join(projectPath, '.settings', 'skmtc.config.json'),
     JSON.stringify({ api, source, settings: { basePath: '.' } })
   )
   // Only a file source has a file to write.
@@ -350,7 +350,7 @@ const schemaLineOf = (result: CreateResult): string | undefined =>
 Deno.test('printCreateResult - text names a registered schema', () => {
   assertEquals(
     schemaLineOf({ ...CREATED, apiRegistered: true, schemaStep: 'registered' }),
-    '  schema: registered from client.json#source'
+    '  schema: registered from skmtc.config.json#source'
   )
 })
 
@@ -378,7 +378,7 @@ Deno.test('printCreateResult - text says a URL source was not uploaded and may b
 Deno.test('printCreateResult - text says there was no source', () => {
   assertEquals(
     schemaLineOf({ ...CREATED, schemaStep: 'no-source' }),
-    "  schema: no client.json#source; bound the hub's latest revision of acme/pets"
+    "  schema: no skmtc.config.json#source; bound the hub's latest revision of acme/pets"
   )
 })
 

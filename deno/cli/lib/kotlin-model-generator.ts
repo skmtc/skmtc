@@ -123,7 +123,7 @@ export const KtModelBase = toKtModelProjectionBase({
 
   // The export path doubles as the package: \`@/models/X.kt\` →
   // \`package models\`. The engine injects the generated-file suffix
-  // (client.json#settings.generatedSuffix, default '.generated') —
+  // (skmtc.config.json#settings.generatedSuffix, default '.generated') —
   // keep it: Kotlin resolves by package, not filename, so a suffixed
   // file replaces a hand-written one as-is. Set it to "" only when
   // something outside Kotlin keys on the exact filename.

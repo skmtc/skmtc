@@ -7,7 +7,7 @@ import * as v from 'valibot'
 /**
  * `.settings/ejections.json` — the committed metadata sidecar for
  * ejected files. The *authoritative* ejected set lives in
- * `client.json#settings.ejected` (that is what the engine and writer
+ * `skmtc.config.json#settings.ejected` (that is what the engine and writer
  * read); this file records the why and the provenance for each entry:
  * when it was ejected, which generator items produced the file, what
  * the last-generated content hash was. `skmtc eject`/`adopt` maintain
@@ -35,7 +35,7 @@ export type EjectionRecord = {
 
 export type EjectionsContent = {
   version: 1
-  /** Keyed by the owned (suffix-less) export path — the same strings as `client.json#settings.ejected`. */
+  /** Keyed by the owned (suffix-less) export path — the same strings as `skmtc.config.json#settings.ejected`. */
   files: Record<string, EjectionRecord>
 }
 

@@ -65,7 +65,7 @@ export const renderDebug = async ({
       arg: '[schema]',
       usage: 'skmtc generate --debug <project> [schema]',
       example: 'skmtc generate --debug my-api ./openapi.json',
-      discover: 'set client.json#source, or pass the schema path/URL as the second arg'
+      discover: 'set skmtc.config.json#source, or pass the schema path/URL as the second arg'
     })
   }
 

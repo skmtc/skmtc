@@ -17,7 +17,7 @@ type ToGenerateMessageStringArgs = {
    */
   enrichmentWarnings?: EnrichmentWarning[]
   /**
-   * Resolved basePath from client.json — used to tell the caller where
+   * Resolved basePath from skmtc.config.json — used to tell the caller where
    * the generated files actually landed. Friction-#14: agents and humans
    * both spent time hunting for misplaced output when the message
    * stopped at "Generated N files".

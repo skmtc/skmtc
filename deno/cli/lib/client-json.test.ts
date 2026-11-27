@@ -17,7 +17,7 @@ Deno.test('ClientJson - toPath returns correct path', () => {
   const path = ClientJson.toPath({ projectPath })
 
   assertEquals(path.includes('.settings'), true)
-  assertEquals(path.endsWith('client.json'), true)
+  assertEquals(path.endsWith('skmtc.config.json'), true)
 })
 
 Deno.test('ClientJson - updateContents merges settings', () => {

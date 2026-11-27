@@ -1,5 +1,5 @@
 /**
- * Headless variant-axis migration for a project's `client.json`.
+ * Headless variant-axis migration for a project's `skmtc.config.json`.
  *
  * Idempotent — re-running on an already-migrated file leaves it
  * unchanged.
@@ -23,6 +23,7 @@
  * variant axis.
  */
 
+import { toConfigFileText, toConfigPath } from '@/lib/project-config.ts'
 import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
@@ -131,7 +132,7 @@ export const migrateVariantsHeadless = async ({
   projectName: string
 }): Promise<MigrateVariantsResult> => {
   const projectPath = toProjectPath(projectName)
-  const clientJsonPath = join(projectPath, '.settings', 'client.json')
+  const clientJsonPath = toConfigPath(projectPath)
 
   const source = await Deno.readTextFile(clientJsonPath)
   const beforeBytes = new TextEncoder().encode(source).length
@@ -163,7 +164,7 @@ export const migrateVariantsHeadless = async ({
 
   const alreadyMigrated = wrapped.length === 0 && skipCount === 0 && includeCount === 0
 
-  const next = JSON.stringify(data, null, 2) + '\n'
+  const next = toConfigFileText(data) + '\n'
 
   if (!alreadyMigrated) {
     await Deno.writeTextFile(clientJsonPath, next)

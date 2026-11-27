@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -15,7 +16,7 @@ type RenderEjectArgs = {
 /**
  * `eject` moves a generated file to user ownership: renames
  * `X.generated.ts` → `X.ts`, records it in
- * `client.json#settings.ejected` + `.settings/ejections.json`, and
+ * `skmtc.config.json#settings.ejected` + `.settings/ejections.json`, and
  * from the next generate on the engine references the owned path
  * (peer imports follow automatically) while the CLI never writes or
  * deletes the file. `adopt` is the symmetric inverse. Both are
@@ -58,7 +59,7 @@ export const renderEject = async ({
 
   printEjectResult(result, resolveOutputFormat({ jsonFlag }))
 
-  // ejectHeadless wrote settings.ejected to client.json directly; the
+  // ejectHeadless wrote settings.ejected to skmtc.config.json directly; the
   // manager's cleanup below write-backs the project's IN-MEMORY copy,
   // which predates that write and would silently clobber it. Refresh
   // from disk first.
@@ -72,7 +73,7 @@ export const renderEject = async ({
 export const printEjectResult = (result: EjectHeadlessResult, format: 'text' | 'json'): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {
@@ -149,7 +150,7 @@ export const renderAdopt = async ({
   printAdoptResult(result, resolveOutputFormat({ jsonFlag }))
 
   // Same write-back hazard as renderEject: adoptHeadless updated
-  // client.json on disk; refresh the in-memory copy before the
+  // skmtc.config.json on disk; refresh the in-memory copy before the
   // manager's cleanup writes it back.
   await project.clientJson.refresh()
 
@@ -161,7 +162,7 @@ export const renderAdopt = async ({
 export const printAdoptResult = (result: AdoptHeadlessResult, format: 'text' | 'json'): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {

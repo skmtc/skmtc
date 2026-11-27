@@ -9,6 +9,7 @@ import { parse } from '@std/semver/parse'
 import invariant from 'tiny-invariant'
 import type { Generator } from '@/types/generator.ts'
 import { ProjectLoadError, type UnloadedProject } from '@/lib/project-load-error.ts'
+import { offerConfigMigrations } from '@/lib/config-migration-offer.ts'
 
 type CreateProjectArgs = {
   name: string
@@ -116,6 +117,9 @@ export class SkmtcRoot {
     const projectDirs = Array.from(Deno.readDirSync(rootPath)).filter(item => {
       return item.isDirectory && !item.name.startsWith('@')
     })
+
+    // Before the projects are read, so a project migrated here is read on its new names.
+    await offerConfigMigrations({ projectNames: projectDirs.map(projectDir => projectDir.name) })
 
     const opened = await Promise.allSettled(
       projectDirs.map(projectDir => Project.open(projectDir.name, manager))

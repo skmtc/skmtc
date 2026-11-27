@@ -43,7 +43,7 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
   const schemaSource = schemaSourceString ?? project.clientJson.contents?.source
   invariant(
     typeof schemaSource === 'string' && schemaSource.length > 0,
-    'No schema source — pass <schema> as an argument or set "source" in client.json'
+    'No schema source — pass <schema> as an argument or set "source" in skmtc.config.json'
   )
 
   let running = false

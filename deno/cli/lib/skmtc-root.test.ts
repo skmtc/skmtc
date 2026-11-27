@@ -311,7 +311,7 @@ Deno.test(
       // As skmtc-hub's skmtc-control in a fresh checkout (#374): its schema is
       // a build output that does not exist yet.
       await Deno.writeTextFile(
-        join(tempRoot, '.skmtc', 'broken', '.settings', 'client.json'),
+        join(tempRoot, '.skmtc', 'broken', '.settings', 'skmtc.config.json'),
         JSON.stringify({
           settings: { basePath: './src' },
           source: 'packages/api/dist/openapi.missing.json'

@@ -204,7 +204,7 @@ export const withRegistryProject = async (
     JSON.stringify({ openapi: '3.0.0', info: { title: 'api', version: '1' }, paths: {} })
   )
   await Deno.writeTextFile(
-    join(projectPath, '.settings', 'client.json'),
+    join(projectPath, '.settings', 'skmtc.config.json'),
     JSON.stringify({ source: join(tempRoot, 'openapi.json'), settings: { basePath: 'src/api' } })
   )
 

@@ -32,7 +32,7 @@ export const COMMANDS_THAT_SKIP_REGISTRY_CHECK: ReadonlySet<string> = new Set<st
   'whoami',
   // feedback sends a problem or a feature request to the hub.
   'feedback',
-  // push/pull move client.json to/from the hub; neither touches JSR.
+  // push/pull move skmtc.config.json to/from the hub; neither touches JSR.
   'push',
   'pull',
   // project fork/rm manage hub projects; they never touch JSR.

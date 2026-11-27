@@ -41,7 +41,7 @@ Deno.test('generateSwitch - strict mode without a resolvable schema fails with a
   assertEquals(exitCode, 2)
   assertEquals(errors.length, 1)
   assertStringIncludes(errors[0], 'missing required argument: <schema>')
-  assertStringIncludes(errors[0], 'client.json')
+  assertStringIncludes(errors[0], 'skmtc.config.json')
 })
 
 Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2', async () => {
@@ -226,7 +226,7 @@ Deno.test('generateSwitch - an explicit schema needs no reachable client.json#so
     await withRegistryProject(
       { generatorVersion: '0.1.0' },
       async ({ tempRoot, projectName, projectPath }) => {
-        const clientJsonPath = join(projectPath, '.settings', 'client.json')
+        const clientJsonPath = join(projectPath, '.settings', 'skmtc.config.json')
         await Deno.writeTextFile(
           clientJsonPath,
           JSON.stringify({ source: './missing-openapi.json', settings: { basePath: 'src/api' } })

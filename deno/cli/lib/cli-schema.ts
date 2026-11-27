@@ -226,7 +226,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'push',
     description:
-      'Push this project\'s client.json (config + enrichments) to its skmtc-hub project — the destination is the `project: "@account/slug"` field in client.json (or --project). Overwrites the hub project\'s config; the project must already exist on the hub.',
+      'Push this project\'s skmtc.config.json (config + enrichments) to its skmtc-hub project — the destination is the `project: "@account/slug"` field in skmtc.config.json (or --project). Overwrites the hub project\'s config; the project must already exist on the hub.',
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
@@ -242,7 +242,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--project <ref>',
         description:
-          'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
+          'Hub destination as @account/slug. Defaults to the `project` field in skmtc.config.json.'
       },
       {
         flag: '--force',
@@ -256,7 +256,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--base-files-only',
         description:
-          "Push ONLY the app's base files to the preview; leave the hub project's client.json config untouched (skips the config PUT)."
+          "Push ONLY the app's base files to the preview; leave the hub project's skmtc.config.json config untouched (skips the config PUT)."
       }
     ],
     agentMode: 'full'
@@ -264,7 +264,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'pull',
     description:
-      'Pull this project\'s config (enrichments + filters) from its skmtc-hub project into the local client.json — the hub→local counterpart to push. The destination is the `project: "@account/slug"` field in client.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.',
+      'Pull this project\'s config (enrichments + filters) from its skmtc-hub project into the local skmtc.config.json — the hub→local counterpart to push. The destination is the `project: "@account/slug"` field in skmtc.config.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.',
     args: ['<project>'],
     flags: [
       ...AGENT_MODE_FLAGS,
@@ -280,7 +280,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--project <ref>',
         description:
-          'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
+          'Hub destination as @account/slug. Defaults to the `project` field in skmtc.config.json.'
       },
       {
         flag: '--force',
@@ -485,6 +485,21 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     args: [],
     flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
     agentMode: 'json-only'
+  },
+  {
+    name: 'migrate config',
+    description:
+      "Move a project's config to the current names: .settings/client.json becomes .settings/skmtc.config.json, and settings.system becomes settings.parse. Every project under .skmtc/ when no project is named. Idempotent. Exits 1, changing nothing, for a project that has both files.",
+    args: ['[project]'],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      { flag: '--dry-run', description: 'Report what would change, and write nothing.' },
+      {
+        flag: '--force',
+        description: 'Apply the changes without asking, also in interactive mode.'
+      }
+    ],
+    agentMode: 'full'
   },
   {
     name: 'create',

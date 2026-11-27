@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -68,7 +69,7 @@ export const renderDescribe = async ({
       arg: '[schema]',
       usage: 'skmtc describe <project> [schema]',
       example: 'skmtc describe my-api ./openapi.json',
-      discover: 'set client.json#source, or pass the schema path/URL as the second arg'
+      discover: 'set skmtc.config.json#source, or pass the schema path/URL as the second arg'
     })
   }
 
@@ -133,7 +134,7 @@ export const printDescribeResult = (
 ): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {

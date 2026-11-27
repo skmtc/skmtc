@@ -1,3 +1,4 @@
+import { printJsonResult } from '@/lib/project-config.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -6,7 +7,7 @@ import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 
 export const description =
-  'Pull this project\'s config (enrichments + filters) from its skmtc-hub project into the local client.json. The destination is the `project: "@account/slug"` field in client.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.'
+  'Pull this project\'s config (enrichments + filters) from its skmtc-hub project into the local skmtc.config.json. The destination is the `project: "@account/slug"` field in skmtc.config.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.'
 
 type RenderPullArgs = {
   skmtcRoot?: SkmtcRoot
@@ -66,7 +67,7 @@ export const renderPull = async ({
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  // Interactive overwrite gate: confirm before rewriting the local client.json.
+  // Interactive overwrite gate: confirm before rewriting the local skmtc.config.json.
   // Only fires when the pull actually changes the file (the headless path skips
   // the prompt on a no-op). In strict/agent mode there's no prompt; `--force`
   // skips it in a TTY too.
@@ -114,7 +115,7 @@ export const printPullResult = (
 ): void => {
   switch (format) {
     case 'json': {
-      console.log(JSON.stringify(result, null, 2))
+      printJsonResult(result)
       return
     }
     case 'text': {
@@ -137,7 +138,7 @@ export const printPullResult = (
           )
           console.log(`  wrote: ${result.wrote}`)
           if (result.remoteWritten) {
-            console.log('  note: recorded destination in client.json#project')
+            console.log('  note: recorded destination in skmtc.config.json#project')
           }
           return
         }

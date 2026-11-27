@@ -7,6 +7,8 @@ import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-regis
 import { shouldSkipRegistryCheck } from '@/lib/registry-check.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
 import { ProjectLoadError } from '@/lib/project-load-error.ts'
+import { resolveInputMode } from '@/lib/strict-mode.ts'
+import { enableConfigMigrationOffer, shouldOfferConfigMigration } from '@/lib/config-migration-offer.ts'
 import {
   ENV_DESCRIPTION,
   getCommandDescriptor,
@@ -29,6 +31,18 @@ const FORCE_DESC =
   'Replace a generator that is already cloned: delete its folder and its edits, and clone the published version again.'
 
 const run = async () => {
+  // In interactive mode, a command that reads a project on a deprecated
+  // config name offers to migrate it (`lib/config-migration-offer.ts`).
+  enableConfigMigrationOffer(
+    shouldOfferConfigMigration({
+      args: Deno.args,
+      inputMode: resolveInputMode({
+        noInputFlag: Deno.args.includes('--no-input'),
+        jsonFlag: Deno.args.includes('--json')
+      })
+    })
+  )
+
   if (!shouldSkipRegistryCheck(Deno.args)) {
     try {
       await assertJsrReachable()
@@ -173,7 +187,7 @@ const run = async () => {
     .option(
       '--anchors',
       'Force gen-maps (attribution) output ON, regardless of ' +
-        '`client.json#settings.anchors.enabled`. Emits sidecars + a ' +
+        '`skmtc.config.json#settings.anchors.enabled`. Emits sidecars + a ' +
         'generation map under `.skmtc/<project>/.maps/`.'
     )
     .option('--no-anchors', 'Force gen-maps (attribution) output OFF, regardless of config.')
@@ -362,7 +376,7 @@ const run = async () => {
     .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--project <ref:string>',
-      'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
+      'Hub destination as @account/slug. Defaults to the `project` field in skmtc.config.json.'
     )
     .option('--force', 'Overwrite existing config without the confirmation prompt.')
     .option(
@@ -371,7 +385,7 @@ const run = async () => {
     )
     .option(
       '--base-files-only',
-      "Push ONLY the app's base files; leave the hub project's client.json config untouched. Mutually exclusive with overwriting config."
+      "Push ONLY the app's base files; leave the hub project's skmtc.config.json config untouched. Mutually exclusive with overwriting config."
     )
     .action(
       async (
@@ -406,7 +420,7 @@ const run = async () => {
     .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--project <ref:string>',
-      'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
+      'Hub destination as @account/slug. Defaults to the `project` field in skmtc.config.json.'
     )
     .option('--force', 'Overwrite the local config without the confirmation prompt.')
     .action(async ({ json, input, token, env, project, force }, projectName) => {
@@ -532,7 +546,7 @@ const run = async () => {
 
   const projectCreateCommand = new Command()
     .description(
-      'Create a new hub project named <name> from the local setup: stack from deno.json#name, API from client.json#api (or register client.json#source), config from client.json. Create-only — a name clash fails (use `push` to update an existing project).'
+      'Create a new hub project named <name> from the local setup: stack from deno.json#name, API from skmtc.config.json#api (or register skmtc.config.json#source), config from skmtc.config.json. Create-only — a name clash fails (use `push` to update an existing project).'
     )
     .arguments('<name:string>')
     .option('--no-input', NO_INPUT_DESC)
@@ -705,7 +719,7 @@ const run = async () => {
 
   const migrateVariantsCommand = new Command()
     .description(
-      "Migrate a project's client.json to the variant-aware shape introduced in @skmtc/core@0.5.0. " +
+      "Migrate a project's skmtc.config.json to the variant-aware shape introduced in @skmtc/core@0.5.0. " +
         'Idempotent — safe to re-run.'
     )
     .arguments('<project:string>')
@@ -715,17 +729,39 @@ const run = async () => {
       await renderMigrateVariants({ projectName, jsonFlag: json })
     })
 
+  const migrateConfigCommand = new Command()
+    .description(getCommandDescriptor('migrate config').description)
+    .arguments('[project:string]')
+    .option('--dry-run', 'Report what would change, and write nothing.')
+    .option('--force', 'Apply the changes without asking, also in interactive mode.')
+    .option('--json', JSON_DESC)
+    .option('--no-input', NO_INPUT_DESC)
+    .action(async ({ dryRun, force, json, input }, projectName) => {
+      const { renderMigrateConfig } = await import('@/commands/migrate-config.ts')
+      const result = await renderMigrateConfig({
+        projectName,
+        dryRun,
+        force,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+      Deno.exit(result.exitCode)
+    })
+
   const migrateCommand = new Command()
     .description(
-      'Apply one-shot migrations to a project. Currently supports `variants` ' +
-        '(wrap operation enrichments + reshape skip/include for the variant axis).'
+      'Apply one-shot migrations to a project: `config` (move to skmtc.config.json and ' +
+        'settings.parse) and `variants` (wrap operation enrichments + reshape skip/include ' +
+        'for the variant axis).'
     )
     .action(() => {
       console.error('Usage: skmtc migrate <subcommand>')
       console.error('Subcommands:')
+      console.error('  config [project]     Move to skmtc.config.json and settings.parse.')
       console.error('  variants <project>   Migrate to the variant-aware shape.')
       Deno.exit(2)
     })
+    .command('config', migrateConfigCommand)
     .command('variants', migrateVariantsCommand)
 
   await new Command()
