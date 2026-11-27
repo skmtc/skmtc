@@ -161,8 +161,10 @@ export type ToArtifactsArgs = {
    * than one generator inserts into it, as when an operation generator that
    * the config lists before a model generator inserts that generator's
    * projection: each subject runs every generator before the next subject
-   * runs, and the models run first. A run with `attribution.postPass` or
-   * `inspect`, or of a GraphQL document, gives every file at the end.
+   * runs, and the models run first. In a cycle of models, a different
+   * definition can then get the type annotation. A run with
+   * `attribution.postPass` or `inspect`, or of a GraphQL document, gives
+   * every file at the end.
    *
    * A run that fails has no files. What it gave before it failed, the host
    * must drop. After the first subject that fails it gives no more.

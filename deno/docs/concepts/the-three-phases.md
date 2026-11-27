@@ -257,10 +257,13 @@ generator of that kind.
 
 A file plan tells the run which subjects hold a file. The plan comes from
 the `projections` that each entry lists, and from the `$ref`s that the
-parser read. The two orders write the same files. If two generators insert
-into one file, the definitions in it can be in a different order. This
-includes the file of a model generator, when an operation generator that
-comes before it in the config inserts its projection. See
+parser read.
+
+The two orders write the same files. If two generators insert into one
+file, the definitions in it can be in a different order. This includes the
+file of a model generator, when an operation generator that comes before it
+in the config inserts its projection. In a cycle of models, a different
+definition can then get the type annotation. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle

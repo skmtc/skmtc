@@ -176,7 +176,8 @@ With `onArtifact`:
   definitions in it can be in a different order.
 - This includes a model generator's file, when an operation generator
   inserts its projection and comes first in the config. With `onArtifact`,
-  the models run first, in document order.
+  the models run first, in document order. In a cycle of models, a different
+  definition can then get the type annotation.
 - A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
   document, gives every file at the end.
 - A run that fails has no files. Drop the files that it gave before it

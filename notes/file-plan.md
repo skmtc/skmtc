@@ -81,7 +81,8 @@ Five ideas, each with one home. The tickets are listed further down.
    in document order, and an operation when each model up to the last one
    it can get to has run. A file that more than one generator inserts into
    can still change its order, as when an operation generator listed before
-   a model generator inserts that generator's projection. When
+   a model generator inserts that generator's projection. In a cycle of
+   models, a different definition can then get the type annotation. When
    a file's last holder is done, core renders it, gives the text to the host
    and lets the file go. A write to such a file, or a lookup in one, is an
    error that names the subject and the file: it means a generator inserted
