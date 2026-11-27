@@ -53,7 +53,8 @@ variants — that calls `transform` per `(subject, variant)`:
 // core/context/GenerateContext.ts (#runSubjects, simplified)
 subjects.forEach(subject => {
   stackTrail.trace(subject.trail, subjectTrail => {
-    const variants = toVariantList({ opEnrichments, generatorId: entry.id, operationLabel: subject.label })
+    const enrichments = this.readEnrichment([entry.id, ...subject.enrichmentPath])
+    const variants = toVariantList({ opEnrichments: enrichments, generatorId: entry.id, operationLabel: subject.label })
     variants.forEach(variant => {
       subjectTrail.trace(['variant', variant], st => {
         try {

@@ -37,10 +37,10 @@ type ToSourceArgs = {
 
 /**
  * One subject of a run: an OpenAPI operation, a webhook, a GraphQL operation
- * or a model. It is the one place that knows how its kind differs from the
- * others: where its results and its enrichments are, what a message calls
- * it, which filter names it, and how an entry of its kind is called with it.
- * The run asks every kind the same questions, in the same order.
+ * or a model. For the run, it holds how its kind differs from the others:
+ * where its results and its enrichments are, what a message calls it, which
+ * filter names it, and how an entry of its kind is called with it. The run
+ * asks every kind the same questions, in the same order.
  *
  * @template Entry - The generator entry of the subject's kind
  * @template Filter - One generator's `settings.include` or `settings.skip`
