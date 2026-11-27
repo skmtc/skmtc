@@ -258,10 +258,11 @@ export class GqlOperationSubject implements Subject<GqlOperationEntry, never> {
 }
 
 /**
- * A model as a subject. Its results and enrichments are at `[refName]`. The
- * run makes one for each schema component of either protocol; the file plan
- * also makes one for a model that is no component, which a `$ref` to a
- * place inside a schema gives.
+ * A model as a subject. Its results and enrichments are at its model key
+ * (`toModelKey`): the `refName` of a component, the whole pointer of any
+ * other model. The run makes one for each schema component of either
+ * protocol; the file plan also makes one for a model that is no component,
+ * which a `$ref` to a place inside a schema gives.
  */
 export class ModelSubject implements Subject<ModelEntry, IncludeModelRefs | SkipModelRefs> {
   readonly type = 'model'
@@ -274,9 +275,11 @@ export class ModelSubject implements Subject<ModelEntry, IncludeModelRefs | Skip
   constructor(ref: RefParts) {
     this.refName = ref.refName
     this.ref = ref
-    this.trail = ref.refName
-    this.enrichmentPath = [ref.refName]
-    this.label = ref.refName
+    const key = toModelKey(ref)
+
+    this.trail = key
+    this.enrichmentPath = [key]
+    this.label = key
   }
 
   isSupported({ entry, context, variant }: AskArgs<ModelEntry>): boolean {

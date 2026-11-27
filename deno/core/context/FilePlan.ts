@@ -176,29 +176,42 @@ export class FilePlan {
     return files
   }
 
-  /** The files the declared projections of a subject's kind map it to, for each of its variants. */
+  /**
+   * The files the declared projections of a subject's kind map it to, for
+   * each of its variants. Each variant is answered on its own, as the run
+   * runs each on its own: a variant that throws leaves out its file only.
+   */
   #toFiles(subject: PlannedSubject): number[] {
     const projections = this.#projections.get(subject.type) ?? []
 
-    return projections.flatMap(projection => {
-      try {
-        const variants = toVariantList({
-          opEnrichments: this.#context.readEnrichment([projection.id, ...subject.enrichmentPath]),
-          generatorId: projection.id,
-          operationLabel: subject.label
-        })
-
-        return variants.flatMap(variant => {
+    return projections.flatMap(projection =>
+      this.#toVariants(subject, projection).flatMap(variant => {
+        try {
           const exportPath = subject.toExportPath({ projection, context: this.#context, variant })
 
           return exportPath === undefined ? [] : [this.#toIndex(this.#toFilePath(exportPath, projection.id))]
-        })
-      } catch {
-        this.unanswered += 1
+        } catch {
+          this.unanswered += 1
 
-        return []
-      }
-    })
+          return []
+        }
+      })
+    )
+  }
+
+  /** The variants of a subject's enrichments for a projection, or none when they have no `main`. */
+  #toVariants(subject: PlannedSubject, projection: DeclaredProjection): string[] {
+    try {
+      return toVariantList({
+        opEnrichments: this.#context.readEnrichment([projection.id, ...subject.enrichmentPath]),
+        generatorId: projection.id,
+        operationLabel: subject.label
+      })
+    } catch {
+      this.unanswered += 1
+
+      return []
+    }
   }
 
   #toIndex(path: WorkspacePath): number {

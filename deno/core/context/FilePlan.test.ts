@@ -82,12 +82,18 @@ type Planned = {
 type ToPlannedArgs = {
   settings?: ClientSettings
   operationProjections?: DeclaredProjection[]
+  /** The document to plan; the one above when absent. */
+  source?: Record<string, unknown>
 }
 
-const toPlanned = ({ settings, operationProjections = [operationFiles, modelFiles] }: ToPlannedArgs = {}): Planned => {
+const toPlanned = ({
+  settings,
+  operationProjections = [operationFiles, modelFiles],
+  source = document
+}: ToPlannedArgs = {}): Planned => {
   const logger = log.getLogger('file-plan-test')
   // @ts-expect-error a test document is not typed as an OpenAPI document
-  const parseContext = new ParseContext({ input: { type: 'oas', value: document }, logger, silent: true })
+  const parseContext = new ParseContext({ input: { type: 'oas', value: source }, logger, silent: true })
   const parsed = parseContext.parse(new StackTrail(['test']))
 
   if (parsed.type !== 'oas') {
@@ -240,6 +246,69 @@ Deno.test('FilePlan - a projection whose static throws is left out for that subj
   assertEquals(plan.unanswered, 1)
   assertEquals(plan.filesOf(operation('/tags')), [modelFile('Tag')])
   assertEquals(plan.filesOf(operation('/ping')), [operationFile('/ping')])
+})
+
+// The run runs each variant on its own, so a variant whose static throws
+// leaves out its own file and not the files of the other variants.
+Deno.test('FilePlan - a variant whose static throws is left out, and the other variants are planned', () => {
+  const throwsForOther: DeclaredProjection = {
+    id: 'operations',
+    type: 'oasOperation',
+    toEnrichments: () => undefined,
+    toExportPath: ({ operation, variant }) => {
+      if (variant === 'other') {
+        throw new Error('no path for other')
+      }
+
+      return `@/operations${operation.path}.${variant}.ts`
+    }
+  }
+
+  const { plan, operation } = toPlanned({
+    settings: { enrichments: { operations: { '/ping': { get: { main: {}, other: {} } } } } },
+    operationProjections: [throwsForOther, modelFiles]
+  })
+
+  assertEquals(plan.unanswered, 1)
+  assertEquals(plan.filesOf(operation('/ping')), [operationFile('/ping', 'main')])
+})
+
+// A `$ref` to a place inside a schema gives a model that is no component.
+// Its enrichments are at its whole pointer, as the run reads them.
+Deno.test('FilePlan - a model that is no component reads its variants at its whole pointer', () => {
+  const pointer = '#/components/schemas/Pet/properties/tag'
+  const variantFiles: DeclaredProjection = {
+    id: 'variants',
+    type: 'model',
+    toEnrichments: () => undefined,
+    toExportPath: ({ ref, variant }) => `@/models/${ref.refName}.${variant}.ts`
+  }
+
+  const { plan, operation } = toPlanned({
+    source: {
+      openapi: '3.0.3',
+      info: { title: 'Pointer', version: '1.0.0' },
+      paths: {
+        '/tag': { get: { responses: { '200': { description: 'ok', content: { 'application/json': { schema: { $ref: pointer } } } } } } }
+      },
+      components: {
+        schemas: { Pet: { type: 'object', properties: { tag: { type: 'string' } } } }
+      }
+    },
+    settings: { enrichments: { variants: { [pointer]: { main: {}, admin: {} } } } },
+    operationProjections: [operationFiles, variantFiles]
+  })
+
+  assertEquals(plan.unanswered, 0)
+  assertEquals(
+    sorted(plan.filesOf(operation('/tag'))),
+    sorted([
+      operationFile('/tag'),
+      modelFile('tag'),
+      '@/models/tag.main.generated.ts',
+      '@/models/tag.admin.generated.ts'
+    ])
+  )
 })
 
 Deno.test('FilePlan - a generator that settings.skip names whole adds no file to the plan', () => {
