@@ -17,11 +17,21 @@ only change: the smallest heap a run fits in went from 102 MB to 79 MB on
 GitHub, 82 MB to 63 MB on Sentry, and 291 MB to 205 MB on Cloudflare, with
 the same output byte for byte.
 
-Microsoft Graph was not in that measurement. On released core 0.48.0, a
-whole run of it with the three stock generators needs a heap of about
-476 MB (measured 2026-11-27 with a script that also holds all the output, so
-the figure is somewhat high). Ticket 5 measures the plan's own gain on
-Microsoft Graph, on main.
+Measured again on main with ticket 5, with the three stock generators
+(gen-typescript, gen-zod, gen-tanstack-query-fetch-zod), the document as
+parsed JSON, and a sink that keeps nothing: the smallest V8 old space the
+run completes in.
+
+| document | without `onArtifact` | with it |
+|---|---|---|
+| Sentry | 102 MB | 82 MB |
+| GitHub | 110 MB | 86 MB |
+| Cloudflare | 268 MB | 205 MB |
+| Microsoft Graph | 496 MB | 354 MB |
+
+The run with `onArtifact` takes longer where the document is large: about
+0.1 to 0.2 s more on Cloudflare in a run of 1.6 s, and about 0.4 s more on
+Microsoft Graph in a run of 2.3 s. On GitHub nothing shows.
 
 Not goals of this work: building operations and schemas only when they are
 read, one parse for each operation, and anything a host can do with its own
@@ -66,14 +76,17 @@ Five ideas, each with one home. The tickets are listed further down.
    behavior; it adds the plan and its tests. A file that no declared
    projection maps a subject to is not in the plan, and stays to the end.
 4. **Subject order, and release.** The run goes subject by subject: for one
-   subject, every generator. Two rules keep the output as it is today:
-   models in document order, and an operation after the models it reaches.
-   When a file's last holder is done, core renders it, keeps the text and
-   drops the definitions. A write to a released file, or a lookup in one, is
-   an error that names the generator, the subject and the file: it means a
-   generator inserted a projection it did not declare.
-5. **A sink.** `onArtifact(path, text)` on `toArtifacts`, called at release.
-   Without it the text stays in memory and the result is as today.
+   subject, every generator. Three rules keep the output as it is today:
+   the models in document order, the operations in document order, and an
+   operation when each model up to the last one it can get to has run. When
+   a file's last holder is done, core renders it, gives the text to the host
+   and lets the file go. A write to such a file, or a lookup in one, is an
+   error that names the subject and the file: it means a generator inserted
+   a projection it did not declare.
+5. **A sink.** `onArtifact(path, text)` on `toArtifacts`, called when a file
+   is complete. It is what turns the plan on: a run without it is as today.
+   With it, `artifacts` of the result is empty. Ideas 4 and 5 are one
+   ticket.
 
 **A run plans only when it releases.** The plan costs time: with the three
 stock generators, about 30 ms for GitHub in a run of about 250 ms, and about
@@ -124,10 +137,24 @@ The same work fits three patterns core already has, and one it lacks.
 
 - **A file that several generators write keeps its definitions in the order
   they were inserted.** Generator by generator and subject by subject give
-  different orders. The two order rules gave the same bytes for the three
-  stock generators on three documents. The bar for ticket 5 is the same
-  bytes for every stock generator on the documents in `core/_schemas`.
-  Where a stack cannot meet it, the ticket stops and the owner decides.
+  different orders. The bar for ticket 5 was the same bytes for every stock
+  generator on the documents in `core/_schemas`, and it is met: each of the
+  18 stock generators alone and 7 stacks of them, on those six documents and
+  on Sentry and GitHub. Of 200 pairs, 163 were compared, about 104,700
+  files, and none differs; in 37 the run fails both ways. The first order
+  tried ran an operation as soon as its models had run. It changed the
+  order of the entries in a file that every operation adds to, which seven
+  stock generators have; the rule for operations in document order ends
+  that.
+- **What the three rules do not promise.** Two generators that write one
+  file have their definitions in the run's order of generators when both
+  get to a model from the same first subject. A generator that gets to a
+  model from an earlier subject than another one does would put its
+  definition first. No stock generator does.
+- **A run that fails after it gave files.** A run generator by generator
+  that fails writes nothing. A run with a sink has given files by then. The
+  host drops them, and the run gives no more after the first subject that
+  fails.
 - **A generator that writes one file from every subject** (an accumulator,
   such as a docs page) can never release that file early. It is not planned,
   and the run reports it once, so the author knows why memory is not saved.
@@ -150,8 +177,7 @@ The same work fits three patterns core already has, and one it lacks.
 | 2 | Reach, from the refs the parser read | no | one module in `parse/` with tests |
 | 3 | The file plan | no | one module with tests; nothing in a run builds the plan yet |
 | 4 | One `Subject` type and one runner for the four kinds | no | a refactor of `GenerateContext`'s four run loops; deep review |
-| 5 | Subject order and release | yes: order of work, peak memory | the large one; deep review |
-| 6 | `onArtifact` | adds an option | small |
+| 5 and 6 | Subject order and release, for a run that is given `onArtifact` | adds an option; a run without it is as today | the large one; deep review |
 
 - Each ticket leaves main releasable, with no switch that exists only to
   bridge two tickets.
@@ -189,4 +215,5 @@ corrected if it does not hold.
 - How webhooks map to files in a real generator. The plan gives a webhook
   the operation rule; no stock generator takes webhooks, so no run has
   checked it.
-- The figures above are from core 0.45. Ticket 5 measures again on main.
+- A run with `onArtifact` and attribution. It gives every file at the end
+  today. Whether a file can be captured when it is given is not looked at.

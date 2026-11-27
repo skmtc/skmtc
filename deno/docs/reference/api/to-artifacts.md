@@ -36,6 +36,7 @@ export type TransformArgs<E> = {
   startAt: number;
   silent: boolean;
   logLevel?: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+  onArtifact?: (path: string, content: string) => void;
 };
 ```
 
@@ -156,6 +157,39 @@ called. Used for the duration calculation in the returned `ManifestContent`. The
 engine subtracts `startAt` from `Date.now()` at the end of the run to compute
 total elapsed time.
 
+### `onArtifact`
+
+Optional. The run calls it with each file when the file is complete: the
+path, which is a key of `artifacts`, and the text. Use it when the host
+writes or sends files while the run goes on, and when memory is the limit.
+
+With `onArtifact`:
+
+- `artifacts` of the result is empty. The host has every file from the
+  calls. `manifest.files` has every file.
+- For an OpenAPI document, the run gives a file when no later subject can
+  write to it or read it. The run then lets the file go. The files and
+  their bytes are the same as without `onArtifact`.
+- The run goes subject by subject: for one model or operation, every
+  generator. Without `onArtifact`, one generator runs all its subjects, then
+  the next generator runs.
+- A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
+  document, gives every file at the end.
+- A run that fails has no files. Drop the files that it gave before it
+  failed. After the first subject that fails, the run gives no more files.
+
+The run knows when a file is complete from the `projections` that each
+generator's entry lists. See [entry factories](entry-factories.md). The run
+gives a file of a generator with no list at the end.
+
+If a generator inserts a projection that its entry does not list, it can
+write to a file that the run gave earlier. The run then fails, and the
+error names the file.
+
+The plan that tells the run when a file is complete costs time: about 0.4 s
+for a document of 18,000 operations in a run of 2.5 s. A run without
+`onArtifact` does not build it.
+
 ## Returns
 
 ```ts
@@ -174,6 +208,9 @@ artifact root.
 
 The CLI writes each `[path, contents]` pair to disk as the post-engine step. The
 engine itself doesn't touch the filesystem — `toArtifacts` returns a pure value.
+
+With [`onArtifact`](#onartifact), `artifacts` is empty: the run gave each
+file to that function.
 
 ### `manifest`
 

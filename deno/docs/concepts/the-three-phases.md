@@ -243,6 +243,23 @@ returns `void`). Instead, the transform calls
 `context.insertOperation({ projection: MyProjection, operation })` or
 `context.insertNormalizedModel(MyProjection, args)`, which delegate to Drivers.
 
+### The other order: subject by subject
+
+A host can pass `onArtifact` to `toArtifacts`. The run then gives each file
+to the host when the file is complete, and lets it go. For that, the outer
+loop goes subject by subject: for one model or one operation, it runs every
+generator of that kind.
+
+- The models run in document order.
+- The operations run in document order. An operation runs after the last
+  model that it can reach.
+- After each subject, the run gives the files that no later subject holds.
+
+A file plan tells the run which subjects hold a file. The plan comes from
+the `projections` that each entry lists, and from the `$ref`s that the
+parser read. The files and their bytes are the same in both orders. See
+[`onArtifact`](../reference/api/to-artifacts.md#onartifact).
+
 ### The Driver lifecycle
 
 When `transform` calls `context.insertOperation({ projection: TanstackQuery, operation })`:

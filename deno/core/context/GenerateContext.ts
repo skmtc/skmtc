@@ -8,10 +8,12 @@ import { DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import {
   isDefaultRefPath,
+  fromModelKey,
   isRemoteRefPath,
   toModelKey,
   toRefPointer,
@@ -154,6 +156,30 @@ type SubjectCounts = {
   transformed: number
   /** The ones that threw. */
   failed: number
+}
+
+/** What a run needs to give each file to its host when the file is complete. */
+type FileRelease = {
+  /** What each subject of the document reaches, from the parse of it. */
+  reach: Reach
+  /** Called with a file when no subject left to run holds it. The context then lets the file go. */
+  onFile: (path: WorkspacePath, file: FileBase) => void
+}
+
+/** One generator in a run that goes subject by subject: what a run generator by generator keeps in its loop. */
+type GeneratorRun<Entry, Filter> = {
+  entry: Entry
+  trail: StackTrail
+  filters: SubjectFilters<Filter>
+  counts: SubjectCounts
+  milliseconds: number
+  files: number
+}
+
+/** One subject of a run that goes subject by subject, and the run of every generator of its kind for it. */
+type Step = {
+  subject: PlannedSubject
+  run: () => void
 }
 
 type ToFilePlanArgs = {
@@ -348,6 +374,8 @@ export class GenerateContext implements GenerateContextType {
   #failedItems: FailedItem[] = []
   /** Each file's path folded (case, Unicode form) → the path: a file system that ignores case sees one file. */
   #foldedPaths: Map<string, string> = new Map()
+  /** The paths of the files that were given to the host and let go. */
+  #released = new Set<string>()
   #previews: Record<string, Preview>
   /**
    * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
@@ -531,35 +559,17 @@ export class GenerateContext implements GenerateContextType {
   /**
    * @internal
    */
-  toArtifacts(stackTrail: StackTrail): GenerateResult {
+  toArtifacts(stackTrail: StackTrail, release?: FileRelease): GenerateResult {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
-    generators.forEach(generatorConfig => {
-      stackTrail.trace(generatorConfig.id, st => {
-        // Whole-generator skip (string entry in `skip`). No per-operation
-        // `skipped` results emitted.
-        if (this.settings?.skip?.includes(generatorConfig.id)) {
-          this.#logGeneratorLine(st, `${generatorConfig.id}: skipped by settings.skip`)
-          return
-        }
-
-        const startedAt = performance.now()
-        const fileCountBefore = this.#files.size
-        this.#subjectCounts = { offered: 0, transformed: 0, failed: 0 }
-
-        this.#runGenerator(generatorConfig, st)
-
-        const { offered, transformed, failed } = this.#subjectCounts
-        const fileCount = this.#files.size - fileCountBefore
-        const milliseconds = Math.round(performance.now() - startedAt)
-
-        this.#logGeneratorLine(
-          st,
-          `${generatorConfig.id}: ${transformed} of ${toCountPhrase(offered, toSubjectNoun(generatorConfig))}, ` +
-            `${failed} failed, ${toCountPhrase(fileCount, 'file')}, ${milliseconds} ms`
-        )
-      })
-    })
+    // A run that gives each file when it is complete goes subject by
+    // subject. Any other run goes generator by generator. The files are
+    // the same in both.
+    if (release !== undefined && this.document.type === 'oas') {
+      this.#runBySubject(this.document.value, generators, stackTrail, release)
+    } else {
+      this.#runByGenerator(generators, stackTrail)
+    }
 
     // Post-walk consumption audit: every enrichment lookup above was
     // recorded; configured paths no lookup touched are dead config —
@@ -620,6 +630,212 @@ export class GenerateContext implements GenerateContextType {
             this.#toContentSettingsExportPath(exportPath, generatorId)
         })
     )
+  }
+
+  /** The run generator by generator: one generator runs all its subjects, then the next one. */
+  #runByGenerator(generators: GeneratorConfig[], stackTrail: StackTrail): void {
+    generators.forEach(generatorConfig => {
+      stackTrail.trace(generatorConfig.id, st => {
+        // Whole-generator skip (string entry in `skip`). No per-operation
+        // `skipped` results emitted.
+        if (this.settings?.skip?.includes(generatorConfig.id)) {
+          this.#logGeneratorLine(st, `${generatorConfig.id}: skipped by settings.skip`)
+          return
+        }
+
+        const startedAt = performance.now()
+        const fileCountBefore = this.#files.size
+        this.#subjectCounts = { offered: 0, transformed: 0, failed: 0 }
+
+        this.#runGenerator(generatorConfig, st)
+
+        const { offered, transformed, failed } = this.#subjectCounts
+        const fileCount = this.#files.size - fileCountBefore
+        const milliseconds = Math.round(performance.now() - startedAt)
+
+        this.#logGeneratorLine(
+          st,
+          `${generatorConfig.id}: ${transformed} of ${toCountPhrase(offered, toSubjectNoun(generatorConfig))}, ` +
+            `${failed} failed, ${toCountPhrase(fileCount, 'file')}, ${milliseconds} ms`
+        )
+      })
+    })
+  }
+
+  /**
+   * The run subject by subject: for one subject, every generator of its
+   * kind, in the order of the run. When a subject has run, the files that
+   * the plan says no later subject holds are given to `release.onFile` and
+   * let go.
+   *
+   * The order keeps each file's bytes as {@link #runByGenerator} writes
+   * them. The models run in document order, and so do the operations, and
+   * then the webhooks. An operation runs when each model up to the last one
+   * it can get to has run.
+   */
+  #runBySubject(
+    oasDocument: OasDocument,
+    generators: GeneratorConfig[],
+    stackTrail: StackTrail,
+    { reach, onFile }: FileRelease
+  ): void {
+    const runs = this.#toGeneratorRuns(generators, stackTrail)
+    const models = this.#schemaRefNames().map(refName => new ModelSubject(toSchemaComponentRef(refName)))
+    const modelSteps = this.#toSteps(models, runs.models)
+
+    const laterSteps = [
+      ...this.#toSteps(oasDocument.operations.map(operation => new OasOperationSubject(operation)), runs.operations),
+      ...this.#toSteps(oasDocument.webhooks.map(webhook => new WebhookSubject(webhook)), runs.webhooks)
+    ]
+
+    const position = new Map(models.map((subject, index) => [toModelKey(subject.ref), index]))
+
+    // How many models a step waits for: each model up to the last one it can get to.
+    const toModelCount = ({ subject }: Step): number =>
+      subject
+        .toNamedModels(reach)
+        .flatMap(key => reach.ofModel(fromModelKey(key)))
+        .reduce((count, key) => Math.max(count, (position.get(key) ?? -1) + 1), 0)
+
+    // The operations stay in document order too, so a step waits for no fewer
+    // models than the step before it. A file that every operation adds to
+    // then has its entries in the order of the document.
+    const waitsFor: number[] = []
+
+    laterSteps.forEach(step => {
+      waitsFor.push(Math.max(waitsFor.at(-1) ?? 0, toModelCount(step)))
+    })
+
+    const readyAfter = Map.groupBy(laterSteps, (_step, index) => waitsFor[index])
+
+    const steps = [
+      ...(readyAfter.get(0) ?? []),
+      ...modelSteps.flatMap((step, index) => [step, ...(readyAfter.get(index + 1) ?? [])])
+    ]
+
+    const plan = this.toFilePlan({ subjects: steps.map(({ subject }) => subject), reach })
+
+    steps.forEach(step => {
+      step.run()
+
+      // A run that has failed gives no more files: it will write nothing.
+      const complete = plan.finish(step.subject)
+
+      if (this.#failedItems.length === 0) {
+        complete.forEach(path => this.#release(path, onFile))
+      }
+    })
+
+    ;[...runs.models, ...runs.operations, ...runs.webhooks].forEach(run => {
+      this.#logGeneratorLine(
+        run.trail,
+        `${run.entry.id}: ${run.counts.transformed} of ${toCountPhrase(run.counts.offered, toSubjectNoun(run.entry))}, ` +
+          `${run.counts.failed} failed, ${toCountPhrase(run.files, 'file')}, ${Math.round(run.milliseconds)} ms`
+      )
+    })
+  }
+
+  /**
+   * Each generator of the run that takes a subject of an OpenAPI document,
+   * by the kind it takes, with its trail and its filters. A generator that
+   * `settings.skip` names whole is left out, and logs that, as in
+   * {@link #runByGenerator}. A generator for GraphQL has no subject here.
+   */
+  #toGeneratorRuns(generators: GeneratorConfig[], stackTrail: StackTrail) {
+    const toRun = <Entry extends GeneratorConfig, Filter>(
+      entry: Entry,
+      filters: SubjectFilters<Filter>
+    ): GeneratorRun<Entry, Filter> => ({
+      entry,
+      trail: stackTrail.clone().append(entry.id),
+      filters,
+      counts: { offered: 0, transformed: 0, failed: 0 },
+      milliseconds: 0,
+      files: 0
+    })
+
+    const toFilter = (kind: 'skip' | 'include', id: string) => toGeneratorFilter(this.settings?.[kind], id)
+
+    const toPathFilters = (id: string) => ({
+      include: toIncludePaths(toFilter('include', id), id),
+      skip: toSkipPaths(toFilter('skip', id), id)
+    })
+
+    const active = generators.filter(({ id }) => {
+      const isSkipped = this.settings?.skip?.includes(id) ?? false
+
+      if (isSkipped) {
+        this.#logGeneratorLine(stackTrail.clone().append(id), `${id}: skipped by settings.skip`)
+      }
+
+      return !isSkipped
+    })
+
+    return {
+      models: active.flatMap(entry =>
+        entry.type === 'model'
+          ? [
+              toRun(entry, {
+                include: toIncludeModels(toFilter('include', entry.id), entry.id),
+                skip: toSkipModels(toFilter('skip', entry.id), entry.id)
+              })
+            ]
+          : []
+      ),
+      operations: active.flatMap(entry =>
+        entry.type === 'oasOperation' ? [toRun(entry, toPathFilters(entry.id))] : []
+      ),
+      webhooks: active.flatMap(entry => (entry.type === 'webhook' ? [toRun(entry, toPathFilters(entry.id))] : []))
+    }
+  }
+
+  /** One step for each subject: every generator of its kind runs it, with its own counts and time. */
+  #toSteps<Entry extends GeneratorConfig, Filter>(
+    subjects: Subject<Entry, Filter>[],
+    runs: GeneratorRun<Entry, Filter>[]
+  ): Step[] {
+    return subjects.map(subject => ({
+      subject,
+      run: () => {
+        runs.forEach(run => {
+          const startedAt = performance.now()
+          const fileCountBefore = this.#files.size
+
+          this.#subjectCounts = run.counts
+          this.#runSubjects(run.entry, [subject], run.filters, run.trail)
+
+          run.milliseconds += performance.now() - startedAt
+          run.files += this.#files.size - fileCountBefore
+        })
+      }
+    }))
+  }
+
+  /** Gives a complete file to the host and lets it go. A file that no generator wrote has nothing to give. */
+  #release(path: WorkspacePath, onFile: FileRelease['onFile']): void {
+    const file = this.#files.get(path)
+
+    if (file === undefined) {
+      return
+    }
+
+    onFile(path, file)
+    this.#files.delete(path)
+    this.#released.add(path)
+  }
+
+  /**
+   * A read or a write of a file that was given to the host is a fault: the
+   * file is gone. It means a generator got to a file that the plan does not
+   * give its subject, by a projection that its entry does not list.
+   */
+  #affirmNotReleased(path: string): void {
+    if (this.#released.has(path)) {
+      throw new Error(
+        `File '${path}' was complete and given to the host before this subject used it. ` +
+          `A generator inserts a projection that its entry does not list in 'projections'.`
+      )
+    }
   }
 
   /**
@@ -1130,7 +1346,13 @@ export class GenerateContext implements GenerateContextType {
    * key: a key is a normalized path. The file's own `path` is the key.
    */
   getFile(filePath: string): FileBase | undefined {
-    return getByWorkspacePath(this.#files, filePath)
+    const file = getByWorkspacePath(this.#files, filePath)
+
+    if (file === undefined && this.#released.size > 0) {
+      this.#affirmNotReleased(normalizeWorkspacePath(filePath))
+    }
+
+    return file
   }
 
   /**
@@ -1139,7 +1361,13 @@ export class GenerateContext implements GenerateContextType {
    * {@link getFile}: there is no file there in any spelling.
    */
   getFileByWorkspacePath(path: WorkspacePath): FileBase | undefined {
-    return this.#files.get(path)
+    const file = this.#files.get(path)
+
+    if (file === undefined && this.#released.size > 0) {
+      this.#affirmNotReleased(path)
+    }
+
+    return file
   }
 
   /**
@@ -1171,6 +1399,8 @@ export class GenerateContext implements GenerateContextType {
     if (this.#files.has(normalizedPath)) {
       throw new Error(`File already exists: ${normalizedPath}`)
     }
+
+    this.#affirmNotReleased(normalizedPath)
 
     // Two paths that differ only in case are one file on a file system that
     // ignores case, as macOS's and Windows' do by default: writing the
