@@ -72,8 +72,11 @@ import {
   ModelSubject,
   OasOperationSubject,
   WebhookSubject,
+  type PlannedSubject,
   type Subject
 } from '@/context/Subject.ts'
+import { FilePlan } from '@/context/FilePlan.ts'
+import type { Reach } from '@/parse/Reach.ts'
 
 export {
   toGqlOperationSource,
@@ -151,6 +154,12 @@ type SubjectCounts = {
   transformed: number
   /** The ones that threw. */
   failed: number
+}
+
+type ToFilePlanArgs = {
+  /** The subjects of the run, of each kind. */
+  subjects: readonly PlannedSubject[]
+  reach: Reach
 }
 
 /** One generator's `settings.include` and `settings.skip` filters for subjects of one kind. */
@@ -580,6 +589,40 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * @internal
+   * The file plan of a run of this context: which of `subjects` hold each
+   * file, from the projection classes that the entries of the run declared.
+   * An entry that declared none adds no file to the plan, and a generator
+   * that `settings.skip` names whole adds none either, and a GraphQL
+   * document's plan knows no file. Building the plan
+   * leaves the run as it is: its reads of enrichments are not recorded.
+   */
+  toFilePlan({ subjects, reach }: ToFilePlanArgs): FilePlan {
+    const skipped = this.settings?.skip ?? []
+    const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
+
+    // A GraphQL document has no reach (`toReach` reads only OpenAPI refs), so
+    // no subject would hold the files of the models it reaches. Its plan
+    // knows no file, and each file stays to the end.
+    const projections =
+      this.document.type === 'gql'
+        ? []
+        : generators.filter(({ id }) => !skipped.includes(id)).flatMap(generator => generator.projections ?? [])
+
+    return this.#enrichmentAudit.withoutRecording(
+      () =>
+        new FilePlan({
+          context: this,
+          subjects,
+          projections: [...new Set(projections)],
+          reach,
+          toFilePath: (exportPath, generatorId) =>
+            this.#toContentSettingsExportPath(exportPath, generatorId)
+        })
+    )
+  }
+
+  /**
    * Logs `message` at INFO with the generator's trail, when
    * {@link #logsGeneratorLines}. The count of files is of the files the
    * generator added: a file another generator added first is counted on
@@ -670,7 +713,7 @@ export class GenerateContext implements GenerateContextType {
       case 'model':
         this.#runSubjects(
           generatorConfig,
-          this.#schemaRefNames().map(refName => new ModelSubject(refName)),
+          this.#schemaRefNames().map(refName => new ModelSubject(toSchemaComponentRef(refName))),
           {
             include: toIncludeModels(include, generatorConfig.id),
             skip: toSkipModels(skip, generatorConfig.id)
