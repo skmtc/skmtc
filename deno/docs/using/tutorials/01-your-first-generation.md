@@ -8,9 +8,14 @@ A Skmtc project with `@skmtc/gen-zod` installed, and a few `.ts`
 files generated from an OpenAPI spec. They hold runtime validation
 schemas for every component schema in the input.
 
+This is the one first run of Skmtc: install the CLI, then `init`,
+`install` and `generate`. To have a coding agent do it in your own
+project, paste the
+[setup prompt](https://github.com/skmtc/skmtc#set-up-with-an-agent)
+from the repo README. It runs the same commands.
+
 ## Prerequisites
 
-- Deno installed (`deno --version`)
 - A sample OpenAPI v3 spec (URL or local `.json` / `.yaml` file)
 
 If you don't have one handy, use the canonical Petstore spec:
@@ -63,37 +68,22 @@ The generator is added to `.skmtc/petstore/deno.json#imports`. See
 [install reference](../../reference/cli/install.md) for what the
 command does in detail.
 
-## Step 4: Configure the schema source
+## Step 4: Run generate
 
-`init` already wrote `basePath` into
-`.skmtc/petstore/.settings/client.json`. Add a top-level `source` so the
-file reads:
-
-```jsonc
-{
-  "source": "https://petstore3.swagger.io/api/v3/openapi.json",
-  "settings": {
-    "basePath": "src/generated"
-  }
-}
-```
-
-For a local file, use a relative path: `"source": "./openapi.json"`
-(resolved against the workspace root).
-
-## Step 5: Run generate
+Pass the project and the spec:
 
 ```bash
-skmtc generate petstore
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 The engine fetches the spec, runs `gen-zod` against each schema
 component, and writes the artifacts to `src/generated/`.
 
+For a local file, pass its path: `skmtc generate petstore ./openapi.json`.
 If the remote fetch fails (offline, proxy), download the spec to a
-file and use the local-path form from Step 4.
+file and pass that path.
 
-## Step 6: Read the output
+## Step 5: Read the output
 
 ```bash
 ls src/generated/types/
@@ -109,6 +99,37 @@ import { pet } from './src/generated/types/pet.generated.ts'
 
 const validated = pet.parse(someApiResponse)
 ```
+
+The generated files import each other through the `@/` alias:
+`pet.generated.ts` imports `@/types/category.generated.ts`. Thus, in an
+app, `basePath` is the folder that your bundler's `@` alias points to.
+The [init reference](../../reference/cli/init.md) shows the
+alignment for Vite and Next.js.
+
+## Step 6: Pin the schema source
+
+`generate` does not save the spec you passed. To make
+`skmtc generate petstore` enough for the next run, add a top-level
+`source` to `.skmtc/petstore/.settings/client.json`, beside the
+`basePath` that `init` wrote:
+
+```jsonc
+{
+  "source": "https://petstore3.swagger.io/api/v3/openapi.json",
+  "settings": {
+    "basePath": "src/generated"
+  }
+}
+```
+
+For a local file, use a relative path: `"source": "./openapi.json"`
+(resolved against the workspace root). Then run:
+
+```bash
+skmtc generate petstore
+```
+
+The output is the same. The next tutorials use this short form.
 
 ## What just happened
 

@@ -15,12 +15,14 @@ card to run one command.
 cd path/to/your-app                           # this becomes the Skmtc root
 skmtc init my-api ./src --json                # creates .skmtc/my-api/
 skmtc install @skmtc/gen-zod @skmtc/gen-typescript my-api --json
-# Edit .skmtc/my-api/.settings/client.json — set "source" to the schema URL/path
-skmtc generate my-api --json                  # one-shot generation
+skmtc generate my-api ./openapi.json --json   # the schema: a path or a URL
 ```
 
 The final `--json` run returns `{ files, stats, errors, parseIssues, ... }`.
 Inspect `errors` and `parseIssues` for any non-success outcomes.
+
+`generate` does not save the schema you passed. For later runs, pass it
+again or follow "Card: Pinning the schema source".
 
 ### Card: Adding a generator to an existing project
 

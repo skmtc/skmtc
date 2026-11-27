@@ -21,12 +21,15 @@ If you find yourself wanting to change a hardcoded value in a generator, that's 
 ## The flow
 
 ```
-init → install → configure (client.json) → generate
+init → install → generate
 ```
+
+After the first run, you change `client.json` (the schema source,
+enrichments, what to skip) and run `generate` again.
 
 ## Quick start
 
-See [`tutorials/01-your-first-generation.md`](tutorials/01-your-first-generation.md) for the five-minute path.
+See [`tutorials/01-your-first-generation.md`](tutorials/01-your-first-generation.md) for the five-minute path. With a coding agent, paste the [setup prompt](https://github.com/skmtc/skmtc#set-up-with-an-agent) from the repo README.
 
 ## Tutorials
 

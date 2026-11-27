@@ -41,7 +41,7 @@ of `skmtc` depends on nothing. Both plugins share one version, which
 | Skill | Purpose | Version |
 | --- | --- | --- |
 | [`skmtc-generator/`](skmtc-generator/) | Writing and editing generators: producers, what Skmtc already does, the steps, and the finish pass, with references and a skeleton | 0.17.0 |
-| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.4 |
+| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.5 |
 
 `skmtc-generator` is one skill, so an author loads one thing. Its
 `SKILL.md` holds what every path needs: what a producer is, the table of what
