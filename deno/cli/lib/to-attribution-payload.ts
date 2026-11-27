@@ -50,8 +50,8 @@ export const resolveAnchorsEnabled = (
  *
  * When enabled, builds a `SerializableAttribution` carrying a
  * `postPass` block with `schemaSrc` (defaulted to `''` when missing) —
- * `postPass` presence is what requests emission (capture is always on
- * in core). `generatorMeta` is left undefined here; later Phase D work
+ * `postPass` presence is what requests emission, and what instruments
+ * the run's snippets (location capture is always on in core). `generatorMeta` is left undefined here; later Phase D work
  * will populate it from the project's `deno.json` + lockfile.
  */
 export const toAttributionPayload = ({
