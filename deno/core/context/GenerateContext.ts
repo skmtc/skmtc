@@ -564,8 +564,8 @@ export class GenerateContext implements GenerateContextType {
 
     // A run that gives each file when it is complete goes subject by
     // subject. Any other run goes generator by generator. Both write the
-    // same files; a file that several generators write can have its
-    // definitions in another order.
+    // same files; a file that more than one generator inserts into can have
+    // its definitions in another order.
     if (release !== undefined && this.document.type === 'oas') {
       this.#runBySubject(this.document.value, generators, stackTrail, release)
     } else {
@@ -669,11 +669,13 @@ export class GenerateContext implements GenerateContextType {
    * the plan says no later subject holds are given to `release.onFile` and
    * let go.
    *
-   * The order keeps the bytes of a file that one generator writes as
-   * {@link #runByGenerator} writes them. The models run in document order,
-   * and so do the operations, and then the webhooks. An operation runs when
-   * each model up to the last one it can get to has run. A file that several
-   * generators write has their definitions in the order of the subjects.
+   * The models run in document order, and so do the operations, and then
+   * the webhooks. An operation runs when each model up to the last one it
+   * can get to has run. A file that only one generator inserts into keeps
+   * its bytes as {@link #runByGenerator} writes them. A file that more than
+   * one generator inserts into has its definitions in the order of the
+   * subjects. This includes a model generator's file that an operation
+   * generator listed before it inserts into: here the models come first.
    */
   #runBySubject(
     oasDocument: OasDocument,
@@ -1340,7 +1342,8 @@ export class GenerateContext implements GenerateContextType {
 
   /**
    * Look up an already-registered file by path, or `undefined` if none
-   * exists. Neutral primitive: returns the abstract `FileBase` and never
+   * exists. In a run with `onArtifact`, a lookup of a file that was given
+   * to the host throws. Neutral primitive: returns the abstract `FileBase` and never
    * constructs anything, so a (future) language-owned `register` can ask
    * "does this file exist yet?" without the engine knowing the language.
    * To create on a miss, add a file your language constructs with
@@ -1376,7 +1379,8 @@ export class GenerateContext implements GenerateContextType {
 
   /**
    * Read-only view of every file generated so far, keyed by (normalized)
-   * export path. An **inspection / tooling** seam — NOT a coordination
+   * export path. In a run with `onArtifact` it does not have the files that
+   * were given to the host. An **inspection / tooling** seam — NOT a coordination
    * surface: generators must still register via `register` / `insert*`, and
    * the storage stays `#`-private so nothing outside can mutate or re-bind it.
    *

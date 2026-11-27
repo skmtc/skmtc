@@ -77,9 +77,11 @@ type TransformArgs = {
    * For an OpenAPI document the run gives a file as soon as no subject left
    * to run can write to it or read from it, so that a host can write it and
    * the run can let it go. That run goes subject by subject, and writes the
-   * same files. A file that more than one generator writes can have its
-   * definitions in another order: each subject runs every generator before
-   * the next subject runs. A run with `attribution.postPass` or
+   * same files. A file can have its definitions in another order when more
+   * than one generator inserts into it, as when an operation generator that
+   * the config lists before a model generator inserts that generator's
+   * projection: each subject runs every generator before the next subject
+   * runs, and the models run first. A run with `attribution.postPass` or
    * `inspect`, or of a GraphQL document, gives every file at the end.
    *
    * A run that fails has no files. What it gave before it failed, the host

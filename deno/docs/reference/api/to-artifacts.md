@@ -172,8 +172,11 @@ With `onArtifact`:
   same as without `onArtifact`.
 - The run goes subject by subject: for one model or operation, every
   generator. Without `onArtifact`, one generator runs all its subjects, then
-  the next generator runs. Thus, if two generators write to one file, the
+  the next generator runs. Thus, if two generators insert into one file, the
   definitions in it can be in a different order.
+- This includes a model generator's file, when an operation generator
+  inserts its projection and comes first in the config. With `onArtifact`,
+  the models run first, in document order.
 - A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
   document, gives every file at the end.
 - A run that fails has no files. Drop the files that it gave before it
