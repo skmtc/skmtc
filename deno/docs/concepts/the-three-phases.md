@@ -260,10 +260,11 @@ the `projections` that each entry lists, and from the `$ref`s that the
 parser read.
 
 The two orders write the same files. If two generators insert into one
-file, the definitions in it can be in a different order. This includes the
-file of a model generator, when an operation generator that comes before it
-in the config inserts its projection. In a cycle of models, a different
-definition can then get the type annotation. See
+file, the definitions in it can be in a different order. With an operation
+generator before the model generators in the config, the definitions in a
+shared file can differ in order. The names in its import lines can also
+differ in order. In a `$ref` cycle, a different model can get the type
+annotation. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle
