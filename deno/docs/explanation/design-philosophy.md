@@ -56,7 +56,7 @@ declared order. When one generator needs a peer's output it inserts it:
 the engine constructs the peer's Projection on the first request and
 returns the registered definition on every request after, so whichever
 generator asks first, the file map converges to the same content.
-Reordering generators in `client.json` is a no-op by construction, not
+Reordering generators in `skmtc.config.json` is a no-op by construction, not
 by testing discipline.
 
 #### Consequences

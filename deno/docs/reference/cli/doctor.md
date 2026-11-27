@@ -68,13 +68,14 @@ For each project under `.skmtc/<project>/`:
 | Check ID | What it verifies |
 |---|---|
 | `project-deno-json/<project>` | `<project>/deno.json` exists and parses as JSON |
-| `project-base-path/<project>` | `<project>/client.json#settings.basePath` is set and **relative** (absolute paths fail) |
+| `config-names/<project>` | The project uses the current config names. `warning` when the project uses a deprecated name (`client.json` or `settings.system`); the hint is `skmtc migrate config <project>`. `warning` also when the project has both `client.json` and `skmtc.config.json`. `ok` otherwise. |
+| `project-base-path/<project>` | `<project>/skmtc.config.json#settings.basePath` is set and **relative** (absolute paths fail) |
 | `project-core-pin/<project>` | The project's `@skmtc/core` import pin matches the CLI's |
-| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` package in the module graph of `worker.ts` (`deno info --frozen`, bounded at 20s, never writes `deno.lock`), which names the packages that import each copy. `error` when the graph holds two copies — `generate` refuses to build it; `ok` lists the single copies; `skipped` for a project that generates on its stack server (`client.json#serverUrl`), with `--offline`, or when the graph can't be read — before the first `skmtc generate`, or after a pin edit that no build has written to `deno.lock` yet. |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` package in the module graph of `worker.ts` (`deno info --frozen`, bounded at 20s, never writes `deno.lock`), which names the packages that import each copy. `error` when the graph holds two copies — `generate` refuses to build it; `ok` lists the single copies; `skipped` for a project that generates on its stack server (`skmtc.config.json#serverUrl`), with `--offline`, or when the graph can't be read — before the first `skmtc generate`, or after a pin edit that no build has written to `deno.lock` yet. |
 | `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
 | `project-enrichments/<project>` | The last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator ids, paths, methods, model names; schema-dropped keys) surfaces here between runs. `info` entries (enrichments on deliberately skipped items) keep the check `ok`. Skips when the manifest is missing, broken (deferred to `project-manifest`), or written by a core older than 0.28.0. |
-| `project-worker-pin/<project>` | The project pins `@skmtc/worker` — the generated `worker.ts` needs it to bundle. `ok` before the first build (`skmtc generate` or `skmtc bundle`) writes `worker.ts`; `warning` with a `skmtc bundle` hint when the pin is missing — `bundle` writes the pin for every project, including `client.json#serverUrl` ones that `generate` never builds. |
-| `anchors-config/<project>` | `client.json#settings.anchors` parses and reports whether gen-maps are enabled (opt-in via `settings.anchors.enabled`) and where they are written. |
+| `project-worker-pin/<project>` | The project pins `@skmtc/worker` — the generated `worker.ts` needs it to bundle. `ok` before the first build (`skmtc generate` or `skmtc bundle`) writes `worker.ts`; `warning` with a `skmtc bundle` hint when the pin is missing — `bundle` writes the pin for every project, including `skmtc.config.json#serverUrl` ones that `generate` never builds. |
+| `anchors-config/<project>` | `skmtc.config.json#settings.anchors` parses and reports whether gen-maps are enabled (opt-in via `settings.anchors.enabled`) and where they are written. |
 | `anchors-coverage/<project>` | Share of the manifest's files that have an attribution sidecar; `warning` below the coverage threshold. `skipped` when anchors are disabled or the project has not generated yet. |
 | `anchors-staleness/<project>` | Sidecars on disk are current for the last run. `skipped` when anchors are disabled or no manifest exists. |
 
@@ -134,9 +135,22 @@ do not change the exit code.
       "message": "Project \"my-api\" manifest matches the current @skmtc/core schema."
     }
   ],
+  "deprecations": [
+    {
+      "kind": "configFile",
+      "old": "client.json",
+      "new": "skmtc.config.json",
+      "fix": "skmtc migrate config my-api"
+    }
+  ],
   "summary": "error"
 }
 ```
+
+The top-level `deprecations` array lists each deprecated config name
+that a project uses. Each entry has `kind` (`configFile` or
+`settingsKey`), `old`, `new`, and `fix` (the command that migrates
+the project). The array is empty when no project uses an old name.
 
 Each `Check` has the shape `{ id, status, message, hint?, data? }`.
 There is no separate `level` or `remediation` field — remediation
@@ -267,8 +281,8 @@ that the named packages agree, then run `skmtc generate <project>`.
     Project "my-api" has an absolute basePath: /Users/x/app/src
 ```
 
-`client.json#settings.basePath` is either unset or absolute.
-`basePath` must be relative to the Skmtc root. Edit `client.json`
+`skmtc.config.json#settings.basePath` is either unset or absolute.
+`basePath` must be relative to the Skmtc root. Edit `skmtc.config.json`
 or re-run `skmtc init` with a relative path.
 
 ### Stale manifest
@@ -297,7 +311,7 @@ The last generate's consumption audit found enrichment config the
 engine never read — a typo'd routing key or an entry orphaned by
 schema evolution — or leaf keys the generator's schema silently
 dropped. Fix the flagged keys in
-`.settings/client.json#settings.enrichments` and re-run
+`.settings/skmtc.config.json#settings.enrichments` and re-run
 `skmtc generate <project>`. The full structured list (including
 `info` entries) is in the check's `data.enrichmentWarnings` and in
 `manifest.enrichmentWarnings` — see
@@ -309,7 +323,7 @@ dropped. Fix the flagged keys in
 - [`skmtc agent-context`](agent-context.md) — broader project state
   dump for agents
 - [`skmtc list`](list.md) — focused inventory of installed generators
-- [Reference: client.json schema](../settings/client-json-schema.md) —
+- [Reference: skmtc.config.json schema](../settings/client-json-schema.md) —
   the schema `project-base-path` reads `settings.basePath` from
 - [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — broader
   debugging workflow for engine failures

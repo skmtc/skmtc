@@ -3,7 +3,7 @@
 > Create a new Skmtc project workspace.
 
 Creates `.skmtc/<projectName>/` with `deno.json` and
-`.settings/client.json`. Idempotent — re-running on an existing
+`.settings/skmtc.config.json`. Idempotent — re-running on an existing
 project is a no-op (returns `type: "existed"` in JSON mode).
 
 ## Synopsis
@@ -55,7 +55,7 @@ Write JSON output to stdout. Implies `--no-input`.
 .skmtc/<projectName>/
 ├── deno.json
 └── .settings/
-    └── client.json
+    └── skmtc.config.json
 ```
 
 The created files:
@@ -79,7 +79,7 @@ after `init` will report `project-core-pin/<project>` as missing
 (there's nothing to compare yet). Run `install` or `clone` once and
 the pin appears.
 
-**`.settings/client.json`** — minimal config with the basePath:
+**`.settings/skmtc.config.json`** — minimal config with the basePath:
 
 ```json
 {
@@ -91,6 +91,9 @@ the pin appears.
 
 `source` is intentionally absent — set it after `init` to pin a
 schema, or pass the schema positionally to `generate`.
+
+`client.json` is the old, deprecated name of this file. It still
+works. To rename it, run `skmtc migrate config <project>`.
 
 ### Idempotency
 
@@ -212,6 +215,6 @@ catches obvious mistakes like missing or absolute paths).
 ## See also
 
 - [`skmtc install`](install.md) — typical next step after init
-- [client.json schema](../settings/client-json-schema.md) — the full `client.json` shape
+- [skmtc.config.json schema](../settings/client-json-schema.md) — the full `skmtc.config.json` shape
 - [projects-and-workspaces concept](../../concepts/projects-and-workspaces.md) — the directory layout
-- [client.json schema](../settings/client-json-schema.md) — full field reference
+- [skmtc.config.json schema](../settings/client-json-schema.md) — full field reference

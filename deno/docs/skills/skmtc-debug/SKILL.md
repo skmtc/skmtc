@@ -79,14 +79,14 @@ the listed investigation steps in order.
 
 | Symptom | First step | If clean, next step |
 |---|---|---|
-| No output for operation X | Check `manifest.results` for X's per-operation status | Check `isSupported` predicate; check `client.json` `skip`/`include` |
+| No output for operation X | Check `manifest.results` for X's per-operation status | Check `isSupported` predicate; check `skmtc.config.json` `skip`/`include` |
 | Wrong output (compiles) | Read the generator's `toString()` template | Compare against the stock generator's pattern; check `insertOperation` returns |
 | Wrong output (doesn't compile) | Run `skmtc generate --typecheck`; read TS errors | Trace TS errors back to the generator source producing the offending line |
 | `parseIssue` at `level: 'error'` | Read the issue's `location` | Walk to that path in the OpenAPI doc; check schema validity |
 | `INVALID_DEPENDENCY_REF` | Find the upstream `INVALID_SCHEMA` | Fix the upstream schema; dependent issues should heal |
 | `Registered definition mismatch: 'X' in 'Y'` | Read the two `generatorKey` values from the error | Clone one generator and disambiguate `toIdentifier` |
 | `generate` exits 1 with `Failed to create bundle` | Read the `deno bundle` error it prints (also in `.settings/error-logs.txt`) | Fix the import or pin it names in the project's `deno.json`, then re-run `generate` |
-| `DANGLING_REF` whose message says `leads into a loop of $refs (…)` | A chain of `$ref`s comes back to one it has passed (`A` → `B` → `A`), so it names no component | Point one `$ref` of the loop at a real component. To keep it, list its kind in `system.danglingRefs`; `resolve()` then throws `DanglingRefError` for it |
+| `DANGLING_REF` whose message says `leads into a loop of $refs (…)` | A chain of `$ref`s comes back to one it has passed (`A` → `B` → `A`), so it names no component | Point one `$ref` of the loop at a real component. To keep it, list its kind in `parse.danglingRefs`; `resolve()` then throws `DanglingRefError` for it |
 | Module not found in generated code | Read the unresolved import path in the generated file | Either implement the consumer-side path, or clone the generator and change the import target |
 | Orphaned/stale generated files on disk (output from a since-removed generator, a renamed export) | Compare on-disk tree to `manifest.files`; a normal `generate` only prunes files the *next* run replaces | `skmtc clean <project> --dry-run` to preview, then `skmtc clean <project>` for a full reset, then re-`generate` |
 | `generate` exits 1 with `resolves more than one copy of @skmtc/core` (or a host without the CLI writes empty files and reports `success`) | Two copies of `@skmtc/core` (or a `lang-*`) break the engine's `instanceof` checks — the message, and `skmtc doctor`'s `project-package-copies/<project>`, name each version and the packages that import it | Change the project's `deno.json` pins so those packages agree; re-run `generate` |
@@ -95,6 +95,7 @@ the listed investigation steps in order.
 | Per-generator enrichments arrive as `{}` in the worker | The installed CLI is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |
 | An enrichment customization doesn't land | `jq '.enrichmentWarnings' .settings/manifest.json` — routing is the literal path + lowercase method (never `operationId`), the refName for models, under a `main` variant key | Fix the flagged key (the message names the nearest match); `skmtc doctor` shows the same between runs |
 | An item is `error` and the log shows a Valibot message (`Invalid type: Expected …`) — the manifest carries only the status, keyed by generator, item and variant | A value has the wrong type for the generator's `enrichments.ts` schema, or a `_generator` / `_stack` value reached a generator whose umbrella declares that scope `v.undefined()` | Fix the value; or declare the scope on every generator that will see it |
+| `Warning: <project> uses .settings/client.json, which is deprecated` (or `uses settings.system`) | The project still uses an old config name: `client.json` is now `skmtc.config.json`, and `settings.system` is now `settings.parse`. The old names still work. `skmtc doctor` reports them as the `config-names/<project>` check | Run `skmtc migrate config <project>`. If doctor says both files exist, the command does not choose: delete the file you do not want to keep |
 | "Raw mode is not supported on the current process.stdin" | Ink command run in non-TTY | Add `--json` flag; ported commands auto-degrade |
 
 For unrecognized symptoms: read `manifest.json`, then read the
@@ -168,7 +169,7 @@ Each leaf is a `ResultType`:
 | `success` | Generator ran and produced output for this item |
 | `warning` | Output produced, with a recoverable issue logged |
 | `error` | Generator threw or returned failure; output may be missing or partial |
-| `skipped` | Item was matched but deliberately skipped (e.g., by `client.json` filters) |
+| `skipped` | Item was matched but deliberately skipped (e.g., by `skmtc.config.json` filters) |
 | `notSupported` | Generator's `isSupported` returned false — *expected* for items outside the generator's scope |
 
 ### Diagnostic workflow against the manifest
@@ -275,8 +276,8 @@ operation produced no files.
    - **`'notSupported'`**: The generator's `isSupported` predicate
      rejected this operation. Check the predicate in
      `gen-<name>/src/mod.ts`.
-   - **`'skipped'`**: A filter in `client.json` (`skip` or `include`)
-     is excluding it. Check `client.json#settings.skip` and `.include`.
+   - **`'skipped'`**: A filter in `skmtc.config.json` (`skip` or `include`)
+     is excluding it. Check `skmtc.config.json#settings.skip` and `.include`.
    - **`'success'` but no file**: The generator's `transform`
      returned content (which is discarded) instead of calling
      `register` or `insertOperation`. Read the generator source.
@@ -395,14 +396,14 @@ caller.
 **Symptom:** `Error: [<generator-id>] Enrichments for '<METHOD> <path>'
 must include a 'main' variant. Found variants: customer, location.`
 
-1. The consumer's `client.json` declares variant keys at
+1. The consumer's `skmtc.config.json` declares variant keys at
    `enrichments[<gen-id>][<path>][<method>]` (or
    `[<rootKind>][<fieldName>]` for GraphQL) without `'main'` among
    them.
 2. The engine refuses to dispatch because every variants-aware path
    defaults to `'main'` — silently inventing it would mask the
    misconfiguration.
-3. Fix: open `client.json` and either:
+3. Fix: open `skmtc.config.json` and either:
    - Add `"main": {}` (or `"main": { ... }`) to the variants record, OR
    - Remove the non-`'main'` variants and inline their content as
      the operation-level enrichment, OR
@@ -435,7 +436,7 @@ for '<METHOD> <path>' — peer has no enrichments configured. Only
      Driver defaults to `'main'`; both variants of the caller share
      the peer's single Definition.
    - If the peer is variants-aware AND the caller genuinely wants a
-     per-variant peer Definition: the peer's `client.json`
+     per-variant peer Definition: the peer's `skmtc.config.json`
      enrichment must declare that variant before the call will
      succeed. Either add the declaration or remove the threading.
 4. Where it's thrown:
@@ -523,8 +524,8 @@ Verify each claim against the source.
 
 The failure may be in:
 
-- `client.json` (wrong path, wrong enrichment shape, wrong `include`/
-  `skip`)
+- `skmtc.config.json` (wrong path, wrong enrichment shape, wrong
+  `include`/`skip`)
 - The OpenAPI schema itself (malformed, missing `$ref` target)
 - A pin in the project's `deno.json` that doesn't build
 - A version mismatch (peer-pin between `@skmtc/core` and a generator)
@@ -582,7 +583,7 @@ typically belong in the generator; engine-shape bugs belong in core.
 ## 9. Boundary with other skills
 
 - **skmtc-cli**: hand off when the diagnosis has identified a CLI /
-  configuration fix (e.g., "you need to update client.json
+  configuration fix (e.g., "you need to update skmtc.config.json
   `basePath`"). The `skmtc-cli` skill guides applying the fix.
 - **skmtc-generator**: hand off when the diagnosis has identified a
   fix in generator source. The `skmtc-generator` skill guides the

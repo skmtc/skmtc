@@ -1,15 +1,15 @@
 # skmtc pull
 
 > Pull a project's config (enrichments + filters) from its skmtc-hub
-> **project** down into the local `client.json`.
+> **project** down into the local `skmtc.config.json`.
 
 `pull` is the hub→local counterpart to [`push`](push.md). It fetches an
 **existing** hub project's config — the same config the web CMS edits —
-and folds it into the local Skmtc project's `client.json`. The read half
+and folds it into the local Skmtc project's `skmtc.config.json`. The read half
 of the round-trip: edit enrichments in the hub, `pull` them down,
 regenerate locally, commit.
 
-The destination is recorded in `client.json` as the `project` field —
+The destination is recorded in `skmtc.config.json` as the `project` field —
 `"@<account>/<slug>"`, the git-remote analog — exactly as for `push`.
 Identity (your PAT) is separate from destination (the `project` field) is
 separate from authorization (the hub checks you can read the project).
@@ -38,13 +38,13 @@ to pull *from*.)
 
 ### `--project <@account/slug>`
 
-The hub source. Overrides the `project` field in `client.json`. On an
-explicit `--project`, the value is written back into `client.json` (the
+The hub source. Overrides the `project` field in `skmtc.config.json`. On an
+explicit `--project`, the value is written back into `skmtc.config.json` (the
 `git push -u` ergonomic) so later pulls are a bare `skmtc pull`.
 Resolution order:
 
 1. `--project` flag
-2. `client.json#project`
+2. `skmtc.config.json#project`
 3. Otherwise a recipe error — `pull` never guesses the account from your
    identity.
 
@@ -74,22 +74,22 @@ See the [overview](overview.md#shared-flags).
 
 ```
 1. Resolve the source
-     --project wins; otherwise client.json#project. Missing → fail at
+     --project wins; otherwise skmtc.config.json#project. Missing → fail at
      stage `destination` before any network call.
 
 2. GET /v1/projects/{account}/{slug}/client-config
-     The hub unfolds its flat ProjectConfig into the nested client.json
+     The hub unfolds its flat ProjectConfig into the nested skmtc.config.json
      `settings` shape. A 404 is decisive: the project doesn't exist —
      create it in the web app first (fail at stage `pull`).
 
-3. Merge into the local client.json (see the field-merge policy below).
+3. Merge into the local skmtc.config.json (see the field-merge policy below).
 
 4. Write only when the merged config differs from the local file. In a
      TTY (no --force) a change is confirmed first; an unchanged pull is a
      silent no-op (changed: false, nothing written).
 
 5. Write-back (only on an explicit --project)
-     Records the source in client.json#project.
+     Records the source in skmtc.config.json#project.
 ```
 
 ## Field-merge policy
@@ -98,7 +98,7 @@ See the [overview](overview.md#shared-flags).
 shared, hub-edited config and **preserves local wiring** that differs per
 checkout:
 
-| `client.json` key | On pull |
+| `skmtc.config.json` key | On pull |
 |---|---|
 | `settings.enrichments` | **replaced** from the hub |
 | `settings.include` / `settings.skip` | **replaced** from the hub |
@@ -129,7 +129,7 @@ plan); for now, a `pull` overwrites local enrichments with the hub's.
   "project": { "account": "acme-org", "slug": "petstore-client" },
   "origin": "https://api.skmtc.dev",
   "changed": true,
-  "wrote": "/abs/path/.skmtc/my-api/.settings/client.json",
+  "wrote": "/abs/path/.skmtc/my-api/.settings/skmtc.config.json",
   "enrichmentGenerators": 3,
   "remoteWritten": false
 }
@@ -161,8 +161,8 @@ Possible `stage` values:
 
 | Stage | Where the failure happened |
 |---|---|
-| `read` | No `client.json` for the local project |
-| `destination` | No `--project` and no `client.json#project`, or a malformed `@account/slug`. Fails before any network call. |
+| `read` | No `skmtc.config.json` for the local project |
+| `destination` | No `--project` and no `skmtc.config.json#project`, or a malformed `@account/slug`. Fails before any network call. |
 | `pull` | The source project doesn't exist (`404`), the token isn't authorized (`403`), the response was malformed, or the merged config failed validation |
 
 ## Text-mode output
@@ -171,7 +171,7 @@ Possible `stage` values:
 Pulled acme-org/petstore-client → "my-api"
   origin: https://api.skmtc.dev
   enrichments: 3 generators
-  wrote: /abs/path/.skmtc/my-api/.settings/client.json
+  wrote: /abs/path/.skmtc/my-api/.settings/skmtc.config.json
 ```
 
 An in-sync pull prints `Already up to date — "my-api" matches acme-org/petstore-client.`
@@ -202,7 +202,7 @@ An in-sync pull prints `Already up to date — "my-api" matches acme-org/petstor
 ## Examples
 
 ```bash
-# Source recorded in client.json#project
+# Source recorded in skmtc.config.json#project
 skmtc pull my-api
 
 # Pull, then regenerate locally and review the diff

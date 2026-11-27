@@ -114,7 +114,7 @@ flag comes from:
   same rules and also turns a null-only member (`type: 'null'`) into
   `{ nullable: true }`.
 
-All trees keep some refs out of a merge (`system.intersections`).
+All trees keep some refs out of a merge (`parse.intersections`).
 `ParseContext.keptRefs` says which: by default, the `$ref` objects in a cycle
 of the document (`toCyclicRefs.ts`), found by identity, so a schema that is
 merged into another keeps the marks of its own refs. Code that makes a new

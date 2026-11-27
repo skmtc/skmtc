@@ -103,7 +103,7 @@ the target's error.
 The engine keys a component's model by `refName` alone, as it always
 has. Generator keys, enrichments and manifests from earlier runs stay
 the same. The engine keys any other target by its whole pointer. In
-`client.json`, the enrichments of such a target go under that pointer
+`skmtc.config.json`, the enrichments of such a target go under that pointer
 (`"#/components/schemas/ChatResponse/properties/result": { "main": … }`).
 
 The model API takes a model's ref as one value, `ref: RefParts`
@@ -350,9 +350,13 @@ once, at that place. When a `$ref` names nothing in the document,
 `resolveOnce()` throws `DanglingRefError`, and the place logs a
 `DANGLING_REF` issue. A `$ref` in a [loop](#loops-of-refs) also names
 nothing, and its place logs a `DANGLING_REF` issue too. The
-`client.json` setting
-`settings.system.danglingRefs` lists the kinds of `$ref` that can name
+`skmtc.config.json` setting
+`settings.parse.danglingRefs` lists the kinds of `$ref` that can name
 nothing. The default list is empty.
+
+`settings.system` is the old,
+deprecated name of `settings.parse`, and it still works. To move a
+project to the new name, run `skmtc migrate config <project>`.
 
 - A kind that is not in the list: an error. In a component, the error
   goes into `#refErrors`, so the cascade removes the component and what
@@ -377,7 +381,7 @@ A `$ref` to a component that failed to parse already has an error in
 Some `$ref`s are not `OasRef`s. Core resolves them during the parse to
 merge the members of an `allOf`, so a generator does not see them.
 
-[`settings.system.intersections`](../reference/settings/client-json-schema.md#settingssystem-optional)
+[`settings.parse.intersections`](../reference/settings/client-json-schema.md#settingsparse-optional)
 sets which of them core keeps as `OasRef`s, as members of an
 [`OasIntersection`](../reference/api/oas-schema-variants.md#oasintersection--type-intersection).
 By default core keeps each one that closes a cycle, because to merge it
@@ -450,7 +454,7 @@ that loops names nothing (see [Loops of `$ref`s](#loops-of-refs)).
 cause this: the cascade removes every item that reaches a removed
 component, at all depths. By default, the cascade also removes a
 `$ref` to a component that the document does not define. When
-`settings.system.danglingRefs` lists the kind of the `$ref`, it stays,
+`settings.parse.danglingRefs` lists the kind of the `$ref`, it stays,
 and `resolveOnce()` throws for it. If the generator
 does not catch the error, the engine marks the item `'error'` in the
 manifest.

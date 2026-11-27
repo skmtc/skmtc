@@ -5,7 +5,7 @@ description: |
   Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Teaches the
-  workspace mental model (`<root>/.skmtc/<project>/`, client.json,
+  workspace mental model (`<root>/.skmtc/<project>/`, skmtc.config.json,
   bundle, manifest) and the agent contract (strict text / strict JSON
   modes, exit codes, recipe errors, `agent-context` + `doctor`); the
   command surface itself is discovered from the binary — `skmtc
@@ -56,8 +56,8 @@ diagnosing failures see
 | Skmtc root | nearest ancestor dir containing `.skmtc/` | Created by `skmtc init` |
 | Project | `<root>/.skmtc/<project>/` | One schema + one set of generators |
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
-| Schema pin | `<root>/.skmtc/<project>/.settings/client.json` | `source` field — URL or path. Resolution: explicit schema arg → `client.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
-| **basePath** | `client.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
+| Schema pin | `<root>/.skmtc/<project>/.settings/skmtc.config.json` | `source` field — URL or path. Resolution: explicit schema arg → `skmtc.config.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
+| **basePath** | `skmtc.config.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
 | Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt before every run by `generate`/`dev`, and by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
@@ -114,6 +114,14 @@ worked example, and a `Discover:` line naming the command that lists
 the valid values (e.g. `ls .skmtc/` for project names). Trust it:
 run the command, read the recipe, run the discovery, retry.
 
+**Deprecated config names.** A project on `client.json` or
+`settings.system` still loads. Each run prints one deprecation warning
+on stderr, and a `--json` result carries a `deprecations` array
+(`{ kind, old, new, fix }`). Run the `fix` (`skmtc migrate config
+<project>`) to move the project to the current names. Only interactive
+mode offers this migration with a `(Y/n)` prompt; strict and JSON
+modes never prompt.
+
 ## 3. The command surface lives in the binary
 
 Do not look for a command table in this skill — pull it live, where
@@ -162,13 +170,16 @@ after a pin change run `generate` once before them. A build failure exits 1 with
 (or a `@skmtc/lang-*`) exits 1 naming the packages that import each
 copy.
 
-## 6. Configuration: client.json and filters
+## 6. Configuration: skmtc.config.json and filters
 
-`.skmtc/<project>/.settings/client.json` — top level is
+`.skmtc/<project>/.settings/skmtc.config.json` — top level is
 `{ source?, settings }`; `settings` carries `basePath` (required,
 relative, no `..`), `packages`, `enrichments`, `skip`, `include`,
-`generatedSuffix`. Full annotated shape, every key:
+`generatedSuffix`, `parse`. Full annotated shape, every key:
 [`reference.md` §6](reference.md) — read it before editing the file.
+`client.json` (the old file name) and `settings.system` (the old name
+of `settings.parse`) still work and are deprecated: run
+`skmtc migrate config <project>`.
 
 `packages` (optional) routes output into monorepo packages. Each
 entry `{ rootPath, moduleName? }` is a folder forward from `basePath`,
@@ -229,5 +240,5 @@ Loaded on demand with the Read tool, never eagerly:
 
 | File | What it holds | Read it when |
 |---|---|---|
-| [`reference.md`](reference.md) | §6 client.json shape, §7 filter semantics, §8 JSON envelopes, §11 operational principles, doctor check ids | Editing settings, writing a filter, parsing `--json`, reasoning about a doctor check |
+| [`reference.md`](reference.md) | §6 skmtc.config.json shape, §7 filter semantics, §8 JSON envelopes, §11 operational principles, doctor check ids | Editing settings, writing a filter, parsing `--json`, reasoning about a doctor check |
 | [`task-cards.md`](task-cards.md) | Twelve end-to-end workflow cards | Doing a multi-step job for the first time |

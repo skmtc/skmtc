@@ -1,7 +1,7 @@
 # How to generate into multiple packages
 
 > Route generated files into separate packages of a monorepo with
-> `client.json#settings.packages`. Cross-package imports then render as
+> `skmtc.config.json#settings.packages`. Cross-package imports then render as
 > package names, and intra-package imports stay on the `@/` alias.
 
 ## When to use this
@@ -151,7 +151,7 @@ Generation fails at render:
 
 ## Related
 
-- [client.json reference: `settings.packages`](../../reference/settings/client-json-schema.md#settingspackages-optional-advanced)
+- [skmtc.config.json reference: `settings.packages`](../../reference/settings/client-json-schema.md#settingspackages-optional-advanced)
 - [File routing](../../concepts/projects-and-workspaces.md#how-a-file-is-routed):
   the two meanings of `@` and the routing rules
 - [How to change export paths](../../authoring/how-to/change-export-paths.md):

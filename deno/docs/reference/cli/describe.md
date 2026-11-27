@@ -37,7 +37,7 @@ error fires instead of a terse "missing argument".)
 ### `[schema]`
 
 Schema source (URL or local path). Optional; falls back to
-`client.json#source`, exactly like [`generate`](generate.md).
+`skmtc.config.json#source`, exactly like [`generate`](generate.md).
 
 ## Options
 

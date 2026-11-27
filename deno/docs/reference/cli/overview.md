@@ -56,7 +56,8 @@ version and exits.
 
 | Command            | Purpose                                                                     | Reference             |
 | ------------------ | --------------------------------------------------------------------------- | --------------------- |
-| `migrate variants` | One-shot migration of `client.json` to the variant-aware shape (idempotent) | [migrate](migrate.md) |
+| `migrate config`   | Rename `client.json` to `skmtc.config.json` and move `settings.system` to `settings.parse` (idempotent) | [migrate](migrate.md) |
+| `migrate variants` | One-shot migration of `skmtc.config.json` to the variant-aware shape (idempotent) | [migrate](migrate.md) |
 
 ### Hub
 
@@ -64,8 +65,8 @@ version and exits.
 | --------- | ------------------------------------------------------------------------------------------------- | --------------------- |
 | `deploy`  | Store a new immutable stack version on skmtc-hub and deploy it; reports the server status         | [deploy](deploy.md)   |
 | `publish` | The old name of `deploy`, kept for one release; prints a notice on stderr, then runs `deploy`     | [publish](publish.md) |
-| `push`    | Push a project's `client.json` (config + enrichments) to its hub project                          | [push](push.md)       |
-| `pull`    | Pull a project's config (enrichments + filters) from its hub project into the local `client.json` | [pull](pull.md)       |
+| `push`    | Push a project's `skmtc.config.json` (config + enrichments) to its hub project                          | [push](push.md)       |
+| `pull`    | Pull a project's config (enrichments + filters) from its hub project into the local `skmtc.config.json` | [pull](pull.md)       |
 | `project` | Manage a hub project built from the local setup: `create` a new project, `rm` it                  | [project](project.md) |
 | `api`     | `api publish`: add an OpenAPI document to a hub API as a revision (no workspace needed); `api link`: make a link request for a GitHub repository | [api](api.md)         |
 | `login`   | Validate + store a hub PAT (paste-a-PAT; becomes deploy's default credential)                     | [login](login.md)     |
@@ -112,6 +113,17 @@ Many commands include a `verifyWith` field — a follow-up shell command an agen
 can run to confirm the operation landed. This is a key affordance for agentic
 workflows where the CLI is one tool among many.
 
+When a project uses a deprecated config name, the deprecation warning
+stays off stdout. The JSON result then has a `deprecations` array.
+Each entry has `kind` (`configFile` or `settingsKey`), `old`, `new`,
+and `fix`:
+
+```jsonc
+"deprecations": [
+  { "kind": "settingsKey", "old": "settings.system", "new": "settings.parse", "fix": "skmtc migrate config my-api" }
+]
+```
+
 ## Strict mode
 
 When `--no-input` (or `--json`) is set, the CLI runs in **strict mode**:
@@ -122,6 +134,14 @@ When `--no-input` (or `--json`) is set, the CLI runs in **strict mode**:
 - Errors are reported as structured JSON when `--json` is set
 
 This makes the CLI's behavior fully deterministic and scriptable.
+
+In interactive mode, a command that reads a project with a deprecated
+config name offers the migration before it does its work. It asks one
+time for each project in each run, for example
+`my-api uses client.json, which is deprecated. Migrate to skmtc.config.json now? (Y/n)`.
+Yes runs `skmtc migrate config <project>`, and the command continues
+on the migrated config. No continues with the old names. Strict mode
+never asks. See [migrate](migrate.md#skmtc-migrate-config).
 
 ## Exit codes
 
@@ -147,7 +167,7 @@ workspace-root/
 │   └── <project>/
 │       ├── deno.json                  # per-project generator imports
 │       ├── .settings/
-│       │   ├── client.json            # per-project settings (source, basePath, enrichments)
+│       │   ├── skmtc.config.json            # per-project settings (source, basePath, enrichments)
 │       │   └── manifest.json          # last-run manifest (written by generate)
 │       ├── bundle.js                  # generated worker payload
 │       └── <generator>/               # cloned or created generator source
@@ -170,13 +190,19 @@ The CLI reads (and sometimes writes) these files:
 | ------------------------------------------ | --------------------------------------------------------------- |
 | `deno.json` (workspace root)               | Workspace-level configuration                                   |
 | `.skmtc/<project>/deno.json`               | Per-project generator imports                                   |
-| `.skmtc/<project>/.settings/client.json`   | Per-project generation settings (source, basePath, enrichments) |
+| `.skmtc/<project>/.settings/skmtc.config.json`   | Per-project generation settings (source, basePath, enrichments) |
 | `.skmtc/<project>/.settings/manifest.json` | Last-run manifest                                               |
 | `<generator>/deno.json`                    | Per-generator package metadata                                  |
 
 See
 [reference/settings/client-json-schema.md](../settings/client-json-schema.md)
-for the `client.json` schema.
+for the `skmtc.config.json` schema.
+
+`client.json` is the old, deprecated name of `skmtc.config.json`, and
+`settings.system` is the old name of `settings.parse`. The CLI still
+reads the old names. Each run that reads an old name prints one
+deprecation warning on stderr. The warning names the old name, the
+new name, and the fix: `skmtc migrate config <project>`.
 
 ## Command conventions
 
@@ -217,7 +243,7 @@ The CLI normalizes all three forms.
 ## See also
 
   covering the common workflows
-- [Reference: client.json schema](../settings/client-json-schema.md) — the
+- [Reference: skmtc.config.json schema](../settings/client-json-schema.md) — the
   per-project settings file
 - [The three phases concept](../../concepts/the-three-phases.md) — what
   `generate` orchestrates

@@ -117,7 +117,7 @@ edit it. From the workspace root:
 curl -o openapi.json https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
-Point `source` at the file in `.skmtc/petstore/.settings/client.json`
+Point `source` at the file in `.skmtc/petstore/.settings/skmtc.config.json`
 (relative paths resolve against the workspace root):
 
 ```jsonc
@@ -186,7 +186,7 @@ the manifest naming exactly what was skipped.
 ## Next steps
 
 - [Tutorial 03: Customize with enrichments](03-customize-with-enrichments.md) —
-  add per-operation overrides via `client.json`
+  add per-operation overrides via `skmtc.config.json`
 - [Recipe: Full-stack TypeScript app](../recipes/full-stack-typescript-app.md) —
   add forms, mocks, and tables on top of this stack
 - [Definitions and files](../../concepts/definitions-and-files.md) —

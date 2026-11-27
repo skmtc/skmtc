@@ -192,7 +192,7 @@ the typical root cause:
   operation? (Look at the per-operation result.)
 - If `'notSupported'`: the generator's `isSupported` rejected the
   operation. Check the predicate.
-- If `'skipped'`: a filter in `client.json` (`skip` or `include`) is
+- If `'skipped'`: a filter in `skmtc.config.json` (`skip` or `include`) is
   excluding it.
 - If `'success'` but no file: the generator's transform may have
   returned content (which is discarded) instead of registering.
@@ -246,7 +246,7 @@ The defaults to override when debugging:
   specific quirks (no Prettier, `OasSchema` union). Verify each claim
   against the source.
 - **Don't assume the bug is in the generator.** It may be in
-  `client.json`, in the OpenAPI schema, in a pin that doesn't build, or in
+  `skmtc.config.json`, in the OpenAPI schema, in a pin that doesn't build, or in
   consumer-side code the generator imports against.
 - **Don't restart from scratch** ("clean install" / "delete .skmtc and
   redo") **unless** the symptoms specifically suggest workspace

@@ -84,7 +84,7 @@ keys the protocol payload on `value` (`OasDocument` or `GqlDocument`).
 ### `settings`
 
 The validated [`ClientSettings`](../settings/client-json-schema.md) from
-`client.json`. Carries:
+`skmtc.config.json`. Carries:
 
 - `basePath` — the output directory (relative to the manifest root)
 - `paths` — per-operation path overrides
@@ -318,7 +318,7 @@ etc.).
 
 The CLI handles:
 
-1. Bootstrap (load `deno.json`, `client.json`)
+1. Bootstrap (load `deno.json`, `skmtc.config.json`)
 2. Pre-parse OAS host-side (for the `structuredClone` reason)
 3. Spawn the worker
 4. Pass the args (which include the pre-parsed document) to the worker
@@ -374,6 +374,6 @@ type ManifestContent = {
 - [API: GenerateContext](generate-context.md) — phase 2
 - [API: RenderContext](render-context.md) — phase 3
 - [API: StackTrail](stack-trail.md) — tracing parameter
-- [Reference: client.json schema](../settings/client-json-schema.md) — what
+- [Reference: skmtc.config.json schema](../settings/client-json-schema.md) — what
   `settings` carries
 - [Glossary: toArtifacts, Manifest, Artifact](../glossary.md)

@@ -77,10 +77,10 @@ of artifacts.
 - **Stale URL response** — There's no client-side cache; the CLI
   re-fetches on every run. If you're seeing old data, check the
   schema server itself (it may be caching).
-- **Removed operations still log warnings** — If `client.json`
+- **Removed operations still log warnings** — If `skmtc.config.json`
   has `enrichments` keyed by an operation that no longer exists,
   the engine silently ignores them. Cleanup is optional but
-  reduces `client.json` clutter.
+  reduces `skmtc.config.json` clutter.
 - **Generated output is wildly different** — Check `manifest.parseIssues`
   for parse errors on the new spec. A spec update may introduce
   parse issues that prune dependent operations.

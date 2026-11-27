@@ -2,7 +2,7 @@
 
 > Settings a generator needs that its input document cannot supply. The
 > generator's author declares them as a Valibot schema; the consumer of the
-> generator provides the values in `client.json`; the engine validates the
+> generator provides the values in `skmtc.config.json`; the engine validates the
 > values and delivers them to the Projection at generate time.
 
 Enrichments have two sides, and this page keeps them apart.
@@ -18,7 +18,7 @@ generator, and tools can read it to render or fill a form.
 
 **The consumer provides the values.** A consumer of a generator (the project
 that installs it) supplies values for the declared settings in
-`client.json#settings.enrichments`, keyed so the engine can route each value
+`skmtc.config.json#settings.enrichments`, keyed so the engine can route each value
 to the generator and item it belongs to. The consumer can set only what the
 author declared; anything else is a clone-and-edit change.
 
@@ -38,7 +38,7 @@ Enrichments **are**:
 - Declared per-generator via a single composite Valibot schema
 - Validated at config load (structure) and at generate time (values),
   with addressing audited after the run
-- Supplied by the user in `.settings/client.json`
+- Supplied by the user in `.settings/skmtc.config.json`
 - Available at generation time as the
   `this.settings.enrichments.{subject,generator,stack}` umbrella inside a
   Projection
@@ -58,7 +58,7 @@ clone seam.
 ### The three scopes
 
 An enrichment is a generator-owned opaque leaf at one of three scopes. The scope
-is selected by **how deep its key sits** in `client.json#settings.enrichments`:
+is selected by **how deep its key sits** in `skmtc.config.json#settings.enrichments`:
 
 | Scope         | Key path                 | Varies       | What it's for                                                                                                       |
 | ------------- | ------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------- |
@@ -84,7 +84,7 @@ The two run-constant scopes use **reserved** keys. The rule:
 - Every other key is a **customer** key — a generator id at the top level, a
   subject name inside a slot — and **must not start with `_`**.
 
-The underscore names belong to `client.json` only. The umbrella the engine
+The underscore names belong to `skmtc.config.json` only. The umbrella the engine
 assembles and a generator's schema use the plain names: `_stack` is read into
 `stack`, `[id]._generator` into `generator`, and the subject leaf into
 `subject`. There is no `_subject` key: the subject leaf sits at the routing
@@ -116,7 +116,7 @@ so they can't trip over the reserved keys.
 
 ### Where enrichments live
 
-User-supplied enrichments go in `client.json`. Key depth selects the scope. The
+User-supplied enrichments go in `skmtc.config.json`. Key depth selects the scope. The
 subject scope's routing keys under each generator depend on the generator's
 projection-base kind; the payload shape _under_ the leaf-locating keys is
 defined by the generator's Valibot schema (see
@@ -217,7 +217,7 @@ the actual routing details and complete examples.
 Three loud layers validate enrichments. A structurally invalid block
 fails at CLI load. A wrongly-typed value in a reached leaf fails the
 run: the run writes no files, and the error names each wrong value's
-place in `client.json`. A declared variant block missing `main`
+place in `skmtc.config.json`. A declared variant block missing `main`
 throws.
 
 What those layers cannot see is *addressing* — a typo'd generator id,
@@ -311,7 +311,7 @@ Enrichments fit in the middle of the customization gradient:
 
 ```
 1. Use stock         → install + accept defaults
-2. Configure         → enrichments in client.json      ← here
+2. Configure         → enrichments in skmtc.config.json      ← here
 3. Customize behavior → clone + edit source
 4. Author new        → write a generator from scratch
 ```
@@ -386,7 +386,7 @@ the extensions-vs-enrichments decision, and the AI-driven
 Yes, at three levels. A structurally invalid `enrichments` block fails
 at CLI load (`ConfigValidationError`). A wrongly-typed value in a leaf
 the routing reaches fails the run. The run writes no files, and the
-message names each wrong value's place in `client.json`. And
+message names each wrong value's place in `skmtc.config.json`. And
 since `@skmtc/core@0.28.0`, the addressing layer warns too: see
 "Validation and warnings" above.
 
@@ -397,7 +397,7 @@ you clone the generator and edit `enrichments.ts`.
 
 ### Are enrichments hot-reloadable?
 
-Yes — they're runtime config, not bundle code. Edit `client.json`, re-run
+Yes — they're runtime config, not bundle code. Edit `skmtc.config.json`, re-run
 `skmtc generate`, the new values apply. No rebundle needed. This is part of why
 enrichments are the right lever for narrow per-operation tweaks.
 
@@ -440,19 +440,19 @@ relevant portion to each generator's section.
 
 ### Do enrichments survive when I clone the generator?
 
-User data in `client.json` is unaffected by cloning. But if the clone keeps the
+User data in `skmtc.config.json` is unaffected by cloning. But if the clone keeps the
 same routing shape (same projection-base factory) **and** the same generator
 `id`, the existing enrichments still land. If you change the `id` (which you
-typically do when you republish), update the `client.json` keys to match the new
+typically do when you republish), update the `skmtc.config.json` keys to match the new
 id.
 
 ## Further reading
 
 - [Clone vs install](clone-vs-install.md) — where enrichments fit on the
   customization gradient
-- [Projects and workspaces](projects-and-workspaces.md) — where `client.json`
+- [Projects and workspaces](projects-and-workspaces.md) — where `skmtc.config.json`
   lives
-- [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
+- [Settings reference: skmtc.config.json schema](../reference/settings/client-json-schema.md)
 - [Settings reference: enrichments shape](../reference/settings/enrichments-shape.md)
 - [How to configure enrichments](../using/how-to/configure-enrichments.md) — the task-level guide
   for configuring enrichments

@@ -128,7 +128,7 @@ schema, *it* reuses. Either way the definitions map ends up with one
 schema under one identifier, and the rendered output is identical.
 This is the mechanism behind two things you can observe directly:
 re-running a generation produces byte-identical output, and
-reordering generators in `client.json` changes nothing. The proof
+reordering generators in `skmtc.config.json` changes nothing. The proof
 walkthrough lives in
 [how-idempotency-works.md](../explanation/how-idempotency-works.md).
 
@@ -161,7 +161,7 @@ No. There is no post-pass — a duplicate never exists in the first
 place, because the definitions map gates writes by key. What you see
 in the output is exactly what the maps accumulated.
 
-### Do I need to order generators in `client.json`?
+### Do I need to order generators in `skmtc.config.json`?
 
 No. Order affects nothing observable. Install order and array order
 are both irrelevant to output — see

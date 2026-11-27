@@ -301,14 +301,14 @@ alias selects. For a generation, send a `POST` request to that URL plus
 
 To let `skmtc generate` make this request, set
 [`serverUrl`](../settings/client-json-schema.md#serverurl-top-level-optional)
-in `client.json` to the URL without `/artifacts`.
+in `skmtc.config.json` to the URL without `/artifacts`.
 
 ## What gets uploaded
 
 Walks `<project>/` and uploads every file except:
 
 - Dotfiles (with the single exception of `.settings/`, which holds
-  `client.json`).
+  `skmtc.config.json`).
 - Root-level derived artifacts: `server.ts`, `server.js`, `bundle.js`,
   `worker.ts`.
 - Binary asset extensions: `mp4`, `png`, `jpg`, `pdf`, archives, etc.

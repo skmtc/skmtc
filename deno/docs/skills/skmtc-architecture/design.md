@@ -92,7 +92,7 @@ Should NOT auto-load on:
 
 - Generator authoring (Projections, Snippets, scaffolds,
   anti-patterns) → `skmtc-generator`.
-- CLI command surface, `client.json` shape, enrichment routing →
+- CLI command surface, `skmtc.config.json` shape, enrichment routing →
   `skmtc-cli`.
 - Failure diagnosis → `skmtc-debug`.
 - Full pipeline / worker / manifest detail → `concepts/`.

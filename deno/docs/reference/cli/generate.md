@@ -22,7 +22,7 @@ The Skmtc project name — the subdirectory name under
 ### `[schema]`
 
 Optional. Path or URL to the schema source. If omitted, resolved
-from `.settings/client.json#source`.
+from `.settings/skmtc.config.json#source`.
 
 If neither is set:
 
@@ -74,7 +74,7 @@ skmtc generate my-api --typecheck --tsc-cmd "bunx tsc"
 ### `--anchors` / `--no-anchors`
 
 Force gen-maps (attribution) output on or off, overriding
-`client.json#settings.anchors.enabled`. When on, the run writes
+`skmtc.config.json#settings.anchors.enabled`. When on, the run writes
 sidecars plus a generation map under `.skmtc/<project>/.maps/`.
 
 ### `--debug`
@@ -109,14 +109,14 @@ agent contexts).
 Resolution order:
 
 1. Explicit `[schema]` argument on the command line
-2. `client.json#settings.source` field
+2. `skmtc.config.json#settings.source` field
 3. Interactive prompt (TTY only — strict mode fails with recipe)
 
 The first non-undefined value wins.
 
 ### Routing
 
-- Explicit `[schema]` OR `client.json#source` set → runs
+- Explicit `[schema]` OR `skmtc.config.json#source` set → runs
   `generateLocal` directly (no Ink UI).
 - Neither set in interactive mode → mounts the Ink prompt.
 - Neither set in strict mode → exits 2 with a recipe error.
@@ -138,7 +138,7 @@ packages.
 
 If the build fails, `generate` exits 1 with the `deno bundle` error
 and writes no files. The previous `bundle.js` stays on disk, but no
-command runs it. Remote generation (`client.json#serverUrl`)
+command runs it. Remote generation (`skmtc.config.json#serverUrl`)
 runs on the stack server and builds nothing locally.
 
 ### One copy of `@skmtc/core`
@@ -240,7 +240,7 @@ The manifest is overwritten on every run. See
 
 - **`type`**: always `"generated"` on success.
 - **`projectName`**: echoed from the argument.
-- **`basePath`**: the resolved `basePath` from `client.json` (string)
+- **`basePath`**: the resolved `basePath` from `skmtc.config.json` (string)
   or `null` if not configured.
 - **`manifestPath`**: where the manifest was written.
 - **`stats`**: aggregate counts. `tokens` counts via `gpt-tokenizer`
@@ -336,9 +336,9 @@ skmtc generate my-api --watch
 Long-running. Polls the schema URL/path for changes; regenerates on
 modification.
 
-### Source pinned in client.json
+### Source pinned in skmtc.config.json
 
-After setting `"source": "./schema.json"` in client.json:
+After setting `"source": "./schema.json"` in skmtc.config.json:
 
 ```bash
 skmtc generate my-api

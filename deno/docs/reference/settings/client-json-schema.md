@@ -1,17 +1,28 @@
-# client.json schema
+# skmtc.config.json schema
 
-> The complete shape of `.skmtc/<project>/.settings/client.json` —
+> The complete shape of `.skmtc/<project>/.settings/skmtc.config.json` —
 > the user-facing project configuration file.
 
-`client.json` is where users specify the schema source, the output
+`skmtc.config.json` is where users specify the schema source, the output
 location, the operation filters, and per-generator enrichments. It's
 the most-edited file in a Skmtc project after `deno.json`.
 
 ## Location
 
 ```
-.skmtc/<project>/.settings/client.json
+.skmtc/<project>/.settings/skmtc.config.json
 ```
+
+`client.json` is the old, deprecated name of this file, and it still
+works. The CLI reads `client.json` when `skmtc.config.json` does not
+exist. When both files exist, the CLI reads `skmtc.config.json`,
+ignores `client.json`, and prints a warning. Each run that reads an
+old name prints one deprecation warning on stderr.
+
+To change to the new names, run `skmtc migrate config <project>` (see
+[migrate](../cli/migrate.md#skmtc-migrate-config)). A command that
+writes the config writes to the file it read. Only `migrate config`
+renames the file.
 
 Created by `skmtc init` with minimal contents. Edited directly by
 users; the CLI doesn't provide a granular `set` subcommand for
@@ -56,7 +67,7 @@ individual fields.
     "anchors": { "enabled": true, "out": ".maps" },
 
     // Optional. How the OpenAPI parser reads schemas it cannot read faithfully.
-    "system": { "allOf": "latestWins" },
+    "parse": { "allOf": "latestWins" },
 
     // Optional. Preview/hub concern; ignored by the engine.
     "inputDirs": ["src/fields"]
@@ -126,11 +137,11 @@ consuming app's bundler.
 Required vs optional has two layers:
 
 - **At `init` time**, `basePath` is a required positional argument
-  — `skmtc init <project> <basePath>` exits with a recipe error if
-  the argument is missing.
-- **In the runtime `client.json` parse**, the field is `v.optional`
+  — `skmtc init <project> <basePath>` exits with a recipe error
+  without it.
+- **In the runtime `skmtc.config.json` parse**, the field is `v.optional`
   (`core/types/Settings.ts`'s `clientSettings` schema). Removing it
-  from an existing `client.json` won't fail validation. `doctor` will
+  from an existing `skmtc.config.json` won't fail validation. `doctor` will
   flag the missing field via `project-base-path/<project>`, but the
   parser tolerates it.
 
@@ -320,11 +331,18 @@ Gen-maps (provenance) configuration. Two fields:
 
 The sidecar and generation-map formats are engine-internal; the keys above are the full user-facing surface.
 
-### `settings.system` (optional)
+### `settings.parse` (optional)
 
 Sets how the OpenAPI parser reads a schema that it cannot read
 faithfully. All fields are optional. The default of each field gives
-the usual parse. Default: `{}`.
+the usual parse. Default: `{}`. In core, the type is `ParseSettings`
+and the Valibot schema is `parseSettings`.
+
+`settings.system` is the old, deprecated name of this key, and it
+still works. Core reads `system` when `parse` does not exist. When the
+config has both keys, `parse` wins and core logs one warning. To move the key, run
+`skmtc migrate config <project>`. The deprecated core names are
+`SystemSettings` and `systemSettings`.
 
 - **`allOf`** — `"strict"` (default) or `"latestWins"`. With
   `latestWins`, where the members of an `allOf` contradict, the value
@@ -408,7 +426,7 @@ removes each item that refers to that schema
 Preview input-matcher discovery directories, project-root relative
 (for example `"src/fields"`, `"src/inputs"`). A preview/hub concern:
 the generation engine ignores it. Declared in the schema so the CLI
-preserves it when reading `client.json` and carries it through
+preserves it when reading `skmtc.config.json` and carries it through
 `skmtc push` to the hub.
 
 ### `settings.formatter` (optional)
@@ -581,7 +599,7 @@ Per-operation form titles and submit labels for the contact CRUD.
 
 ## Validation
 
-`client.json` is parsed as JSON (strict — no comments allowed in the
+`skmtc.config.json` is parsed as JSON (strict — no comments allowed in the
 actual file; JSONC isn't supported). The top-level shape is then
 validated by the engine before generation.
 
@@ -601,20 +619,22 @@ upfront with a recipe error.
 
 ## Editing workflows
 
-`client.json` is intended for direct user editing. The CLI doesn't
+`skmtc.config.json` is intended for direct user editing. The CLI doesn't
 expose subcommands like `skmtc set source ./schema.json` —
 hand-editing is the recommended approach.
 
-Some workflows that touch `client.json`:
+Some workflows that touch `skmtc.config.json`:
 
 - **`skmtc init`** writes the initial minimal version
+- **`skmtc migrate config`** renames `client.json` and moves
+  `settings.system` to `settings.parse`
 - Everything else is manual: enrichments, include/skip, source
   pinning. `install`, `clone`, `create`, and `remove` do **not**
-  modify `client.json` — they only mutate `deno.json#imports` (and
+  modify `skmtc.config.json` — they only mutate `deno.json#imports` (and
   delete local source dirs in the case of `remove`).
 
 After editing, the next `skmtc generate` picks up the new config.
-No rebundle needed — `client.json` is runtime config, not bundle
+No rebundle needed — `skmtc.config.json` is runtime config, not bundle
 code.
 
 ## See also

@@ -67,7 +67,7 @@ toModelEntry({
 ```
 
 This `id` is what consumers reference under
-`client.json#settings.enrichments[id]` and what appears in the
+`skmtc.config.json#settings.enrichments[id]` and what appears in the
 manifest. It's the lookup key for enrichment routing.
 
 ### `transform: ({ context, <operation|ref>, variant }) => void` (required)
@@ -181,7 +181,7 @@ Three rules:
 
 1. **It's a capability claim, not user intent.** Don't gate on
    enrichment *presence* — the right opt-in/opt-out lever is
-   `client.json#settings.skip` / `.include`, applied outside the
+   `skmtc.config.json#settings.skip` / `.include`, applied outside the
    generator.
 2. **The predicate receives no enrichments.** The args are
    `{ context, operation, variant }` (models:
@@ -449,7 +449,7 @@ sibling Projections, the primary's constructor calls
 Identical in practice. The Entry's `id` is what the dispatcher uses
 to route enrichments and label manifest entries. The projection
 base's `id` is what `toEnrichments` uses to look up enrichments
-under `client.json#settings.enrichments[id]`. Both must match for
+under `skmtc.config.json#settings.enrichments[id]`. Both must match for
 enrichment routing to work end-to-end. Most generators import
 `denoJson.name` in both places.
 

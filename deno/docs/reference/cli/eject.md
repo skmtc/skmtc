@@ -16,7 +16,7 @@ Concretely, ejecting `src/types/user.generated.ts`:
    `settings.generatedSuffix`, default `.generated` — is removed).
    A pre-flight check refuses to eject when a file already exists at
    the owned name.
-2. **Records ownership** in `client.json#settings.ejected` (the
+2. **Records ownership** in `skmtc.config.json#settings.ejected` (the
    authoritative set the engine and writer honor) and provenance
    metadata in `.settings/ejections.json` — when it was ejected, which
    generator items produced it (from the generation map, when
@@ -87,5 +87,5 @@ On failure: `{ ok: false, reason }` with exit 1.
 
 - [adopt](./adopt.md) — the symmetric inverse.
 - [status](./status.md) — lists generated files and their states.
-- [client.json schema](../settings/client-json-schema.md) —
+- [skmtc.config.json schema](../settings/client-json-schema.md) —
   `settings.ejected`, `settings.generatedSuffix`.

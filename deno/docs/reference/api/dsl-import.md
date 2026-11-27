@@ -93,7 +93,7 @@ import.
   `import * as X from '...'`
 - Module specifiers pass through literally; `@/...` paths resolve
   against the consumer's bundler alias (per-package when
-  `client.json#settings.packages` is configured — cross-package
+  `skmtc.config.json#settings.packages` is configured — cross-package
   imports render the target's `moduleName`)
 
 This is **load-bearing under `verbatimModuleSyntax: true`** — the

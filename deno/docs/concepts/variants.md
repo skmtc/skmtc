@@ -253,7 +253,7 @@ explicitly. The Driver throws if the peer doesn't honour it.
 A FieldPlan section-edit case. One `PATCH /v2/quoting/quotes/{quoteId}`
 endpoint, three section-edit forms.
 
-**`client.json`:**
+**`skmtc.config.json`:**
 
 ```jsonc
 {
@@ -294,7 +294,7 @@ form files.
 A `gen-zod-variants` generator emits both a strict and a coercive
 zod schema for the same component model.
 
-**`client.json`:**
+**`skmtc.config.json`:**
 
 ```jsonc
 {

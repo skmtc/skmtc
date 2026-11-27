@@ -17,7 +17,7 @@ escalating effort:
 
 ```
 1. Use stock          → install + accept defaults
-2. Configure          → enrichments in client.json (per-operation overrides)
+2. Configure          → enrichments in skmtc.config.json (per-operation overrides)
 3. Customize behavior → clone + edit source              ← clone-vs-install boundary
 4. Author new         → write a generator from scratch
 ```

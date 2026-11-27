@@ -84,7 +84,7 @@ sidecars — `entriesForSidecar` (`core/anchors/generationMap.ts:55`)
 extracts one row per landmark from each sidecar, and the run
 concatenates them.
 
-## Turning it on: `AttributionState` and `client.json`
+## Turning it on: `AttributionState` and `skmtc.config.json`
 
 Capture is **always on** and needs no configuration — it is intrinsic
 to the pipeline (see Stages 1–2 below). What you opt into is
@@ -109,7 +109,7 @@ type AttributionState = {
 - **With a `postPass` block**: the post-render pass runs and surfaces
   `sidecars` + `generationMap` on the `toArtifacts` result.
 
-For a CLI user the switch is `client.json#settings.anchors`
+For a CLI user the switch is `skmtc.config.json#settings.anchors`
 (`core/types/Settings.ts`):
 
 ```jsonc
@@ -398,7 +398,7 @@ enabled:
 
 | Check id | What it verifies |
 |---|---|
-| `anchors-config/<project>` | The `settings.anchors` block in `client.json` is well-formed. |
+| `anchors-config/<project>` | The `settings.anchors` block in `skmtc.config.json` is well-formed. |
 | `anchors-coverage/<project>` | Every file in `manifest.files` has a matching `.skm.json` sidecar. `ok` at ≥ 95%, `warning` below (JsonFile artifacts have no sidecar — expected). |
 | `anchors-staleness/<project>` | No sidecar's mtime is older than the file it describes — a stale sidecar means the file changed without a re-generate. |
 

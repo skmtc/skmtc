@@ -16,11 +16,11 @@ part of the consuming app (or into different apps).
 A Skmtc root is a directory containing a `.skmtc/` folder. Inside
 `.skmtc/` is one directory per project. Each project directory holds
 the project's `deno.json` (which generators are installed), its
-`.settings/client.json` (which schema, which output path, which
+`.settings/skmtc.config.json` (which schema, which output path, which
 enrichments), its `worker.ts` and `bundle.js` (derived from
 `deno.json`, the things the Worker actually loads), and optionally
 local generator source directories for any cloned generators.
-Generated output lands wherever `client.json#settings.basePath`
+Generated output lands wherever `skmtc.config.json#settings.basePath`
 points.
 
 ## The Skmtc root
@@ -51,7 +51,7 @@ anywhere inside the root will find it.
 ├── worker.ts                    ← derived from deno.json
 ├── bundle.js                    ← derived from worker.ts (present for every project)
 ├── .settings/
-│   ├── client.json              ← user-edited (schema, basePath, enrichments)
+│   ├── skmtc.config.json        ← user-edited (schema, basePath, enrichments)
 │   ├── manifest.json            ← derived; overwritten every generate run
 │   ├── logs.txt                 ← derived; bundle/generate stdout
 │   └── error-logs.txt           ← derived; bundle/generate stderr
@@ -120,7 +120,7 @@ of where the generator source comes from, so it always matches the
 current `deno.json` and generator source. Nothing runs a
 `bundle.js` it did not build in the same command.
 
-### `.settings/client.json`
+### `.settings/skmtc.config.json`
 
 The user-facing configuration. Schema source, output path, generator
 filters, enrichments:
@@ -139,6 +139,12 @@ filters, enrichments:
 
 User-edited. The `source`, `basePath`, and `enrichments` are the
 three knobs most users adjust.
+
+`client.json` is the old, deprecated name of this file. If there is
+no `skmtc.config.json`, the CLI reads `client.json` and prints a
+deprecation warning. When both files exist, the CLI reads `skmtc.config.json`
+and ignores `client.json`. To move a project to the new name, run
+`skmtc migrate config <project>`.
 
 ### `.settings/manifest.json`
 
@@ -167,7 +173,7 @@ JSR specifier.
 
 ## basePath alignment with the consuming app
 
-The `basePath` field in `client.json` is **load-bearing**: it
+The `basePath` field in `skmtc.config.json` is **load-bearing**: it
 controls both where on disk generated files land AND the `@` alias
 in the consuming app's bundler resolver.
 
@@ -222,7 +228,7 @@ my-app/
 │   └── ...
 ```
 
-Each project has its own `deno.json`, `client.json`, generators, and
+Each project has its own `deno.json`, `skmtc.config.json`, generators, and
 output location. The CLI subcommands take the project name as an
 argument:
 
@@ -242,7 +248,7 @@ one — generators run independently per project anyway.
 
 1. Creates `.skmtc/<projectName>/`
 2. Writes `deno.json` with the core peer-dep pin and an empty imports list
-3. Writes `.settings/client.json` with `basePath` and no source
+3. Writes `.settings/skmtc.config.json` with `basePath` and no source
 4. Returns `{ type: 'created', projectName, basePath }`
 
 If the project already exists, `init` returns `{ type: 'existed' }`
@@ -299,7 +305,7 @@ call.
 
 Yes — and you should. The directory contains:
 
-- User-edited config (`deno.json`, `client.json`) — definitely commit
+- User-edited config (`deno.json`, `skmtc.config.json`) — definitely commit
 - Derived files (`worker.ts`, `bundle.js`, `manifest.json`,
   `logs.txt`) — gitignore is reasonable
 - Cloned generator source (`<gen-name>/`) — definitely commit (it's
@@ -440,15 +446,15 @@ shared file accumulating re-export entries.
   single-`basePath` model
 - [`files-and-dedup.md`](./files-and-dedup.md) — the `File` model and import
   normalisation
-- [client-json-schema.md](../reference/settings/client-json-schema.md) — the
-  `client.json` shape
+- [skmtc.config.json schema](../reference/settings/client-json-schema.md) — the
+  `skmtc.config.json` shape
 
 ## Further reading
 
 - [Clone vs install](clone-vs-install.md) — what changes in the project directory when cloning
-- [Enrichments](enrichments.md) — the `client.json#settings.enrichments` structure
+- [Enrichments](enrichments.md) — the `skmtc.config.json#settings.enrichments` structure
 - [The Worker runtime](the-worker-runtime.md) — how `worker.ts` and `bundle.js` get used
-- [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
+- [Settings reference: skmtc.config.json schema](../reference/settings/client-json-schema.md)
 - [`skmtc init` reference](../reference/cli/init.md)
 - [`skmtc doctor` reference](../reference/cli/doctor.md)
 - [CLI overview](../reference/cli/overview.md)

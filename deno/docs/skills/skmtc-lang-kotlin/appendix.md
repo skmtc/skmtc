@@ -237,14 +237,14 @@ Defined in deno/lang-kotlin/src/toPackageName.ts:27:14
 function toPackageName(path: string, packages?: ModulePackage[]): string
   Derives the `package` directive from a Kotlin file's export path —
   the segments after the `@/` root ARE the package directories
-  (Kotlin's package-=-folder convention; `client.json#settings.basePath`
+  (Kotlin's package-=-folder convention; `skmtc.config.json#settings.basePath`
   points at the Gradle source root, e.g. `./app/src/main/kotlin`).
 
   - `@/com/example/api/User.generated.kt` → `'com.example.api'`
   - `@/User.kt` → `''` (the default package — legal, discouraged;
     {@link import('./KtFile.ts').KtFile} renders no `package` line)
 
-  Multi-package output (`client.json#settings.packages`): export paths
+  Multi-package output (`skmtc.config.json#settings.packages`): export paths
   are forward paths under a package's `rootPath`
   (`my-sdk-core/src/main/kotlin/com/example/User.kt`), and the package
   directories are the segments after the OWNING package's `rootPath` —
@@ -399,7 +399,7 @@ class KtFile extends CodeFileBase
   - the `package` directive, DERIVED from the file's own path via
     {@link toPackageName} — the export path encodes the package
     (`@/com/example/api/User.generated.kt` → `package com.example.api`);
-    `client.json#settings.basePath` points at the Gradle source root.
+    `skmtc.config.json#settings.basePath` points at the Gradle source root.
   - same-package import suppression: any import whose resolved
     package equals this file's package is omitted at render (same-package
     symbols need no import in Kotlin — the structural analog of TsFile's

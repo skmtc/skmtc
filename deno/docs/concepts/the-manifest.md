@@ -130,7 +130,7 @@ Each leaf is one of five `ResultType` values:
 | `success` | Generator ran for this item; the `transform` returned without throwing |
 | `warning` | Generator ran; logged a recoverable issue via `logger.warn` |
 | `error` | Generator's `transform` threw, or logged via `logger.error`; output may be missing or partial |
-| `skipped` | Item matched the generator's `isSupported` but was filtered out by `client.json#settings.include` or `.skip` |
+| `skipped` | Item matched the generator's `isSupported` but was filtered out by `skmtc.config.json#settings.include` or `.skip` |
 | `notSupported` | Generator's `isSupported({ operation })` returned `false` for this item — expected, not a failure |
 
 ### How results get into the tree

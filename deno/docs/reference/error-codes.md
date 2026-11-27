@@ -57,13 +57,15 @@ OpenAPI document. The cause is typically:
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
 - A cycle in the references that `allOf` merges, when
-  `settings.system.intersections` is `merge`. With the default, the
+  `settings.parse.intersections` is `merge`. With the default, the
   parser keeps such a reference (`OasIntersection`).
 - A `not` keyword
 
-[`settings.system`](settings/client-json-schema.md#settingssystem-optional)
+[`settings.parse`](settings/client-json-schema.md#settingsparse-optional)
 can make the parser read `allOf` members that contradict, and `not`,
-another way.
+another way. `settings.system` is the old, deprecated name of
+`settings.parse`, and it still works. To move a project to the new
+name, run `skmtc migrate config <project>`.
 
 **Warning-level variant:** in an OpenAPI 3.0 document, an array schema
 with no `items` logs `INVALID_SCHEMA` at level `warning`. The message is
@@ -604,8 +606,8 @@ names without the suffix, such as `application/vnd.goa.error`, do not.
 
 ### `ALLOF_CONTRADICTION` — warning
 
-**When:** The members of an `allOf` contradict, and `client.json` sets
-`settings.system.allOf` to `latestWins`. The parser keeps the value of
+**When:** The members of an `allOf` contradict, and `skmtc.config.json` sets
+`settings.parse.allOf` to `latestWins`. The parser keeps the value of
 the later member. There is one issue for each schema. The message
 names the keywords that contradict.
 
@@ -613,19 +615,19 @@ names the keywords that contradict.
 document. If the values of the later member are correct, no action is
 necessary. With the default, `strict`, the schema fails with
 `INVALID_SCHEMA`. See
-[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+[`settings.parse`](settings/client-json-schema.md#settingsparse-optional).
 
 ### `ANYOF_AS_UNKNOWN` — warning
 
-**When:** `client.json` sets `settings.system.anyOf` to `unknown`,
+**When:** `skmtc.config.json` sets `settings.parse.anyOf` to `unknown`,
 and the parser reads an `anyOf` as any value. The schema keeps its
 other keywords, without the `anyOf` members. There is one issue for
 each schema.
 
 **Remediation:** If any value is correct for the schema, no action is
-necessary. To get a union, set `settings.system.anyOf` to `union`
+necessary. To get a union, set `settings.parse.anyOf` to `union`
 (the default), or remove it. See
-[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+[`settings.parse`](settings/client-json-schema.md#settingsparse-optional).
 
 ### `DANGLING_REF` — error or warning
 
@@ -643,11 +645,11 @@ into the loop does not get one. When the parser removes a `$ref` of the
 loop, the rest of the loop and the items that refer to it get an
 `INVALID_DEPENDENCY_REF`.
 
-- **error:** `settings.system.danglingRefs` does not list the kind of
+- **error:** `settings.parse.danglingRefs` does not list the kind of
   the `$ref`. The default list is empty. The parser removes the item
   that has the `$ref`. Each item that refers to that item gets an
   `INVALID_DEPENDENCY_REF`.
-- **warning:** `settings.system.danglingRefs` lists the kind of the
+- **warning:** `settings.parse.danglingRefs` lists the kind of the
   `$ref`. The `$ref` stays. When a generator resolves it, core throws a
   `DanglingRefError`.
 
@@ -662,7 +664,7 @@ warning. The model then has no properties from that member. When the
 list does not have `allOfMember`, core gives an error, and the parser
 removes the item that has the `allOf`. The location is that item.
 
-`settings.system.intersections` can keep a `$ref` out of the merge. Such
+`settings.parse.intersections` can keep a `$ref` out of the merge. Such
 a `$ref` is of the kind `schema`, and a generator sees it.
 
 Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
@@ -671,20 +673,20 @@ applies to these `$ref`s. The location is the item that has the union.
 
 **Typical messages:**
 
-- `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
-- `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
-- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
+- `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in parse.danglingRefs.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is kept (parse.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (parse.danglingRefs lists 'allOfMember').`
 - `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
-- `Ref "./common.yaml#/components/schemas/X" points outside the document; bundle the files into one document first, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
-- `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
+- `Ref "./common.yaml#/components/schemas/X" points outside the document; bundle the files into one document first, so what holds it is removed. To keep it, list 'schema' in parse.danglingRefs.`
+- `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in parse.danglingRefs.`
 
 **Remediation:** Add the target to `components` in the source
 document, or correct the `$ref`. To keep the items that have the
-`$ref`, list its kind in `settings.system.danglingRefs`, and use
+`$ref`, list its kind in `settings.parse.danglingRefs`, and use
 generators that catch `DanglingRefError`. To find the error, use
 `DanglingRefError.is(error)`, not `instanceof`: a generator bundle can
 have a different copy of `@skmtc/core`. See
-[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+[`settings.parse`](settings/client-json-schema.md#settingsparse-optional).
 
 ### `REF_TYPE_MISMATCH` — error
 
@@ -694,7 +696,7 @@ than its place needs, for example a request body with
 that has the `$ref`. The location is that place. The parser removes the
 item that has the `$ref`, because it gives a generator only what the
 place promises. The item that the `$ref` names stays.
-`settings.system.danglingRefs` does not apply.
+`settings.parse.danglingRefs` does not apply.
 
 A place outside `components` has one kind: the kind of the first `$ref`
 that points to it. A `$ref` of a different kind to the same place gets
@@ -802,7 +804,7 @@ A configuration cause to check before debugging generator code: a
 stray variant key beside `main` in the enrichments block (for
 example a misspelled variant name) fans out an extra variant, and on
 a generator whose naming ignores the variant this surfaces as a key
-mismatch. Check `client.json` variant keys first.
+mismatch. Check `skmtc.config.json` variant keys first.
 
 ### `Max lookups reached`
 
@@ -865,7 +867,7 @@ Reported on `manifest.enrichmentWarnings` (and as an "Enrichment
 warnings" block in CLI output) after every run — the audit of
 enrichment config that did not do what you intended. Warn-level and
 fail-open: output is never affected. Each entry carries a `path` (the
-routing key sequence under `client.json#settings.enrichments`), a
+routing key sequence under `skmtc.config.json#settings.enrichments`), a
 message, and — for near-miss key typos — a `suggestion`.
 
 ### `UNCONSUMED_ENRICHMENT` — warning

@@ -342,7 +342,7 @@ Each leaf is one of:
 - `success` — generator ran, produced output for this item
 - `warning` — produced output with a recoverable issue logged
 - `error` — generator threw or returned failure; output missing or partial
-- `skipped` — item matched but deliberately skipped (e.g., by `client.json`
+- `skipped` — item matched but deliberately skipped (e.g., by `skmtc.config.json`
   filters)
 - `notSupported` — generator's `isSupported` returned false — _expected_ for
   items outside the generator's scope
@@ -449,7 +449,7 @@ Each `(generator, operation)` pair still runs inside a try/catch in
 `#runOasOperationGenerator`, so one throw does not hide the others. The manifest
 records the result of each operation, and the `RUN_FAILED` message lists each
 distinct error once, with the items it failed. A wrong enrichment value names
-its place in `client.json`.
+its place in `skmtc.config.json`.
 
 The Render phase is intentionally simpler — it's pure serialization of the file
 map produced by Generate. Errors at Render time typically indicate a structural

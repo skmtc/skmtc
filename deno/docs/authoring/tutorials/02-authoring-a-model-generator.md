@@ -205,7 +205,7 @@ Two things to internalize:
    dispatched. The predicate receives `{ context, ref, variant }` — no
    schema, so resolve it yourself. Use `isSupported`
    for a *capability* claim (the schema shapes this generator can
-   handle); for user opt-in/out, prefer client.json `include`/`skip`:
+   handle); for user opt-in/out, prefer skmtc.config.json `include`/`skip`:
 
 ```ts
 isSupported({ context, ref }) {

@@ -3,7 +3,7 @@
 > The engine is language-blind: `@skmtc/core` constructs no language
 > object and ships no rendering for any target language. A generator
 > declares its target language purely by which lang package it imports
-> from — there is no `client.json#language` selector, no renderer
+> from — there is no `skmtc.config.json#language` selector, no renderer
 > registry, and no `lang` config field anywhere.
 
 Every language-specific concern — what a file, an import, or a

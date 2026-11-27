@@ -6,10 +6,15 @@ the user-facing operational principles, and the doctor check ids.
 Sections keep their historical numbers (§6/§7/§8/§11), which SKILL.md
 cites directly; they do not line up with SKILL.md's own numbering.
 
-Read this when you are editing `client.json`, writing a filter,
+Read this when you are editing `skmtc.config.json`, writing a filter,
 parsing `--json` output, or checking a principle — not before.
 
-## 6. The client.json shape
+## 6. The skmtc.config.json shape
+
+The file is `.skmtc/<project>/.settings/skmtc.config.json`.
+`client.json` (the old file name) and `settings.system` (the old name
+of `settings.parse`) still work and are deprecated: run
+`skmtc migrate config <project>`.
 
 ```jsonc
 {
@@ -99,7 +104,13 @@ parsing `--json` output, or checking a principle — not before.
     "packages": [
       { "rootPath": "packages/sdk/src", "moduleName": "@app/sdk" },
       { "rootPath": "packages/sdk/src/models", "moduleName": "@app/sdk/models" }
-    ]
+    ],
+
+    // Optional. How the OpenAPI parser reads schemas it cannot read
+    // faithfully: `allOf`, `not`, `anyOf`, `danglingRefs`,
+    // `intersections`, `responseContradictions`. See
+    // `reference/settings/client-json-schema.md`.
+    "parse": { "allOf": "latestWins" }
   }
 }
 ```
@@ -154,7 +165,7 @@ the stock generators declare `subject` only — so the `_generator` /
 `_stack` needs every generator in the run to.
 
 Per-subject enrichments are otherwise unchanged: the routing keys and
-the mandatory `'main'` variant level (see the `client.json` shape above
+the mandatory `'main'` variant level (see the `skmtc.config.json` shape above
 and §7) work exactly as before. A generator reads each scope by known
 key through typed helpers (`toStackEnrichment` /
 `toGeneratorEnrichment` / the per-subject path) — it never iterates the
@@ -237,6 +248,31 @@ specific variants of a multi-variant operation.
 ## 8. Common JSON output shapes
 
 Agents drive on these shapes. Discriminator field is usually `type`.
+
+When a project uses a deprecated config name, a command's JSON result
+also has a `deprecations` array. `doctor --json` and
+`agent-context --json` always have it at the top level. Each entry is
+`{ kind, old, new, fix }`, where `kind` is `configFile` or
+`settingsKey`, and `fix` is `skmtc migrate config <project>`.
+
+### `migrate config`
+
+```jsonc
+{
+  "projects": [
+    {
+      "project": "my-api",
+      "configPath": { "before": ".../client.json", "after": ".../skmtc.config.json" },
+      "renamedFile": true,
+      "movedKeys": ["allOf"],   // keys of settings.system moved to settings.parse
+      "conflicts": [],
+      "alreadyMigrated": false,
+      "dryRun": false
+      // "refused": "<reason>" — only when the project was refused (both files exist); exit 1
+    }
+  ]
+}
+```
 
 ### `install`
 
@@ -466,12 +502,13 @@ reasoning about a specific check without running it.
 | `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
 | `hub-auth` | `~/.skmtc/auth.json` parses to `{ env, token }` (a file from an older CLI, `{ host, token }`, is also read) — offline only; `skipped` when not logged in, `warning` + logout/login hint when malformed; never reports more than the token's last 4 chars |
 | `project-deno-json/<project>` | `deno.json` exists and parses |
-| `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
+| `config-names/<project>` | `warning` when the project uses a deprecated config name (`client.json`, `settings.system`; hint `skmtc migrate config <project>`) or has both `client.json` and `skmtc.config.json`; `ok` otherwise |
+| `project-base-path/<project>` | `skmtc.config.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
 | `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock); `error` names each copy and the packages that import it — two copies generate empty files, so `generate` and `bundle` refuse to build the graph; `skipped` for `serverUrl` projects, with `--offline`, or when the graph can't be read (e.g. a pin edit no build has locked yet) |
 | `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
 | `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
 | `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
-| `anchors-config/<project>` | `client.json#settings.anchors` shape; gen-maps are opt-in via `settings.anchors.enabled` |
+| `anchors-config/<project>` | `skmtc.config.json#settings.anchors` shape; gen-maps are opt-in via `settings.anchors.enabled` |
 | `anchors-coverage/<project>` | Share of manifest files carrying an attribution sidecar; `warning` below threshold |
 | `anchors-staleness/<project>` | Sidecars on disk are current for the last run |

@@ -130,7 +130,7 @@ the friction:
   platform vs which to treat as templates.
 - **Enrichments cover per-instance customization without requiring a clone.**
   When the customization is "this operation's form has a different submit
-  label," enrichments handle it via `client.json`. Cloning is only required when
+  label," enrichments handle it via `skmtc.config.json`. Cloning is only required when
   _behavior_ differs, not when _content_ differs.
 - **JSR makes the install-then-clone flow frictionless.** Install via
   `skmtc install` to read the source. Clone via `skmtc clone` when you decide to

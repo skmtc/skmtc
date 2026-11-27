@@ -12,7 +12,7 @@ many items.
 
 Per supported list operation, a `tables/<Operation>Table.generated.tsx`
 module of TanStack Table column definitions. **Columns come entirely
-from the enrichment** — `subject.table.columns` in `client.json`, each
+from the enrichment** — `subject.table.columns` in `skmtc.config.json`, each
 entry binding a response-item property (`moduleSelect.schemaPath`) to
 a header label; with no enrichment the module renders an empty
 `columns` array. Real output for two configured columns:

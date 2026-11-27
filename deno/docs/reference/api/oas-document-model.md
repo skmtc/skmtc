@@ -230,7 +230,7 @@ An own parameter replaces a path item parameter with the same name and
 location. Refs stay refs, so you can resolve each one by itself.
 
 A `$ref` that names nothing stays in its position. The parser keeps it
-only when `settings.system.danglingRefs` lists `parameter`. Its
+only when `settings.parse.danglingRefs` lists `parameter`. Its
 `resolve()` throws `DanglingRefError`:
 
 ```ts

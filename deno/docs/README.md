@@ -80,7 +80,7 @@ See [`explanation/comparison-to-other-tools.md`](explanation/comparison-to-other
 1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` (on Windows, in PowerShell: `irm https://skmtc.dev/install.ps1 | iex`)
 2. Create a project: `skmtc init my-api ./`
 3. Install generators: `skmtc install @skmtc/gen-typescript @skmtc/gen-zod my-api`
-4. Configure a schema source in `.skmtc/my-api/.settings/client.json`
+4. Configure a schema source in `.skmtc/my-api/.settings/skmtc.config.json`
 5. Generate: `skmtc generate my-api`
 
 Full walkthrough: [`using/tutorials/01-your-first-generation.md`](using/tutorials/01-your-first-generation.md).

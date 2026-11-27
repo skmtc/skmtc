@@ -124,7 +124,10 @@ resolves when it gets to a component that is not a `$ref`.
   chain loops (see [`toLoop()`](#toloop-oasreft--undefined)). For a
   loop, the message says `leads into a loop of $refs (…)`, and the error's
   `loop` lists the `$ref`s of the loop. The parser removes such a ref,
-  unless `client.json` `settings.system.danglingRefs` lists its kind.
+  unless `skmtc.config.json` `settings.parse.danglingRefs` lists its
+  kind. (`settings.system`, the old name of `settings.parse`, still
+  works, but the CLI reports it as deprecated. To move to the new
+  name, run `skmtc migrate config <project>`.)
   Test for it with `DanglingRefError.is(error)`.
 - `Ref type mismatch for "<$ref>"` if the `$ref` names the wrong part
   of `components` for `refType`. An example is a `requestBody` ref to
@@ -381,7 +384,7 @@ if (loop !== undefined) {
 }
 ```
 
-The parser keeps a loop only when `system.danglingRefs` lists its
+The parser keeps a loop only when `parse.danglingRefs` lists its
 kind, so a generator meets one only then.
 
 ### What's the difference between `oasType` and `refType`?
