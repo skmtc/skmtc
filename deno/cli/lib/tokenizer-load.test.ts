@@ -113,11 +113,14 @@ Deno.test('generationStats.ts - reaches gpt-tokenizer when dynamic imports are f
   const root = '@/lib/generationStats.ts'
   const graph = await toModuleGraph(root)
 
-  const rootModule = graph.modules.find(module => module.specifier === graph.roots[0])
+  const [rootSpecifier] = graph.roots
+  const resolvedRoot = graph.redirects[rootSpecifier] ?? rootSpecifier
+  const rootModule = graph.modules.find(module => module.specifier === resolvedRoot)
 
   assertEquals(
     loadsTokenizer(toLoadedSpecifiers(graph, true)),
     true,
-    `root ${graph.roots[0]} dependencies: ${JSON.stringify(rootModule?.dependencies)}`
+    `root ${rootSpecifier} -> ${resolvedRoot}; loaded: ${[...toLoadedSpecifiers(graph, true)].length}; ` +
+      `dependencies: ${JSON.stringify(rootModule?.dependencies)}`
   )
 })
