@@ -127,20 +127,30 @@ A local project runs a `bundle.js` built from the pins and generator
 source it has now, in every mode. `generate` writes `worker.ts` from
 `deno.json#imports`, then compares a fingerprint of the build's inputs
 with `.settings/bundle-inputs.json`, the record of the last build. The
-inputs are `deno.json`, `deno.lock`, `worker.ts`, every file of each
-`deno.json#workspace` folder and local-path import (a cloned
-generator), the CLI version and the Deno version. When the fingerprint
-matches and `bundle.js` is there, `generate` runs that `bundle.js` and
-starts no `deno` subprocess.
+inputs are `deno.json`, `deno.lock`, `worker.ts`, the CLI version and
+the Deno version. They also include every file of each workspace folder
+and local-path import (a cloned generator), and each local file of the
+last build's module graph. The record also holds a digest of the
+`bundle.js` it describes. When the fingerprint matches and `bundle.js`
+is that file, `generate` runs it and starts no `deno` subprocess.
 
 In every other case it builds. It runs `deno bundle` into a temporary
-file and renames it over `bundle.js`. Then it writes the record and
-runs the new bundle. A command running at the same time never loads a
-half-written bundle.
+file and renames it over `bundle.js`. Then it runs the new bundle. A
+command running at the same time never loads a half-written bundle.
+It writes the record only when it can fingerprint the inputs.
 
-Some projects build on every run: a project with no `deno.lock`, and a
-project with a `jsr:` or `npm:` import that `deno.lock` does not hold.
-A version range can resolve to a new version with no file changed.
+The first build of a new project writes `deno.lock` and then the
+record, so the next run can reuse the bundle. These projects build on
+every run:
+
+- a project without `deno.lock` after the build, for example with
+  `"lock": false`;
+- a project with a `jsr:` or `npm:` import that `deno.lock` does not
+  hold, because that range can change;
+- a project that sets `importMap`, `scopes`, `links` or `patch`;
+- a project with a `workspace` pattern, or a workspace `deno.jsonc`.
+
+Do not commit `.settings/bundle-inputs.json`.
 After you change a pin or edit a cloned generator, run
 `skmtc generate` again. You do not need `skmtc bundle` first.
 

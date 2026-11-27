@@ -5,8 +5,10 @@
  * The fingerprint is one SHA-256 over everything the bundle is built
  * from, read from disk with no subprocess: the project's `deno.json`
  * and `deno.lock`, `worker.ts`, every file of each workspace member and
- * local-path import, the CLI's version and Deno's version. Nothing in
- * `bundle.js` itself takes part.
+ * local-path import, every local file the last build's module graph
+ * held, the CLI's version and Deno's version. Nothing in `bundle.js`
+ * decides the skip; the record holds a digest of `bundle.js` only to
+ * prove that it describes the bundle on disk.
  */
 
 import { encodeHex } from '@std/encoding/hex'
@@ -25,7 +27,11 @@ import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 const bundleRecordSchema = v.object({
   fingerprint: v.string(),
   cliVersion: v.string(),
-  denoVersion: v.string()
+  denoVersion: v.string(),
+  /** SHA-256 of the `bundle.js` the build renamed into place. */
+  bundleDigest: v.string(),
+  /** The build's local graph modules, relative to the project, `/`-separated. */
+  graphFiles: v.array(v.string())
 })
 
 /** The contents of `.settings/bundle-inputs.json`. */
@@ -48,7 +54,7 @@ export const toCurrentVersions = (): BundleVersions => ({
  * `sourceDigest` is the one read before it.
  */
 export type BundleInputs =
-  | { type: 'fingerprinted'; record: BundleRecord; sourceDigest: string }
+  | { type: 'fingerprinted'; fingerprint: string; sourceDigest: string }
   /** The inputs can't prove the bundle current: build every time. */
   | { type: 'unpinned'; reason: string; sourceDigest?: string }
 
@@ -144,7 +150,8 @@ const toFolderChunks = async (projectPath: string, folder: string): Promise<Chun
   const chunks: Chunk[] = []
   for await (const entry of walk(folder, {
     includeDirs: false,
-    skip: [/[\\/]node_modules([\\/]|$)/]
+    followSymlinks: true,
+    skip: [/[\\/](node_modules|\.git)([\\/]|$)/]
   })) {
     chunks.push({
       label: `file:${relative(projectPath, entry.path).split(SEPARATOR).join('/')}`,
@@ -188,7 +195,23 @@ const readOptional = async (path: string): Promise<Uint8Array | undefined> => {
 type ToBundleInputsArgs = {
   projectPath: string
   versions: BundleVersions
+  /** Local graph modules to hash too, relative to the project (see {@link toGraphFiles}). */
+  graphFiles: string[]
 }
+
+/** Local graph modules as the record holds them: relative, `/`-separated, outside `node_modules`. */
+export const toGraphFiles = (projectPath: string, localFiles: string[]): string[] =>
+  Array.from(
+    new Set(
+      localFiles
+        .filter(path => !/[\\/]node_modules[\\/]/.test(path))
+        .map(path => relative(resolve(projectPath), path).split(SEPARATOR).join('/'))
+    )
+  ).sort()
+
+/** SHA-256 of a file's bytes. */
+export const toFileDigest = async (path: string): Promise<string> =>
+  encodeHex(new Uint8Array(await crypto.subtle.digest('SHA-256', await Deno.readFile(path))))
 
 /**
  * Fingerprints what the project's bundle is built from, after `worker.ts`
@@ -197,7 +220,8 @@ type ToBundleInputsArgs = {
  */
 export const toBundleInputs = async ({
   projectPath,
-  versions
+  versions,
+  graphFiles
 }: ToBundleInputsArgs): Promise<BundleInputs> => {
   try {
     const decoder = new TextDecoder()
@@ -250,9 +274,19 @@ export const toBundleInputs = async ({
       }
     }
 
-    const folderChunks = (
-      await Promise.all(folders.map(folder => toFolderChunks(projectPath, folder)))
-    ).flat()
+    // A file the graph reached by a relative path, outside every folder
+    // walked here, is still an input. A recorded file that is gone throws,
+    // so the project builds.
+    const graphChunks = await Promise.all(
+      graphFiles.map(async path => ({
+        label: `file:${path}`,
+        bytes: await Deno.readFile(resolve(projectPath, path))
+      }))
+    )
+    const folderChunks = [
+      ...(await Promise.all(folders.map(folder => toFolderChunks(projectPath, folder)))).flat(),
+      ...graphChunks
+    ]
     const files = Array.from(
       new Map(folderChunks.map(chunk => [chunk.label, chunk])).values()
     ).sort((left, right) => (left.label < right.label ? -1 : left.label > right.label ? 1 : 0))
@@ -277,9 +311,10 @@ export const toBundleInputs = async ({
     }
     const specifiers = v.parse(lockSchema, JSON.parse(decoder.decode(lockBytes))).specifiers ?? {}
 
-    const unlocked = configs
-      .map(each => findUnlockedImport(each.imports ?? {}, specifiers))
-      .find(specifier => specifier !== undefined)
+    // Only the project's own imports. A workspace member's range that the
+    // lock lacks after a build is one the graph does not load, and a change
+    // that brings it in edits a file the fingerprint reads.
+    const unlocked = findUnlockedImport(config.imports ?? {}, specifiers)
     if (unlocked !== undefined) {
       return { type: 'unpinned', reason: `deno.lock does not hold ${unlocked}.`, sourceDigest }
     }
@@ -290,7 +325,7 @@ export const toBundleInputs = async ({
       ...otherChunks
     ])
 
-    return { type: 'fingerprinted', record: { fingerprint, ...versions }, sourceDigest }
+    return { type: 'fingerprinted', fingerprint, sourceDigest }
   } catch (error) {
     return {
       type: 'unpinned',
@@ -314,18 +349,26 @@ export const readBundleRecord = async (projectPath: string): Promise<BundleRecor
 
 type IsBundleCurrentArgs = {
   projectPath: string
-  inputs: BundleInputs
+  versions: BundleVersions
 }
 
-/** True when `bundle.js` is there and the record says it was built from `inputs`. */
+/**
+ * True when the record matches the inputs the project has now and the
+ * `bundle.js` on disk is the one that record's build renamed into place.
+ */
 export const isBundleCurrent = async ({
   projectPath,
-  inputs
+  versions
 }: IsBundleCurrentArgs): Promise<boolean> => {
-  if (inputs.type !== 'fingerprinted') return false
-  if (!(await exists(toBundleFsPath(projectPath), { isFile: true }))) return false
   const record = await readBundleRecord(projectPath)
-  return record?.fingerprint === inputs.record.fingerprint
+  if (record === undefined) return false
+  const inputs = await toBundleInputs({ projectPath, versions, graphFiles: record.graphFiles })
+  if (inputs.type !== 'fingerprinted' || inputs.fingerprint !== record.fingerprint) return false
+  try {
+    return (await toFileDigest(toBundleFsPath(projectPath))) === record.bundleDigest
+  } catch {
+    return false
+  }
 }
 
 /** Deletes the record, before `bundle.js` is replaced. */

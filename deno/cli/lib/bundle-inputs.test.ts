@@ -214,15 +214,57 @@ Deno.test('createBundle reuse - an import the lock does not hold: it builds ever
   })
 })
 
-Deno.test('createBundle reuse - a cloned generator with a range the lock does not hold: it builds every time', async () => {
+Deno.test('createBundle reuse - a cloned generator with a range nothing loads: the second run skips', async () => {
+  // Stock generators publish test-only imports (`@std/assert`) that never
+  // enter deno.lock; they must not stop a clone from reusing its bundle.
   await withClonedProject(async ({ projectName, projectPath }) => {
     await updateJson(join(projectPath, 'gen-c', 'deno.json'), json => {
       json.imports = { '@skmtc/unused': 'jsr:@skmtc/core@^0.1.0' }
     })
 
-    for (const _run of [1, 2]) {
-      assert((await countGenerateBuild({ projectName })) > 0)
-    }
+    assert((await countGenerateBuild({ projectName })) > 0)
+    assertEquals(await countGenerateBuild({ projectName }), 0)
+  })
+})
+
+Deno.test('createBundle reuse - a record restored beside a newer bundle.js: it builds', async () => {
+  await withClonedProject(async ({ projectName, projectPath }) => {
+    const labelPath = join(projectPath, 'gen-c', 'src', 'label.ts')
+    const recordPath = toBundleRecordPath(projectPath)
+    await generateBuild({ projectName })
+    const firstLabel = await Deno.readTextFile(labelPath)
+    const firstRecord = await Deno.readTextFile(recordPath)
+
+    // Another branch: other source, its own build.
+    await Deno.writeTextFile(labelPath, "export const label = 'branch-b'\n")
+    await generateBuild({ projectName })
+
+    // `git checkout` back: the source and the committed record return, the
+    // ignored bundle.js stays the other branch's.
+    await Deno.writeTextFile(labelPath, firstLabel)
+    await Deno.writeTextFile(recordPath, firstRecord)
+
+    assert((await countGenerateBuild({ projectName })) > 0)
+    assert((await Deno.readTextFile(join(projectPath, 'bundle.js'))).includes('first'))
+  })
+})
+
+Deno.test('createBundle reuse - a file the graph reaches by a relative path outside every walked folder: it builds when it changes', async () => {
+  await withClonedProject(async ({ projectName, projectPath }) => {
+    const namingPath = join(projectPath, 'shared', 'naming.ts')
+    await Deno.mkdir(join(projectPath, 'shared'))
+    await Deno.writeTextFile(namingPath, "export const naming = 'one'\n")
+    await Deno.writeTextFile(
+      join(projectPath, 'gen-c', 'src', 'label.ts'),
+      "export { naming as label } from '../../shared/naming.ts'\n"
+    )
+
+    await generateBuild({ projectName })
+    assertEquals(await countGenerateBuild({ projectName }), 0)
+
+    await Deno.writeTextFile(namingPath, "export const naming = 'two'\n")
+    assert((await countGenerateBuild({ projectName })) > 0)
+    assert((await Deno.readTextFile(join(projectPath, 'bundle.js'))).includes('two'))
   })
 })
 

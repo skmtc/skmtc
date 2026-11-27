@@ -155,8 +155,8 @@ JS file. This is what the Worker spawns.
 
 ### One bundle path for every project
 
-`skmtc generate` builds the project-local `bundle.js` before every
-run — it is the only artifact `generate` loads. Generator source enters the
+`skmtc generate` builds the project-local `bundle.js` when an input of
+the build changed. It is the only artifact `generate` loads. Generator source enters the
 bundle either as a `jsr:` specifier (installed) or a relative path
 (cloned / locally authored); `deno bundle` resolves both through the
 project's import map.

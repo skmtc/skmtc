@@ -120,11 +120,15 @@ Generation runs the compiled `bundle.js`, not generator source. For a
 local project, `generate` builds `bundle.js` from `deno.json#imports`
 and the generator source on disk when one of its inputs changed since
 the last build: `deno.json`, `deno.lock`, `worker.ts`, a file of a
-cloned or local generator, the CLI version or the Deno version.
-`.settings/bundle-inputs.json` records the inputs of the last build;
-when they match and `bundle.js` is there, `generate` runs it without a
-build. A project with no `deno.lock`, or with a `jsr:`/`npm:` import
-the lock does not hold, builds on every run. So pin changes and edits
+cloned or local generator, a local file the last build's graph held,
+the CLI version or the Deno version. `.settings/bundle-inputs.json`
+records the inputs of the last build and a digest of its `bundle.js`
+(do not commit it); when they match, `generate` runs `bundle.js`
+without a build. The first build writes `deno.lock`, so a new project
+reuses its bundle from the second run. A project still builds on every
+run when it has no `deno.lock` after a build, when its `deno.json` has
+a `jsr:`/`npm:` import the lock does not hold, or when it sets
+`importMap`, `scopes`, `links` or `patch`. So pin changes and edits
 to cloned source apply on the next `generate` — no `skmtc bundle`
 step. `dev` does the same at its start and builds on every change after it; `describe`, `status` and `clean` build
 a read-only copy in a temporary directory (`deno bundle --frozen`), so

@@ -74,6 +74,8 @@ export type PackageCopiesCheck =
       type: 'single-copies'
       /** Every tracked package found — each with one copy. */
       packages: TrackedPackage[]
+      /** Paths of the graph's local (`file:`) modules, when read from `deno info`. */
+      localFiles?: string[]
     }
   | {
       type: 'duplicates'
@@ -420,11 +422,20 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
       return { type: 'unavailable', reason: '`deno info --json` output has an unexpected shape.' }
     }
 
-    return toModuleGraphCheck({
+    const check = toModuleGraphCheck({
       graph: parsed.output,
       projectPath: toCanonicalPath(projectPath),
       entryPath: options.entryPath === undefined ? undefined : toCanonicalPath(options.entryPath)
     })
+    return check.type === 'single-copies'
+      ? {
+          ...check,
+          localFiles: parsed.output.modules
+            .map(module => module.specifier)
+            .filter(specifier => specifier.startsWith('file:'))
+            .map(specifier => fromFileUrl(specifier))
+        }
+      : check
   } catch (error) {
     return {
       type: 'unavailable',
@@ -498,22 +509,39 @@ type ToGraphRefusalArgs = {
  * `undefined` when it holds one copy of each. Shared by every bundle
  * build and `generate --debug`, which both run the graph.
  */
-export const toGraphRefusal = async ({
+export const toGraphRefusal = async (args: ToGraphRefusalArgs): Promise<string | undefined> => {
+  const graphCheck = await toGraphCheck(args)
+  return graphCheck.type === 'refused' ? graphCheck.message : undefined
+}
+
+export type GraphCheck =
+  | { type: 'refused'; message: string }
+  /** `localFiles`: the graph's local modules, for the bundle's record of its inputs. */
+  | { type: 'passed'; localFiles: string[] }
+
+/** {@link toGraphRefusal}, with the graph's local files when it passes. */
+export const toGraphCheck = async ({
   projectName,
   projectPath,
   options
-}: ToGraphRefusalArgs): Promise<string | undefined> => {
+}: ToGraphRefusalArgs): Promise<GraphCheck> => {
   const graphCheck = await checkModuleGraph(projectPath, options)
   switch (graphCheck.type) {
     case 'duplicates':
-      return toDuplicatePackagesMessage({
-        projectName,
-        projectPath,
-        duplicates: graphCheck.duplicates
-      })
+      return {
+        type: 'refused',
+        message: toDuplicatePackagesMessage({
+          projectName,
+          projectPath,
+          duplicates: graphCheck.duplicates
+        })
+      }
     case 'unavailable':
-      return `Could not check that project "${projectName}" resolves one copy of @skmtc/core: ${graphCheck.reason}`
+      return {
+        type: 'refused',
+        message: `Could not check that project "${projectName}" resolves one copy of @skmtc/core: ${graphCheck.reason}`
+      }
     case 'single-copies':
-      return undefined
+      return { type: 'passed', localFiles: graphCheck.localFiles ?? [] }
   }
 }

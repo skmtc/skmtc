@@ -317,6 +317,7 @@ A reasonable `.gitignore`:
 .skmtc/**/bundle.js
 .skmtc/**/worker.ts
 .skmtc/**/.settings/manifest.json
+.skmtc/**/.settings/bundle-inputs.json
 .skmtc/**/.settings/*.txt
 ```
 
