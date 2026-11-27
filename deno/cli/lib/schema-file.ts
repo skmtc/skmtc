@@ -4,6 +4,7 @@ import { join } from '@std/path/join'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import invariant from 'tiny-invariant'
+import { stringToSchema } from '@skmtc/convert'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
 import { toSchemaContents } from './to-schema-contents.ts'
 
@@ -69,6 +70,14 @@ export class SchemaFile {
     switch (schemaSource.type) {
       case 'remote': {
         const response = await fetch(schemaSource.url)
+
+        if (!response.ok) {
+          await response.body?.cancel()
+          throw new Error(
+            `could not fetch the schema from ${schemaSource.url}: ${response.status} ${response.statusText}`.trimEnd()
+          )
+        }
+
         const contents = await response.text()
         const url = new URL(schemaSource.url)
         // Prefer extension-based detection (cheap, deterministic). Fall
@@ -83,6 +92,12 @@ export class SchemaFile {
         // and POST an introspection query automatically.
         const contentType = response.headers.get('content-type') ?? ''
         const fileType = toFileTypeFromPathOrContentType(url.pathname, contentType)
+
+        if (fileType !== 'graphql' && !isOpenApiDocument(contents)) {
+          throw new Error(
+            `the answer from ${schemaSource.url} is not a schema: its body is not an OpenAPI or Swagger document`
+          )
+        }
 
         return {
           contents,
@@ -105,6 +120,25 @@ export class SchemaFile {
 
   static create() {
     return new SchemaFile()
+  }
+}
+
+/**
+ * Whether `contents` parses as JSON or YAML to an object with an `openapi`
+ * or `swagger` field. Uses the same parse as `toDocumentInput`.
+ */
+const isOpenApiDocument = (contents: string): boolean => {
+  try {
+    const parsed: unknown = stringToSchema(contents)
+
+    return (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      ('openapi' in parsed || 'swagger' in parsed)
+    )
+  } catch (_error) {
+    return false
   }
 }
 

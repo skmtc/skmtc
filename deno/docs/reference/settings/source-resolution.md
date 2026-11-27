@@ -214,6 +214,15 @@ parsing happens inside the worker — is covered in full in
 When the source is an HTTP or HTTPS URL, the CLI uses standard
 `fetch()` to retrieve it.
 
+The command stops with an error that names the URL when:
+
+- the status is not 2xx. The error also names the status, for
+  example `could not fetch the schema from <url>: 404 Not Found`.
+  The CLI does not parse the body.
+- the status is 2xx, but the body is not a schema. For a JSON or
+  YAML source, the body must parse to an object with an `openapi`
+  or `swagger` field. A login page does not.
+
 ### Authentication
 
 The CLI does not currently expose a built-in authentication

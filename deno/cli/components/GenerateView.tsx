@@ -187,7 +187,7 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerat
         leave({ state: tasksToState(taskState.tasks) })
       })
       .catch(error => {
-        console.error(error)
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
         leave({ state: tasksToState(taskState.tasks) })
       })
@@ -256,7 +256,7 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
         setActivity('watching')
       })
       .catch(error => {
-        console.error(error)
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
         dispatchMessage({ error: 'Failed to generate' })
 
