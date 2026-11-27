@@ -231,8 +231,10 @@ type LogIssueAtArgs =
   | { protocol: 'gql', level: 'warning', type: GqlIssueType, location, message }
 ```
 
-`parent` is optional context for the logger payload (stringified for
-clone-safety) — not stored on the issue itself.
+The logged line has the message `<TYPE> at <location>: <message>`,
+with the location in the document. The issue's fields go into the
+line's `issue` field. `parent` is optional context for that field
+(stringified for clone-safety) — not stored on the issue itself.
 
 ### `logIssue({ key, parent, type, stackTrail, ...issue }): void`
 

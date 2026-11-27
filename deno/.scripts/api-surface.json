@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.49",
+    "minor": "0.50",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -59,7 +59,7 @@
       "FindDefinitionArgs": "1619b53f8b0dd10d",
       "FindDefinitionsQuery": "c8f87bc0306f199f",
       "GENERATOR_ENRICHMENT_KEY": "0e3c47b2d008bb38",
-      "GenerateContext": "c1fab77019822c47",
+      "GenerateContext": "7ee0cfef74309abe",
       "GenerateContextType": "6a9cf68e9c8bdf2c",
       "GeneratePhase": "9c6db0829ae64934",
       "GenerateResult": "634b987a8b21d1c2",
@@ -143,7 +143,9 @@
       "LogIssueArgs": "85c49dd406f87381",
       "LogIssueAtArgs": "6546588ec2334cf2",
       "LogIssueNoKeyArgs": "11cc6713a971fb27",
-      "LogLine": "64c2e803be997d71",
+      "LogLine": "d4a1b7e453b20524",
+      "LogLineIssue": "a904d2e6e1f287c1",
+      "LogLineIssueArg": "aa9353583892034f",
       "LogLineLevel": "73425f45f8bf9506",
       "LogSkippedValuesArgs": "e2180e9b5f949395",
       "Logger": "1276205af1ca5f46",
@@ -487,6 +489,7 @@
       "isWebhookGeneratorKey": "20aa69f799aeefd6",
       "lensInputModuleType": "629098147f140f11",
       "logLine": "0a752fffac0fe683",
+      "logLineIssue": "0a752fffac0fe683",
       "logLineLevel": "0a752fffac0fe683",
       "manifestContent": "a1b2353a04b62608",
       "manifestEntry": "90472df9525f397c",
@@ -639,6 +642,7 @@
     "unresolved": [
       "gqlIssueType",
       "logLine",
+      "logLineIssue",
       "logLineLevel",
       "numberFormat",
       "oasBooleanData",

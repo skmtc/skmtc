@@ -143,8 +143,10 @@ runs; bench scripts and tests typically set `silent: true`.
 #### `logLevel`
 
 The lowest level that the returned `logs` keep. The default is `'WARN'`,
-so `logs` has no `DEBUG` or `INFO` lines unless you ask for them. The
-console output does not change.
+so `logs` has no `DEBUG` or `INFO` lines unless you ask for them. At
+`'INFO'` or `'DEBUG'`, a run that is not `silent` also prints its phase
+lines on the console. At `'WARN'`, the console shows the same lines as
+before.
 
 #### `startAt`
 
@@ -199,7 +201,10 @@ The log lines of the run, at `logLevel` and above, in order. They are not
 part of the manifest. A line that a subject logs carries the subject's
 `trail`, which is also its key in `manifest.results`. When a transform
 throws, its `ERROR` line holds the message and the error with its stack.
-See [manifest format: `logs`](../manifest-format.md#logs-beside-the-manifest)
+
+At `logLevel: 'INFO'`, a run that is not `silent` also returns phase
+lines. There is one after parse, one for each generator, one after
+render and one with the totals. See [manifest format: `logs`](../manifest-format.md#logs-beside-the-manifest)
 for the shape. The CLI writes the lines to `.settings/logs.ndjson`, and
 `@skmtc/server` returns them from `POST /artifacts`.
 

@@ -87,6 +87,24 @@ Deno.test("GET /openapi.json - serves the committed contract", async () => {
   assertEquals(Object.keys(doc.paths).sort(), servedPaths());
 });
 
+Deno.test("buildOpenApiDocument - a log line lists the optional issue field", () => {
+  const logLineSchema = buildOpenApiDocument().components?.schemas?.LogLine;
+  assertExists(logLineSchema);
+  assertEquals("properties" in logLineSchema, true);
+  const required = "required" in logLineSchema ? logLineSchema.required : [];
+  const properties = "properties" in logLineSchema
+    ? logLineSchema.properties ?? {}
+    : {};
+  const issue = properties.issue;
+  assertExists(issue);
+  assertEquals(required?.includes("issue"), false);
+  assertEquals("required" in issue ? issue.required : [], [
+    "type",
+    "level",
+    "location",
+  ]);
+});
+
 Deno.test("openapi.json - committed artifact is in sync with the source schemas", async () => {
   const committed = await Deno.readTextFile(
     new URL("../openapi.json", import.meta.url),

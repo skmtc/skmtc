@@ -362,7 +362,8 @@ const artifactsResponse = (): Schema => ({
       description:
         "The run's structured log lines at INFO and above. They include " +
         "the parse phase's error and warning issues, each at its own " +
-        "level, but not its debug issues. A line logged " +
+        "level, but not its debug issues, and the run's phase lines " +
+        "(parse, each generator, render, totals). A line logged " +
         "while a subject was generated carries the subject's trail, which " +
         "is its key in `manifest.results`.",
     },

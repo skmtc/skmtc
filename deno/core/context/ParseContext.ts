@@ -44,6 +44,7 @@ import type {
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import { LogLineIssueArg } from '@/types/LogLine.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import type { OasIssueType } from '@/context/generateTypes.ts'
@@ -151,7 +152,9 @@ type ToRefTarget = (args: ToRefTargetArgs) => ComponentsEntry | undefined
 const toRefKey = ({ refName, refPath }: RefParts): string => {
   const bucket = toRefPathBucket(refPath)
 
-  return bucket === undefined ? toRefPointer({ refName, refPath }) : `#/components/${bucket}/${refName}`
+  return bucket === undefined
+    ? toRefPointer({ refName, refPath })
+    : `#/components/${bucket}/${refName}`
 }
 
 type RemoveHolderArgs = WrittenRef & {
@@ -561,7 +564,11 @@ export class ParseContext {
 
       // A ref to a component, of its own kind or not, is resolved in
       // `components`; `#checkRefs` reports one of the wrong kind.
-      if (ref.refName === '' || toRefPathBucket(ref.refPath) !== undefined || this.#refTargets.has(key)) {
+      if (
+        ref.refName === '' ||
+        toRefPathBucket(ref.refPath) !== undefined ||
+        this.#refTargets.has(key)
+      ) {
         continue
       }
 
@@ -582,7 +589,14 @@ export class ParseContext {
           context: this,
           type: toInvalidType(ref.refType),
           parent: value,
-          fn: () => toRefTarget({ refType: ref.refType, name: ref.refName, value, stackTrail: parent, context: this })
+          fn: () =>
+            toRefTarget({
+              refType: ref.refType,
+              name: ref.refName,
+              value,
+              stackTrail: parent,
+              context: this
+            })
         })
       )
 
@@ -758,6 +772,17 @@ export class ParseContext {
   }
 
   /**
+   * Where `issue` is in the input document, without the run's frames: a
+   * JSON Pointer for OAS (`#/paths/~1owners/get`), the dotted path for
+   * GraphQL (`Query.post.return`).
+   */
+  #toDocumentLocation({ protocol, location }: LogIssueAtArgs): string {
+    const documentTrail = this.#toDocumentTrail(StackTrail.fromString(location))
+
+    return protocol === 'oas' ? documentTrail.toJsonPointer() : documentTrail.stackTrail.join('.')
+  }
+
+  /**
    * `stackTrail` without the frames `parse()` was called with, so it starts
    * at a document key (`components`, `paths`, a GraphQL type name). A trail
    * that does not start with those frames, such as one `log()` builds from a
@@ -844,45 +869,47 @@ export class ParseContext {
    * removes what holds it.
    */
   #checkRefs(): void {
-    this.#oasRefs.forEach(({ consumer, ref, refTarget }) => this.#inRefTarget(refTarget, () => {
-      if (this.#refErrors.has(toRefKey(ref))) {
-        return
-      }
-
-      const error = this.#toRefError(ref)
-
-      if (error !== undefined) {
-        if (!DanglingRefError.is(error)) {
-          const message = error instanceof Error ? error.message : String(error)
-
-          this.#removeHolder({
-            consumer,
-            ref,
-            refTarget,
-            error,
-            type: 'REF_TYPE_MISMATCH',
-            message: `${message}, so what holds it is removed.`
-          })
-        } else if (this.system.danglingRefs?.includes(ref.refType)) {
-          this.logIssueNoKey({
-            level: 'warning',
-            message: `${error.message}. It is kept (parse.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
-            parent: { $ref: ref.$ref },
-            stackTrail: consumer,
-            type: 'DANGLING_REF'
-          })
-        } else {
-          this.#removeHolder({
-            consumer,
-            ref,
-            refTarget,
-            error,
-            type: 'DANGLING_REF',
-            message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in parse.danglingRefs.`
-          })
+    this.#oasRefs.forEach(({ consumer, ref, refTarget }) =>
+      this.#inRefTarget(refTarget, () => {
+        if (this.#refErrors.has(toRefKey(ref))) {
+          return
         }
-      }
-    }))
+
+        const error = this.#toRefError(ref)
+
+        if (error !== undefined) {
+          if (!DanglingRefError.is(error)) {
+            const message = error instanceof Error ? error.message : String(error)
+
+            this.#removeHolder({
+              consumer,
+              ref,
+              refTarget,
+              error,
+              type: 'REF_TYPE_MISMATCH',
+              message: `${message}, so what holds it is removed.`
+            })
+          } else if (this.system.danglingRefs?.includes(ref.refType)) {
+            this.logIssueNoKey({
+              level: 'warning',
+              message: `${error.message}. It is kept (parse.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
+              parent: { $ref: ref.$ref },
+              stackTrail: consumer,
+              type: 'DANGLING_REF'
+            })
+          } else {
+            this.#removeHolder({
+              consumer,
+              ref,
+              refTarget,
+              error,
+              type: 'DANGLING_REF',
+              message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in parse.danglingRefs.`
+            })
+          }
+        }
+      })
+    )
   }
 
   /**
@@ -903,7 +930,9 @@ export class ParseContext {
 
     const loop = this.#toLoopOf(ref)
 
-    return loop === undefined ? undefined : new DanglingRefError(ref.$ref, { loop: loop.map(({ $ref }) => $ref) })
+    return loop === undefined
+      ? undefined
+      : new DanglingRefError(ref.$ref, { loop: loop.map(({ $ref }) => $ref) })
   }
 
   /** The loop of `$ref`s that `ref` is part of, or `undefined`. */
@@ -947,7 +976,11 @@ export class ParseContext {
     this.#removeConsumer(consumer, documentTrail)
       .filter(removed => removed !== location)
       .forEach(removed =>
-        this.#logDependencyIssue({ location: removed, refKey: ref.$ref, rootCause: { error, location } })
+        this.#logDependencyIssue({
+          location: removed,
+          refKey: ref.$ref,
+          rootCause: { error, location }
+        })
       )
   }
 
@@ -1002,6 +1035,9 @@ export class ParseContext {
    * mirrors to the logger. Both protocols' surface methods funnel
    * here.
    *
+   * The log line's message is `<TYPE> at <document location>: <message>`,
+   * and its `issue` field holds the issue's fields.
+   *
    * `parent` is an optional log-time-only field — surface methods
    * forward the surrounding object so log readers see its shape, not
    * just the leaf address. Stringified here so the logger payload
@@ -1014,26 +1050,25 @@ export class ParseContext {
     const added = this.#addIssue(toParseIssue(issue))
 
     if (added && !this.silent) {
-      const payload = {
-        protocol: issue.protocol,
+      const message = `${issue.type} at ${this.#toDocumentLocation(issue)}: ${issue.message}`
+      const issueArg = new LogLineIssueArg({
+        type: issue.type,
         level: issue.level,
         location: issue.location,
-        message: issue.message,
-        type: issue.type,
         ...(parent === undefined ? {} : { parent: JSON.stringify(parent) })
-      }
+      })
 
       // Each issue is logged at its own level, so a log threshold above
       // DEBUG leaves `debug` issues out.
       switch (issue.level) {
         case 'error':
-          this.logger.error(payload)
+          this.logger.error(message, issueArg)
           break
         case 'warning':
-          this.logger.warn(payload)
+          this.logger.warn(message, issueArg)
           break
         case 'debug':
-          this.logger.debug(payload)
+          this.logger.debug(message, issueArg)
           break
         default: {
           const _exhaustive: never = issue

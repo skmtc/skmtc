@@ -6,6 +6,7 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
+import { LogLevels } from '@std/log/levels'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
@@ -29,6 +30,7 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
 import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import { GenerationFailure } from '@/context/toGenerationFailure.ts'
+import { toCountPhrase } from '@/helpers/toCountPhrase.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -223,6 +225,13 @@ export class CoreContext {
   #logLines: LogLinesHandler
 
   /**
+   * Whether the run logs its phase lines at INFO: when it is not silent and
+   * its `logLevel` keeps INFO lines. At the default `'WARN'` it logs none,
+   * so the console of a CLI run does not change.
+   */
+  #logsPhaseLines: boolean
+
+  /**
    * The phase that is running. Set when a phase starts, before its
    * context is set up, so a failure names the phase it happened in.
    */
@@ -274,6 +283,7 @@ export class CoreContext {
     this.logger = this.#setupLogger({ spanId, logsPath, logLines: this.#logLines })
 
     this.silent = silent
+    this.#logsPhaseLines = !silent && LogLevels[logLevel] <= LogLevels.INFO
   }
 
   /**
@@ -442,6 +452,8 @@ export class CoreContext {
     attribution,
     inspect
   }: ToArtifactsArgs): ToArtifactsResult {
+    const runStartedAt = performance.now()
+
     try {
       // Parse phase: one unified ParseContext handles both protocols
       // via its internal protocol-discriminated state. `parse()` returns
@@ -456,6 +468,7 @@ export class CoreContext {
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
+      this.#logParseLine(parsedDocument, phase.context.issues, runStartedAt)
 
       // The shared attribution capture channel: snippets constructed
       // during generate hold the GenerateContext, whose `captureSink`
@@ -493,6 +506,7 @@ export class CoreContext {
       // map (folded into `RenderContext.render`). No separate pre-render
       // post-pass, no re-render — the old `_rendered` cache that faked
       // "render once" across two passes is gone.
+      const renderStartedAt = performance.now()
       const renderOutput = stackTrail.trace('render', st => {
         this.#phaseName = 'render'
         this.#phase = this.#setupRenderPhase({
@@ -505,6 +519,18 @@ export class CoreContext {
 
         return this.#phase.context.render(st)
       })
+
+      if (this.#logsPhaseLines) {
+        const fileCount = toCountPhrase(Object.keys(renderOutput.artifacts).length, 'file')
+        const byteCount = toCountPhrase(toByteCount(renderOutput.artifacts), 'byte')
+
+        this.logger.info(`render: ${fileCount}, ${byteCount}, ${toElapsedMs(renderStartedAt)} ms`)
+        this.logger.info(
+          `toArtifacts: ${toCountPhrase(Object.keys(toGeneratorConfigMap()).length, 'generator')}, ` +
+            `${fileCount}, ${byteCount}, ${toIssueCounts(phase.context.issues)}, ` +
+            `${toElapsedMs(runStartedAt)} ms`
+        )
+      }
 
       return {
         ...renderOutput,
@@ -562,6 +588,8 @@ export class CoreContext {
     subjects: SupportedSubjects
     parseIssues: ParseIssue[]
   } {
+    const runStartedAt = performance.now()
+
     try {
       this.#phaseName = 'parse'
       this.#parseIssues = []
@@ -571,6 +599,7 @@ export class CoreContext {
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
+      this.#logParseLine(parsedDocument, phase.context.issues, runStartedAt)
 
       const subjects = stackTrail.trace('generate', () => {
         this.#phaseName = 'generate'
@@ -586,6 +615,11 @@ export class CoreContext {
 
         return generatePhase.context.toSupportedSubjects()
       })
+
+      this.#logInfo(
+        `toSupportedSubjects: ${toCountPhrase(Object.keys(subjects).length, 'generator')}, ` +
+          `${toIssueCounts(phase.context.issues)}, ${toElapsedMs(runStartedAt)} ms`
+      )
 
       return { subjects, parseIssues: phase.context.issues }
     } catch (error) {
@@ -622,6 +656,8 @@ export class CoreContext {
     enrichmentDefaults: EnrichmentDefaults
     parseIssues: ParseIssue[]
   } {
+    const runStartedAt = performance.now()
+
     try {
       this.#phaseName = 'parse'
       this.#parseIssues = []
@@ -631,6 +667,7 @@ export class CoreContext {
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
+      this.#logParseLine(parsedDocument, phase.context.issues, runStartedAt)
 
       const enrichmentDefaults = stackTrail.trace('generate', () => {
         this.#phaseName = 'generate'
@@ -647,6 +684,11 @@ export class CoreContext {
         return generatePhase.context.toEnrichmentDefaults()
       })
 
+      this.#logInfo(
+        `toEnrichmentDefaults: ${toCountPhrase(Object.keys(enrichmentDefaults).length, 'generator')} with defaults, ` +
+          `${toIssueCounts(phase.context.issues)}, ${toElapsedMs(runStartedAt)} ms`
+      )
+
       return { enrichmentDefaults, parseIssues: phase.context.issues }
     } catch (error) {
       this.logger.error(toSerializedError(error).message, error)
@@ -662,6 +704,51 @@ export class CoreContext {
       }
     } finally {
       this.#closeFileHandlers()
+    }
+  }
+
+  /** Logs a phase line at INFO when {@link #logsPhaseLines}. */
+  #logInfo(message: string): void {
+    if (this.#logsPhaseLines) {
+      this.logger.info(message)
+    }
+  }
+
+  /** The line after parse: the protocol, the operations and models, the issues and the time. */
+  #logParseLine(document: SkmtcParsedDocument, issues: ParseIssue[], startedAt: number): void {
+    if (!this.#logsPhaseLines) {
+      return
+    }
+
+    const issueCounts = toIssueCounts(issues)
+    const milliseconds = toElapsedMs(startedAt)
+
+    switch (document.type) {
+      case 'oas': {
+        const { openapi, operations, webhooks, components } = document.value
+        const webhookCount =
+          webhooks.length > 0 ? `${toCountPhrase(webhooks.length, 'webhook')}, ` : ''
+        const modelCount = components?.toSchemasRefNames().length ?? 0
+
+        this.#logInfo(
+          `parse: OpenAPI ${openapi}, ${toCountPhrase(operations.length, 'operation')}, ${webhookCount}` +
+            `${toCountPhrase(modelCount, 'model')}, ${issueCounts}, ${milliseconds} ms`
+        )
+        break
+      }
+      case 'gql': {
+        const { operations, registry } = document.value
+
+        this.#logInfo(
+          `parse: GraphQL, ${toCountPhrase(operations.length, 'operation')}, ` +
+            `${toCountPhrase(registry.toSchemasRefNames().length, 'model')}, ${issueCounts}, ${milliseconds} ms`
+        )
+        break
+      }
+      default: {
+        const _exhaustive: never = document
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
 
@@ -727,7 +814,8 @@ export class CoreContext {
       logger: this.logger,
       captureCurrentResult: this.captureCurrentResult.bind(this),
       toGeneratorConfigMap,
-      captureChannel
+      captureChannel,
+      logsGeneratorLines: this.#logsPhaseLines
     })
 
     return { type: 'generate', context: generateContext }
@@ -771,6 +859,32 @@ export class CoreContext {
 
     return { type: 'render', context: renderContext }
   }
+}
+
+/** Milliseconds since `startedAt`, a `performance.now()` reading, rounded. */
+const toElapsedMs = (startedAt: number): number => Math.round(performance.now() - startedAt)
+
+/** The size of the artifacts in UTF-8 bytes. */
+const toByteCount = (artifacts: Record<string, string>): number => {
+  const encoder = new TextEncoder()
+
+  return Object.values(artifacts).reduce(
+    (total, content) => total + encoder.encode(content).length,
+    0
+  )
+}
+
+/** The issues by level: `0 errors, 1 warning, 2 debug`. */
+const toIssueCounts = (issues: ParseIssue[]): string => {
+  const errors = issues.filter(issue => issue.level === 'error').length
+  const warnings = issues.filter(issue => issue.level === 'warning').length
+  const debug = issues.filter(issue => issue.level === 'debug').length
+
+  return [
+    toCountPhrase(errors, 'error'),
+    toCountPhrase(warnings, 'warning'),
+    toCountPhrase(debug, 'debug', 'debug')
+  ].join(', ')
 }
 
 /**

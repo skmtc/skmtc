@@ -45,6 +45,8 @@ artifact paths goes through these — never re-implement the strip):
 **Logging / tracing:**
 
 - `tracer.ts`, `ResultsLog.ts` — instrumentation glue.
+- `toCountPhrase(count, singular, plural?)` — `1 file`, `2 files`, for
+  the phase lines a run logs at INFO.
 
 Each helper has a sibling `.test.ts` file. Variant helpers
 specifically:

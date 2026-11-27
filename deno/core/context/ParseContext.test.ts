@@ -6,6 +6,7 @@ import { assertEquals } from '@std/assert/equals'
 import { assertExists } from '@std/assert/exists'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import { OasDocument } from '@/oas/document/Document.ts'
+import { LogLineIssueArg } from '@/types/LogLine.ts'
 
 const oasInput = (
   documentObject: OpenAPIV3.Document = {
@@ -170,30 +171,33 @@ Deno.test('ParseContext - logIssueNoKey logs each issue at its own level', () =>
   assertSpyCalls(errorSpy, 1)
   assertSpyCalls(warnSpy, 1)
   assertSpyCalls(debugSpy, 1)
-  assertEquals(errorSpy.calls[0].args[0], {
-    protocol: 'oas',
-    level: 'error',
-    location: 'test:error',
-    message: 'Test error',
-    type: 'UNEXPECTED_PROPERTY',
-    parent: '{}'
-  })
-  assertEquals(warnSpy.calls[0].args[0], {
-    protocol: 'oas',
-    level: 'warning',
-    location: 'test:warning',
-    message: 'Test warning',
-    type: 'UNEXPECTED_PROPERTY',
-    parent: '{}'
-  })
-  assertEquals(debugSpy.calls[0].args[0], {
-    protocol: 'oas',
-    level: 'debug',
-    location: 'test:debug',
-    message: 'Test debug',
-    type: 'UNEXPECTED_PROPERTY',
-    parent: '{}'
-  })
+  assertEquals(errorSpy.calls[0].args, [
+    'UNEXPECTED_PROPERTY at #/test/error: Test error',
+    new LogLineIssueArg({
+      type: 'UNEXPECTED_PROPERTY',
+      level: 'error',
+      location: 'test:error',
+      parent: '{}'
+    })
+  ])
+  assertEquals(warnSpy.calls[0].args, [
+    'UNEXPECTED_PROPERTY at #/test/warning: Test warning',
+    new LogLineIssueArg({
+      type: 'UNEXPECTED_PROPERTY',
+      level: 'warning',
+      location: 'test:warning',
+      parent: '{}'
+    })
+  ])
+  assertEquals(debugSpy.calls[0].args, [
+    'UNEXPECTED_PROPERTY at #/test/debug: Test debug',
+    new LogLineIssueArg({
+      type: 'UNEXPECTED_PROPERTY',
+      level: 'debug',
+      location: 'test:debug',
+      parent: '{}'
+    })
+  ])
 })
 
 Deno.test('ParseContext - a ref to a removed component logs INVALID_DEPENDENCY_REF as an error', () => {
@@ -223,14 +227,15 @@ Deno.test('ParseContext - a ref to a removed component logs INVALID_DEPENDENCY_R
 
   assertExists(dependencyIssue)
   assertSpyCalls(errorSpy, 2)
-  // The payload has no `cause`, which carries a stack.
-  assertEquals(errorSpy.calls[1].args[0], {
-    protocol: 'oas',
-    level: 'error',
-    location: 'components:schemas:User:properties:name',
-    message: dependencyIssue.message,
-    type: 'INVALID_DEPENDENCY_REF'
-  })
+  // The line has no `cause`, which carries a stack.
+  assertEquals(errorSpy.calls[1].args, [
+    `INVALID_DEPENDENCY_REF at #/components/schemas/User/properties/name: ${dependencyIssue.message}`,
+    new LogLineIssueArg({
+      type: 'INVALID_DEPENDENCY_REF',
+      level: 'error',
+      location: 'components:schemas:User:properties:name'
+    })
+  ])
 })
 
 Deno.test('ParseContext - logIssueNoKey does not call logger when silent', () => {

@@ -10,7 +10,7 @@ description: >
   output, or an edge case it renders wrongly.
 metadata:
   describes:
-    '@skmtc/core': '0.49'
+    '@skmtc/core': '0.50'
     '@skmtc/lang-typescript': '0.15'
 ---
 
