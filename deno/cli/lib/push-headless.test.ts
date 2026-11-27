@@ -158,6 +158,47 @@ Deno.test('pushHeadless - PUTs the client.json settings to the resolved destinat
   }
 })
 
+/** Push a project with the given settings and return the PUT body's settings. */
+const pushSettings = async (settings: Record<string, unknown>): Promise<Record<string, unknown>> => {
+  const calls = stubFetch({ getBody: {}, putBody: { enrichments: [] } })
+  const { skmtcRoot } = makeRoot({ project: '@acme/petstore', settings })
+
+  try {
+    const result = await pushHeadless({
+      skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test'
+    })
+    assertEquals(result.type, 'pushed')
+    const put = calls.find(c => c.method === 'PUT')
+    return JSON.parse(String(put?.body)).settings
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+}
+
+Deno.test('pushHeadless - settings.parse is sent as parse', async () => {
+  const sent = await pushSettings({ basePath: 'src', parse: { not: 'unknown' } })
+
+  assertEquals(sent.parse, { not: 'unknown' })
+  assertEquals('system' in sent, false)
+})
+
+Deno.test('pushHeadless - settings.system is sent as parse, never as system', async () => {
+  const sent = await pushSettings({ basePath: 'src', system: { not: 'unknown' } })
+
+  assertEquals(sent.parse, { not: 'unknown' })
+  assertEquals('system' in sent, false)
+})
+
+Deno.test('pushHeadless - a project with neither parse nor system sends no parse key', async () => {
+  const sent = await pushSettings({ basePath: 'src' })
+
+  assertEquals('parse' in sent, false)
+  assertEquals('system' in sent, false)
+})
+
 Deno.test('pushHeadless - a 404 on the destination is a clear "create it first" failure', async () => {
   stubFetch({ getStatus: 404, getBody: { message: 'not found' } })
   const { skmtcRoot } = makeRoot({

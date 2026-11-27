@@ -13,9 +13,10 @@
  *      When it already holds config, `confirmOverwrite` (interactive only) gates
  *      the overwrite.
  *   3. PUT the local `skmtc.config.json` (`{ source?, settings }`) to
- *      `/v1/projects/{account}/{slug}/client-config`. The hub folds the nested
- *      settings into its flat ProjectConfig and overwrites it, returning the
- *      result.
+ *      `/v1/projects/{account}/{slug}/client-config`. The parse settings go
+ *      as `parse` (`settings.parse ?? settings.system`), never as `system`.
+ *      The hub folds the nested settings into its flat ProjectConfig and
+ *      overwrites it, returning the result.
  *   4. `-u`: an explicit `--project` is written back into `skmtc.config.json` so later
  *      pushes are bare `skmtc push`.
  *
@@ -24,8 +25,32 @@
  * destination (the `project` field), exactly like git.
  */
 
+import type { SkmtcClientConfig } from '@skmtc/core/Settings'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
+
+/**
+ * The body of a `PUT …/client-config`, from `push` and from the
+ * `skmtc project create` seed. The parse settings go as `parse`, never as
+ * `system`: the hub reads only `parse`, and a project not yet migrated
+ * still has `system`.
+ */
+export const toClientConfigBody = (contents: SkmtcClientConfig) => {
+  const settings = contents.settings
+
+  return {
+    source: contents.source,
+    settings: {
+      basePath: settings.basePath ?? '.',
+      packages: settings.packages,
+      include: settings.include,
+      skip: settings.skip,
+      enrichments: settings.enrichments,
+      inputDirs: settings.inputDirs,
+      parse: settings.parse ?? settings.system
+    }
+  }
+}
 
 type PushHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -192,18 +217,7 @@ export const pushHeadless = async ({
   // enrichmentCount then reflects the EXISTING hub config from the pre-check GET.
   let pushedConfig: unknown = existing
   if (!baseFilesOnly) {
-    const settings = contents.settings
-    const body = {
-      source: contents.source,
-      settings: {
-        basePath: settings.basePath ?? '.',
-        packages: settings.packages,
-        include: settings.include,
-        skip: settings.skip,
-        enrichments: settings.enrichments,
-        inputDirs: settings.inputDirs
-      }
-    }
+    const body = toClientConfigBody(contents)
 
     try {
       const putResponse = await fetch(`${origin}/v1/projects/${account}/${slug}/client-config`, {
