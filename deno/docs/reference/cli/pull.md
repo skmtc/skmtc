@@ -1,6 +1,6 @@
 # skmtc pull
 
-> Pull a project's config (enrichments + filters) from its skmtc-hub
+> Pull a project's config (enrichments, filters and parse settings) from its skmtc-hub
 > **project** down into the local `skmtc.config.json`.
 
 `pull` is the hub→local counterpart to [`push`](push.md). It fetches an
