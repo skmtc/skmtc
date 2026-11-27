@@ -95,3 +95,11 @@ Deno.test('alias root - a basePath matches with or without "./" and a trailing s
   assertEquals(isAliasRoot('src/generated', aliasRoot), false)
   assertEquals(toFolder('./'), '.')
 })
+
+// The trap: the platform's path functions write `app\src` on Windows, and
+// `client.json` holds `app/src`. Compared as text, one folder is two.
+Deno.test('alias root - a folder is written with "/" on every platform', () => {
+  assertEquals(toFolder('app\\src'), 'app/src')
+  assertEquals(toFolder('.\\app\\src\\'), 'app/src')
+  assertEquals(isAliasRoot('app\\src', { path: 'app/src', from: 'tsconfig.json' }), true)
+})

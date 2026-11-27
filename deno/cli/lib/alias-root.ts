@@ -16,7 +16,8 @@
 import { parse } from '@std/jsonc'
 import { existsSync } from '@std/fs/exists'
 import { join } from '@std/path/join'
-import { normalize } from '@std/path/normalize'
+import { join as joinPosix } from '@std/path/posix/join'
+import { normalize } from '@std/path/posix/normalize'
 
 export type AliasRoot = {
   /** The folder, from the app root, with no `./` and no trailing slash. `.` is the root. */
@@ -38,9 +39,15 @@ type AliasReader = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** A folder as the comparison reads it: `./src/` and `src` are one folder. */
+/**
+ * A folder as the comparison reads it: `./src/` and `src` are one folder.
+ *
+ * The separator is always `/`. `basePath` is a value of `client.json`, which
+ * a team shares across machines, and the platform's `join` writes `app\src`
+ * on Windows.
+ */
 export const toFolder = (path: string): string => {
-  const folder = normalize(path).replace(/[\\/]+$/, '')
+  const folder = normalize(path.replaceAll('\\', '/')).replace(/\/+$/, '')
 
   return folder === '' ? '.' : folder
 }
@@ -58,7 +65,7 @@ const toTsconfigAlias = (config: unknown): string | undefined => {
 
   const baseUrl = isRecord(options) && typeof options.baseUrl === 'string' ? options.baseUrl : '.'
 
-  return toFolder(join(baseUrl, target.slice(0, -2)))
+  return toFolder(joinPosix(baseUrl, target.slice(0, -2)))
 }
 
 /** `imports["@/"]` of a Deno import map. */
