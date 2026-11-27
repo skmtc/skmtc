@@ -297,8 +297,13 @@ Deno.test({
       const { stdout, stderr } = await runGenerate(fixtureRoot, schemaPath, ['--json'])
 
       // All of stdout is one JSON object.
-      const result: unknown = JSON.parse(stdout)
-      assertStringIncludes(JSON.stringify(result), '"level":"warning"')
+      const result: { parseIssues: { type: string; level: string }[] } = JSON.parse(stdout)
+      assertEquals(
+        result.parseIssues.some(
+          ({ type, level }) => type === 'UNEXPECTED_PROPERTY' && level === 'warning'
+        ),
+        true
+      )
 
       // The run's log lines go to stderr.
       assertStringIncludes(stderr, '[WARN]')
