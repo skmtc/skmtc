@@ -89,7 +89,8 @@ export class Reach {
   /**
    * The keys of the models an operation names: `paths[path][method]`, with
    * what every operation of the path has, which is the path item's
-   * `parameters`, and the path item's own `$ref` when it is one.
+   * `parameters`, and any ref kept at the path item itself. The parser does
+   * not read a path item's own `$ref` yet, so that last place is empty.
    */
   namedByOperation({ path, method }: OperationPlace): readonly string[] {
     return this.#namedAt([
@@ -162,7 +163,7 @@ export class Reach {
 /**
  * The key of the place a ref is in. A component is keyed as a ref to it is
  * (`toRefKey`), so a ref leads to the refs inside its target. An operation
- * is keyed by its first three frames, and a path item's own `$ref` by two.
+ * is keyed by its first three frames, and a ref at a path item itself by two.
  */
 const toPlaceKey = (place: readonly string[]): string =>
   place[0] === 'components' ? `#/components/${place[1]}/${place[2]}` : place.slice(0, 3).join('\n')
