@@ -42,6 +42,16 @@ Deno.test('toStringLiteral - each literal reads back as the string it was made f
   }
 })
 
+// The trap: the escapes are found by code unit. A character outside the
+// basic plane is two code units, and neither may be taken for an escape or
+// split from the other.
+Deno.test('toStringLiteral - a character of two code units stays whole beside an escape', () => {
+  const value = "a\u{1F600}'b\u{1F600}\n"
+
+  assertEquals(toStringLiteral(value), "'a\u{1F600}\\'b\u{1F600}\\n'")
+  assertEquals(new Function(`'use strict'; return ${toStringLiteral(value)}`)(), value)
+})
+
 Deno.test('handleKey - valid identifier unchanged', () => {
   assertEquals(handleKey('name'), 'name')
   assertEquals(handleKey('userName'), 'userName')

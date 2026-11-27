@@ -11,6 +11,7 @@ import {
 
 Deno.test('escapeSegment — RFC 6901 special chars', () => {
   assertEquals(escapeSegment('simple'), 'simple')
+  assertEquals(escapeSegment(''), '')
   assertEquals(escapeSegment('/users/{id}'), '~1users~1{id}')
   assertEquals(escapeSegment('tilde~thing'), 'tilde~0thing')
   // Tilde must escape before slash to avoid double-encoding
@@ -18,6 +19,10 @@ Deno.test('escapeSegment — RFC 6901 special chars', () => {
 })
 
 Deno.test('unescapeSegment — round-trip', () => {
+  assertEquals(unescapeSegment('simple'), 'simple')
+  assertEquals(unescapeSegment(''), '')
+  // `~01` is `~1` escaped once: `~1` is read before `~0`, so it stays `~1`.
+  assertEquals(unescapeSegment('a~01'), 'a~1')
   assertEquals(unescapeSegment('~1users~1{id}'), '/users/{id}')
   assertEquals(unescapeSegment('tilde~0thing'), 'tilde~thing')
   assertEquals(unescapeSegment('mix~1~0~1slash'), 'mix/~/slash')

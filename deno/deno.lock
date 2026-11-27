@@ -1194,7 +1194,7 @@
           "jsr:@deno/graph@0.111.0",
           "jsr:@skmtc/convert@~0.1.20",
           "jsr:@skmtc/core@0.50",
-          "jsr:@skmtc/server@~0.3.45",
+          "jsr:@skmtc/server@~0.3.46",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
           "npm:chokidar@^4.0.3",
