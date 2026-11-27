@@ -54,7 +54,7 @@ export const generate = async ({
 
     writeLogLines({ manifestPath, logs })
 
-    const stats = toGenerationStats({ manifest, artifacts })
+    const stats = await toGenerationStats({ manifest, artifacts })
 
     await skmtcRoot.manager.cleanup()
 

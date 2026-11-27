@@ -324,6 +324,7 @@ generator.
   "projectName": "my-api",
   "basePath": "mobile-app/src",
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
+  // stats.tokens: only with --count-tokens (never null; test for the key)
   "stats": { "tokens": 201029, "lines": 1234, "files": 753, "totalTimeMs": 180 },
   "files": ["mobile-app/src/types/User.generated.ts", "..."],
   // errors: array of paths through manifest.results ending at 'error' leaves.
@@ -342,6 +343,10 @@ generator.
 
 With `--typecheck`, gains a `typecheck` field (`{ type: "passed" | "failed" | "no-tsconfig" | "tsc-error" | "skipped", ... }`).
 A `failed` typecheck → exit 1; generated files stay on disk.
+
+`stats.tokens` is there only with `--count-tokens`, which counts the
+GPT tokens of the output. Without the flag the run does not load the
+tokenizer, and the summary line is `Generated <files> files in <time>`.
 
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing

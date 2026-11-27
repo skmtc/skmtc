@@ -9,7 +9,7 @@ the manifest.
 ## Synopsis
 
 ```
-skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--debug [--auto]] [--json] [--no-input]
+skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--count-tokens] [--debug [--auto]] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -76,6 +76,16 @@ skmtc generate my-api --typecheck --tsc-cmd "bunx tsc"
 Force gen-maps (attribution) output on or off, overriding
 `skmtc.config.json#settings.anchors.enabled`. When on, the run writes
 sidecars plus a generation map under `.skmtc/<project>/.maps/`.
+
+### `--count-tokens`
+
+Count the GPT tokens of the generated files with `gpt-tokenizer`.
+The summary line then starts `Generated <tokens> tokens, <files> files`,
+and the `--json` result gains `stats.tokens`. Without the flag, the run
+does not load the tokenizer, the summary line is
+`Generated <files> files in <time>`, and `stats` has no `tokens` key.
+The count grows with the output: for a large output it can take longer
+than the generation.
 
 ### `--debug`
 
@@ -225,7 +235,7 @@ The manifest is overwritten on every run. See
   "basePath": "mobile-app/src",            // or null if not configured
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
   "stats": {
-    "tokens": 201029,
+    "tokens": 201029,                      // only present with --count-tokens
     "lines": 1234,
     "files": 753,
     "totalTimeMs": 180
@@ -265,8 +275,9 @@ The manifest is overwritten on every run. See
 - **`basePath`**: the resolved `basePath` from `skmtc.config.json` (string)
   or `null` if not configured.
 - **`manifestPath`**: where the manifest was written.
-- **`stats`**: aggregate counts. `tokens` counts via `gpt-tokenizer`
-  on the artifact contents.
+- **`stats`**: aggregate counts. `tokens` is present only with
+  `--count-tokens`, and counts via `gpt-tokenizer` on the artifact
+  contents. It is never `null`: test for the key.
 - **`files`**: every destination path written by this run.
   Resolved paths (after `basePath` application).
 - **`errors`**: An array of *paths* through `manifest.results`. Each

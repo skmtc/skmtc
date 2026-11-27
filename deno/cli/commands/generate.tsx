@@ -52,7 +52,9 @@ export const renderGenerate = async ({
 export const toGenerateMessage = (stats: GenerationStats): SuccessMessage => {
   const { files, tokens, totalTime, errors } = stats
 
-  const success = `Generated ${formatNumber(tokens)} tokens, ${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
+  const tokenCount = tokens === undefined ? '' : `${formatNumber(tokens)} tokens, `
+
+  const success = `Generated ${tokenCount}${formatNumber(files)} files in ${formatNumber(totalTime)}ms.`
 
   return errors.length
     ? {

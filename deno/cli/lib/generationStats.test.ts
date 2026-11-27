@@ -9,22 +9,22 @@ import {
 } from './generationStats.ts'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 
-Deno.test('toManifestTokens - counts tokens in artifacts', () => {
+Deno.test('toManifestTokens - counts tokens in artifacts', async () => {
   const artifacts = {
     './file1.ts': 'export const hello = "world";',
     './file2.ts': 'export const foo = "bar";'
   }
 
-  const tokens = toManifestTokens(artifacts)
+  const tokens = await toManifestTokens(artifacts)
 
   assertEquals(typeof tokens, 'number')
   assertEquals(tokens > 0, true)
 })
 
-Deno.test('toManifestTokens - returns zero for empty artifacts', () => {
+Deno.test('toManifestTokens - returns zero for empty artifacts', async () => {
   const artifacts = {}
 
-  const tokens = toManifestTokens(artifacts)
+  const tokens = await toManifestTokens(artifacts)
 
   assertEquals(tokens, 0)
 })
@@ -205,7 +205,7 @@ Deno.test('checkResult - handles null values in arrays', () => {
   assertEquals(errors, [['batch', 'item']])
 })
 
-Deno.test('toGenerationStats - returns complete stats object', () => {
+Deno.test('toGenerationStats - returns complete stats object, without tokens unless asked', async () => {
   const manifest: Partial<ManifestContent> = {
     startAt: 1672531200000,
     endAt: 1672531245000,
@@ -219,16 +219,37 @@ Deno.test('toGenerationStats - returns complete stats object', () => {
     './models.ts': 'export interface User { id: string; }'
   }
 
-  const stats = toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
+  const stats = await toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
 
-  assertEquals(stats.lines, 100)
-  assertEquals(stats.totalTime, 45000)
-  assertEquals(stats.errors, [])
-  assertEquals(stats.files, 1)
-  assertEquals(typeof stats.tokens, 'number')
+  assertEquals(stats, { lines: 100, totalTime: 45000, errors: [], files: 1 })
+  assertEquals('tokens' in stats, false)
 })
 
-Deno.test('toGenerationStats - counts multiple files', () => {
+Deno.test('toGenerationStats - counts tokens with countTokens', async () => {
+  const manifest: Partial<ManifestContent> = {
+    startAt: 0,
+    endAt: 1000,
+    files: {
+      './models.ts': { lines: 1, characters: 37, destinationPath: './models.ts' }
+    },
+    results: {}
+  }
+
+  const artifacts = {
+    './models.ts': 'export interface User { id: string; }'
+  }
+
+  const stats = await toGenerationStats({
+    manifest: manifest as ManifestContent,
+    artifacts,
+    countTokens: true
+  })
+
+  assertEquals(stats.tokens, await toManifestTokens(artifacts))
+  assertEquals((stats.tokens ?? 0) > 0, true)
+})
+
+Deno.test('toGenerationStats - counts multiple files', async () => {
   const manifest: Partial<ManifestContent> = {
     startAt: 0,
     endAt: 1000,
@@ -244,13 +265,13 @@ Deno.test('toGenerationStats - counts multiple files', () => {
     './file2.ts': 'content2'
   }
 
-  const stats = toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
+  const stats = await toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
 
   assertEquals(stats.files, 2)
   assertEquals(stats.lines, 125)
 })
 
-Deno.test('toGenerationStats - includes errors in stats', () => {
+Deno.test('toGenerationStats - includes errors in stats', async () => {
   const manifest: Partial<ManifestContent> = {
     startAt: 0,
     endAt: 1000,
@@ -269,7 +290,7 @@ Deno.test('toGenerationStats - includes errors in stats', () => {
     './models.ts': 'content'
   }
 
-  const stats = toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
+  const stats = await toGenerationStats({ manifest: manifest as ManifestContent, artifacts })
 
   assertEquals(stats.errors, [['models', 'User']])
 })

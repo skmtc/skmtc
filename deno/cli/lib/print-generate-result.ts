@@ -46,6 +46,7 @@ export const printGenerateResult = ({
         basePath: basePath ?? null,
         manifestPath,
         stats: {
+          // `undefined` without `--count-tokens`, which JSON leaves out: the key is absent, never `null`.
           tokens: result.stats.tokens,
           lines: result.stats.lines,
           files: result.stats.files,

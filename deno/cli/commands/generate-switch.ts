@@ -33,6 +33,8 @@ type GenerateSwitchArgs = {
    * to honour the config value.
    */
   anchorsFlag?: boolean
+  /** `true` from `--count-tokens`: count the GPT tokens of the output and report them. */
+  countTokens?: boolean
   /** Override for the generation run — tests stub this to skip the worker. */
   generateLocalFn?: typeof generateLocal
 }
@@ -47,6 +49,7 @@ export const generateSwitch = async ({
   tsconfig,
   tscCmd,
   anchorsFlag,
+  countTokens,
   generateLocalFn
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
@@ -107,7 +110,12 @@ export const generateSwitch = async ({
 
     const runGenerateLocal =
       generateLocalFn ?? (await import('@/lib/generate-local.ts')).generateLocal
-    const result = await runGenerateLocal({ ...generateLocalArgs, bundlePath, anchorsFlag })
+    const result = await runGenerateLocal({
+      ...generateLocalArgs,
+      bundlePath,
+      anchorsFlag,
+      countTokens
+    })
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped
