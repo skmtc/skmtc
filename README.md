@@ -35,14 +35,14 @@ Set up Skmtc in this project. Skmtc generates TypeScript code from an OpenAPI do
    skmtc install <generators> <project>
    skmtc generate <project> <schema>
    <project> is a short name in kebab case. <basePath> is the folder that the "@/" import alias of this project points to, such as src. Generated files import each other through that alias. If the project has no such alias, ask me before you add one.
-5. Add a note to AGENTS.md, and create the file if needed: before Skmtc work, run skmtc agent-context --json, and follow the skmtc-cli skill if it is installed. To write or change a generator, follow the skmtc-generator skill. Do not edit a generated file. Change the settings or the generator, then run skmtc generate again.
+5. Add a note to AGENTS.md, and create the file if needed: before Skmtc work, run skmtc agent-context --json, then read the guide topic for the job with skmtc guide <topic>. To write or change a generator, follow the skmtc-generator skill. Do not edit a generated file. Change the settings or the generator, then run skmtc generate again.
 
 If a command fails, run skmtc doctor and show me its report. Do not edit .skmtc/<project>/deno.json, delete a lockfile or change Deno's minimum dependency age to get past an error.
 ```
 
 The prompt installs the CLI and the skills, generates code from your OpenAPI
 document, and adds a note to `AGENTS.md` that sends each later session to
-`skmtc agent-context` and the skills.
+`skmtc agent-context` and to the guide that the CLI carries (`skmtc guide`).
 
 ### Set up yourself
 
@@ -113,8 +113,9 @@ Two skills teach a coding agent to work with Skmtc, and ship from the same
 commit as the code they describe. `skmtc-generator` is for writing and editing
 generators: one entry that routes to references for model generators,
 operation generators, the engine and the TypeScript layer, with a skeleton to
-copy. `skmtc-cli` is for the CLI. In Claude Code, `skmtc-cli` is a plugin of
-its own, and installing `skmtc` installs it too.
+copy. `skmtc-cli` says when to use the CLI and sends the agent to the guide
+that the CLI carries (`skmtc guide`). In Claude Code, `skmtc-cli` is a plugin
+of its own, and installing `skmtc` installs it too.
 
 ```bash
 # Claude Code

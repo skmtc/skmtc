@@ -37,7 +37,7 @@ export const resolveInputMode = ({
   noInputFlag,
   jsonFlag
 }: ResolveInputModeArgs = {}): InputMode => {
-  // `--json` implies non-interactive. Documented in the cli skill;
+  // `--json` implies non-interactive. Documented in `skmtc guide contract`;
   // the rationale is that a structured output stream and an Ink TUI
   // are mutually exclusive presentations of the same command.
   if (noInputFlag || jsonFlag) return 'strict'

@@ -1,15 +1,5 @@
-# skmtc-cli — reference companion
-
-Pull-loaded detail for the `skmtc-cli` skill: the settings file's
-full shape, the filter semantics, the JSON envelopes agents parse,
-the user-facing operational principles, and the doctor check ids.
-Sections keep their historical numbers (§6/§7/§8/§11), which SKILL.md
-cites directly; they do not line up with SKILL.md's own numbering.
-
-Read this when you are editing `skmtc.config.json`, writing a filter,
-parsing `--json` output, or checking a principle — not before.
-
-## 6. The skmtc.config.json shape
+<!-- topic config-shape: Every key of skmtc.config.json, annotated -->
+## The skmtc.config.json shape
 
 The file is `.skmtc/<project>/.settings/skmtc.config.json`.
 `client.json` (the old file name) and `settings.system` (the old name
@@ -73,10 +63,10 @@ of `settings.parse`) still work and are deprecated: run
       }
     },
 
-    // Allow-list. Empty array = no filter. See §7.
+    // Allow-list. Empty array = no filter. See `skmtc guide filters`.
     "include": [],
 
-    // Deny-list. Applied after include. See §7.
+    // Deny-list. Applied after include. See `skmtc guide filters`.
     "skip": [],
 
     // Optional. Filename suffix the engine injects into every
@@ -100,7 +90,7 @@ of `settings.parse`) still work and are deprecated: run
     // target's `moduleName`. Roots may nest: a nested root is a
     // subpath export of the package around it (`@app/sdk/models`),
     // sharing the outer package's `@`. See
-    // `reference/settings/client-json-schema.md`.
+    // https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/settings/client-json-schema.md
     "packages": [
       { "rootPath": "packages/sdk/src", "moduleName": "@app/sdk" },
       { "rootPath": "packages/sdk/src/models", "moduleName": "@app/sdk/models" }
@@ -109,7 +99,7 @@ of `settings.parse`) still work and are deprecated: run
     // Optional. How the OpenAPI parser reads schemas it cannot read
     // faithfully: `allOf`, `not`, `anyOf`, `danglingRefs`,
     // `intersections`, `responseContradictions`. See
-    // `reference/settings/client-json-schema.md`.
+    // https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/settings/client-json-schema.md
     "parse": { "allOf": "latestWins" }
   }
 }
@@ -166,7 +156,7 @@ the stock generators declare `subject` only — so the `_generator` /
 
 Per-subject enrichments are otherwise unchanged: the routing keys and
 the mandatory `'main'` variant level (see the `skmtc.config.json` shape above
-and §7) work exactly as before. A generator reads each scope by known
+and `skmtc guide filters`) work exactly as before. A generator reads each scope by known
 key through typed helpers (`toStackEnrichment` /
 `toGeneratorEnrichment` / the per-subject path) — it never iterates the
 enrichments record itself.
@@ -186,7 +176,8 @@ nest; a nested root is a subpath export of the package around it,
 named by its own `moduleName` for importers outside the package and
 sharing the outer package's `@` for files inside it.
 
-## 7. Skip and include filters
+<!-- topic filters: How settings.skip and settings.include choose what runs -->
+## Skip and include filters
 
 Both `skip` and `include` accept three entry shapes:
 
@@ -245,7 +236,8 @@ a blanket run would produce dozens of files the team doesn't want.
 Use a variant array under a method to narrow the allow/deny to
 specific variants of a multi-variant operation.
 
-## 8. Common JSON output shapes
+<!-- topic output: The JSON that each command prints with --json -->
+## Common JSON output shapes
 
 Agents drive on these shapes. Discriminator field is usually `type`.
 
@@ -426,9 +418,11 @@ stage `upload`, exit 1. So CI can deploy every change without bumping.
 `skmtc publish` is the old name of `deploy`: same output and exit
 codes, after one notice line on stderr.
 
-## 11. Operational principles (user-facing subset)
+<!-- topic principles: Where Skmtc differs from what an agent would do by default -->
+## Operational principles (user-facing subset)
 
-Selected from the full operational principles in `llms.md`. These are
+Selected from the full operational principles of the Skmtc docs (the
+link is at the end of this topic). These are
 the ones most likely to override default LLM intuitions during CLI
 work:
 
@@ -438,10 +432,8 @@ work:
 | Run Prettier in the pipeline | Don't — produce valid TS; consumer formats separately |
 | Restart from scratch when something's off | Run `skmtc doctor --json` first; targeted fix beats nuke-and-pave |
 | Manually edit `bundle.js` or `worker.ts` | They're derived; `skmtc generate` rebuilds both on every run |
-| Mock the database in tests | Use real Supabase / real DB (project convention) |
-| Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
 | "Publish" a stack to the hub, then deploy it later | One step: `skmtc deploy` stores the immutable semver version (`POST /v1/stacks/{account}/{stack}/versions`) and deploys it (`POST /v1/stacks/{account}/{stack}/servers`), so a version that cannot build fails at once. `skmtc publish` is its old name. Deploying never moves the `production` alias — that belongs to hub *projects*, driven from the web app. |
-| After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
+| After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `skmtc guide enrichments`. |
 | Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |
 
 ### Imported vs cloned: mutually exclusive states
@@ -492,6 +484,7 @@ Mixed states are silently broken:
 Full list in
 [`llms.md`, "Operational principles for proposing changes"](https://github.com/skmtc/skmtc/blob/main/deno/docs/llms.md#operational-principles-for-proposing-changes).
 
+<!-- topic doctor-checks: What each check of skmtc doctor reads -->
 ## Doctor check ids
 
 `skmtc doctor --json` output is self-describing (every check carries

@@ -79,7 +79,8 @@ version and exits.
 | Command         | Purpose                                             | Reference                         |
 | --------------- | --------------------------------------------------- | --------------------------------- |
 | `doctor`        | Diagnose project setup issues                       | [doctor](doctor.md)               |
-| `agent-context` | Write a structured project state dump for AI agents | [agent-context](agent-context.md) |
+| `agent-context` | Print the projects, the commands and the guide topics for an agent | [agent-context](agent-context.md) |
+| `guide`         | Print a topic of the guide that the CLI carries     | [guide](guide.md)                 |
 
 ## Shared flags
 

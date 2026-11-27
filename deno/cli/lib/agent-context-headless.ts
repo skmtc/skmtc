@@ -27,6 +27,7 @@ import {
   type CommandDescriptor,
   type FlagDescriptor
 } from '@/lib/cli-schema.ts'
+import { type GuideTopicSummary, toGuideTopicSummaries } from '@/lib/guide.ts'
 
 // Re-export the schema types so existing consumers (tests, command
 // printer) keep their imports stable.
@@ -56,6 +57,8 @@ export type AgentContext = {
   /** Each deprecated config name a project still uses, with the command that fixes it. */
   deprecations: ConfigDeprecation[]
   commands: CommandDescriptor[]
+  /** The topics of the guide this CLI carries. `skmtc guide <id>` prints one. */
+  guideTopics: GuideTopicSummary[]
 }
 
 type RunAgentContextArgs = {
@@ -73,7 +76,8 @@ export const runAgentContext = ({ cliVersion }: RunAgentContextArgs): AgentConte
     jsrUrl: getJsrBaseUrl(),
     projects,
     deprecations: projects.flatMap(project => readConfigDeprecations(toProjectPath(project.name))),
-    commands: COMMAND_DESCRIPTORS
+    commands: COMMAND_DESCRIPTORS,
+    guideTopics: toGuideTopicSummaries()
   }
 }
 
