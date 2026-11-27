@@ -25,8 +25,7 @@ export type ToWebhookConfigArgs<EnrichmentType = undefined> = {
   /**
    * Every projection class this generator can insert: its own, and each one
    * of another generator that it inserts. Core reads only their statics. See
-   * {@link DeclaredProjection}. Optional: an entry that declares none runs as
-   * before.
+   * {@link DeclaredProjection}. Optional.
    */
   projections?: readonly DeclaredProjection[]
   transform: ({ context, webhook, variant }: TransformWebhookArgs) => void

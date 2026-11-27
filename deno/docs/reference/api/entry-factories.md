@@ -137,8 +137,8 @@ toOasOperationEntry<EnrichmentSchema>({
 
 Core reads only statics from the list (`id`, `type`, `toEnrichments`,
 `toExportPath`), and constructs nothing. With the list, core can know
-before a run which files the generator can write. An entry that
-declares none runs as before.
+before a run which files the generator can write. The list is
+optional.
 
 ### `toEnrichmentDefaults?: ({ context, <operation|ref>, variant }) => EnrichmentType | undefined` (optional)
 
