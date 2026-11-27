@@ -121,6 +121,8 @@ type IsDefaultRefPathArgs = {
   refType: RefType
 }
 
+const COMPONENTS_PATH = '#/components/'
+
 /**
  * The `components` bucket a `refPath` is, such as `schemas` for
  * `#/components/schemas`, or `undefined` for any other path. A ref whose path
@@ -132,6 +134,15 @@ type IsDefaultRefPathArgs = {
 export const toRefPathBucket = (refPath: string): string | undefined => {
   if (isRemoteRefPath(refPath)) {
     return undefined
+  }
+
+  // The usual path, `#/components/<bucket>`, with nothing to split or unescape.
+  if (refPath.startsWith(COMPONENTS_PATH)) {
+    const bucket = refPath.slice(COMPONENTS_PATH.length)
+
+    if (!bucket.includes('/') && !bucket.includes('~')) {
+      return isBucket(bucket) ? bucket : undefined
+    }
   }
 
   const [first, bucket, ...rest] = toRefPathSegments(refPath)
@@ -231,6 +242,10 @@ export const toRawRefTarget = (document: unknown, { refName, refPath }: RefParts
   }, document)
 
 const toPercentDecoded = (segment: string): string => {
+  if (!segment.includes('%')) {
+    return segment
+  }
+
   try {
     return decodeURIComponent(segment)
   } catch {
