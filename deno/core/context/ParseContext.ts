@@ -55,9 +55,10 @@ import {
   toRefParts,
   toRefPathBucket,
   toRefPathSegments,
-  toRefPointer,
   type RefParts
 } from '@/helpers/refFns.ts'
+import { Reach } from '@/parse/Reach.ts'
+import { toRefKey } from '@/parse/toRefKey.ts'
 import { toRefTargetV3 } from '@/parse/v3-0/ref/toRefTargetV3.ts'
 import { toRefTargetV3 as toRefTargetV31 } from '@/parse/v3-1/ref/toRefTargetV3.ts'
 import { toRefTargetV3 as toRefTargetV32 } from '@/parse/v3-2/ref/toRefTargetV3.ts'
@@ -139,23 +140,6 @@ type WrittenRef = RefConsumer & {
 
 /** The dialect's parser for the target of a ref that does not point at a component. */
 type ToRefTarget = (args: ToRefTargetArgs) => ComponentsEntry | undefined
-
-/**
- * The key a `$ref`'s consumers and errors are kept under. A component ref
- * (`#/components/<bucket>/<name>`) is keyed by the name it resolves,
- * unescaped, which is the key `StackTrail.toStackRef()` gives that
- * component's own errors: `#/components/schemas/Foo%20Bar` is kept under
- * `#/components/schemas/Foo Bar`. Any other ref is keyed by its whole
- * pointer in one spelling (`toRefPointer`), which is also the key its
- * parsed target is kept under.
- */
-const toRefKey = ({ refName, refPath }: RefParts): string => {
-  const bucket = toRefPathBucket(refPath)
-
-  return bucket === undefined
-    ? toRefPointer({ refName, refPath })
-    : `#/components/${bucket}/${refName}`
-}
 
 type RemoveHolderArgs = WrittenRef & {
   error: unknown
@@ -821,6 +805,23 @@ export class ParseContext {
     } finally {
       this.currentStackTrail = prev
     }
+  }
+
+  /**
+   * @internal
+   * What each subject of the parsed document can reach through `$ref`s, read
+   * from the refs this parse read. Call it when the document is parsed.
+   */
+  toReach(): Reach {
+    const rootDepth = this.#rootFrames.length
+
+    return new Reach(
+      this.#oasRefs.map(({ consumer, ref, refTarget }) => ({
+        ref,
+        place: consumer.stackTrail.slice(rootDepth),
+        refTarget
+      }))
+    )
   }
 
   /**
