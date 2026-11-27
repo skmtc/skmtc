@@ -14,7 +14,9 @@ import type { FilePlan } from '@/context/FilePlan.ts'
 import type { DeclaredProjection } from '@/dsl/DeclaredProjection.ts'
 import { toModelEntry } from '@/dsl/model/toModelEntry.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
-import { toSchemaComponentRef } from '@/helpers/refFns.ts'
+import { toModelKey, toSchemaComponentRef } from '@/helpers/refFns.ts'
+import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.ts'
+import * as v from 'valibot'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 
@@ -356,5 +358,43 @@ Deno.test('FilePlan - building the plan leaves the warnings of the run as they a
   })
 
   assertEquals(toWarnings(planned.context), [{ type: 'UNKNOWN_GENERATOR_ID', path: ['peer'] }])
+  assertEquals(toWarnings(planned.context), toWarnings(unplanned))
+})
+
+// A projection that is only in a list is never inserted, so the run never
+// parses its enrichments. The plan does, and must keep none of the warnings
+// that parse reports.
+Deno.test('FilePlan - building the plan keeps no warning that a projection the run does not insert reports', () => {
+  const peerSchema = v.object({
+    subject: v.optional(v.object({ known: v.optional(v.string()) })),
+    generator: v.undefined(),
+    stack: v.undefined()
+  })
+  const peer: DeclaredProjection = {
+    id: 'peer',
+    type: 'model',
+    toEnrichments: ({ ref, context, variant }) =>
+      parseEnrichmentUmbrella({
+        context,
+        generatorId: 'peer',
+        subjectSegments: [toModelKey(ref), variant],
+        schema: peerSchema
+      }),
+    toExportPath: ({ ref }) => `@/models/${ref.refName}.ts`
+  }
+  const settings: ClientSettings = { enrichments: { peer: { Tag: { main: { extra: 1 } } } } }
+  const toWarnings = (context: GenerateContext) =>
+    context.toArtifacts(new StackTrail(['test'])).enrichmentWarnings.map(({ type, path }) => ({ type, path }))
+
+  const planned = toPlanned({ settings, operationProjections: [operationFiles, peer] })
+  const unplanned = new GenerateContext({
+    document: planned.context.document,
+    settings,
+    logger: log.getLogger('file-plan-test'),
+    captureCurrentResult: () => {},
+    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field
+    toGeneratorConfigMap: () => toEntries([operationFiles, peer])
+  })
+
   assertEquals(toWarnings(planned.context), toWarnings(unplanned))
 })
