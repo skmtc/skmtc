@@ -7,9 +7,9 @@
 > project-level **generation map** for reverse queries ("which files
 > came from `User`?", "which files did `gen-zod` produce?"). It is a
 > source map for provenance: generated code ↔ schema position ↔
-> generator. It lives in `core/anchors/`. Capture is always on and
-> cheap; emission of the on-disk artifacts is opt-in and off by
-> default.
+> generator. It lives in `core/anchors/`. Location capture is always
+> on. Emission of the on-disk artifacts is opt-in and off by default,
+> and only a run that emits them instruments its snippets.
 
 This page explains what the subsystem produces, why it exists, how
 the four stages of the mechanism work, and the format of the
@@ -24,9 +24,10 @@ runs *alongside* (but is not part of), see
 text, *which generator, which schema location, and which variant
 produced it*. **Gen-maps** are the two on-disk artifacts that record
 those decisions: a per-file **sidecar** and a per-project
-**generation map**. Attribution *capture* is always on and
-unconditional; only **emission** of the on-disk artifacts is opt-in
-(supply a `postPass` config to the run).
+**generation map**. The *capture* of each node's location is always
+on. **Emission** of the on-disk artifacts is opt-in (supply a
+`postPass` config to the run), and the snippets of a run are
+instrumented only when it emits.
 
 ## Why it exists
 
@@ -86,9 +87,10 @@ concatenates them.
 
 ## Turning it on: `AttributionState` and `skmtc.config.json`
 
-Capture is **always on** and needs no configuration — it is intrinsic
-to the pipeline (see Stages 1–2 below). What you opt into is
-**emission**: the on-disk sidecars and generation map.
+Location capture is **always on** and needs no configuration — it is
+intrinsic to the parse (see Stage 1 below). What you opt into is
+**emission**: the on-disk sidecars and generation map. A run that
+emits also instruments its snippets (Stage 2).
 
 The engine-level config is `AttributionState`
 (`core/types/AttributionState.ts`), threaded into `toArtifacts`. It
@@ -123,8 +125,9 @@ into the worker's `SerializableAttribution` payload.
 
 ## How it works
 
-The mechanism has four stages: two always-on capture concerns (in
-Parse and Generate), an emission pass folded into Render, and a
+The mechanism has four stages: location capture in Parse (always on),
+instrumentation in Generate (only in a run that emits), an emission
+pass folded into Render, and a
 host-side write after the Worker returns. (The `core/anchors/` source
 comments label these Phase A–D, referencing the original gen-maps
 plan.)
@@ -135,7 +138,7 @@ PARSE ───────▶ GENERATE ─────────▶ RENDER �
 Stage 1         Stage 2            Stage 3                Stage 4
 location      producer-tree      resolve spans,          write
 capture       instrumentation    build sidecars          .maps/
-(always on)   (always on)        (when postPass set)
+(always on)   (when postPass set) (when postPass set)
 ```
 
 ### Stage 1 — location capture during Parse
@@ -151,11 +154,14 @@ derived from its `generatorKey` (see
 
 ### Stage 2 — producer-tree instrumentation during Generate
 
-Every DSL element extends `SnippetBase`. The constructor installs a
-capturing `toString` **unconditionally**
-(`core/dsl/SnippetBase.ts`) — there is no attribution flag to check at
-construction time. The wrapper is a no-op *at call time* unless the
-capture interval is active, gated by `this.context.captureSink`:
+Every DSL element extends `SnippetBase`. In a run that emits gen-maps,
+the constructor installs a capturing `toString`
+(`core/dsl/SnippetBase.ts`). It reads one flag at construction time,
+`context.capturesRender`, which is true when the run has a `postPass`
+config. A run with no `postPass` installs no wrapper: the wrapper costs
+one property definition for each snippet, and nothing would read it.
+The wrapper is a no-op *at call time* unless the capture interval is
+active, gated by `this.context.captureSink`:
 
 ```ts
 const capturingToString = function (this: SnippetBase): string {
@@ -404,15 +410,16 @@ enabled:
 
 ## Cost model
 
-Capture is always on, but it is cheap; the real cost is emission,
+Location capture is always on, and it is cheap. The cost is emission,
 which you opt into.
 
-- **Capture (always on).** Parse snapshots each node's `StackTrail`
-  into its `OasBase` — the trail is already carried through parse, so
-  this is a reference, not new work. Every `SnippetBase` gets the
-  capturing `toString`, but outside the capture interval
-  (`context.captureSink` unset) it delegates straight to the subclass
-  `toString` — no stack pushes, no allocation.
+- **Location capture (always on).** Parse snapshots each node's
+  `StackTrail` into its `OasBase` — the trail is already carried
+  through parse, so this is a reference, not new work.
+- **Instrumentation (only in a run with `postPass`).** Every
+  `SnippetBase` of such a run gets the capturing `toString`. A run
+  with no `postPass` installs none: on a large document the wrappers
+  alone took about 4% of the run.
 - **Emission (opt-in via `postPass`).** Rendering opens the capture
   interval, so the wrapper now records parent/child edges and byte
   spans; then the post-pass resolves spans, attributes each, and

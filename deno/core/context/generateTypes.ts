@@ -633,6 +633,13 @@ export type GenerateContextType = {
    * `undefined` and take the pass-through path.
    */
   captureSink: CaptureSink | undefined
+  /**
+   * Whether the run has a capturing render (attribution emission is
+   * configured). Read once by every `SnippetBase` instance, at
+   * construction: it installs its `toString` wrapper only when this is
+   * true. Bare test mocks read `undefined` and install none.
+   */
+  capturesRender: boolean
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   registerMarkdown: ({ destinationPath, markdown }: RegisterMarkdownArgs) => void

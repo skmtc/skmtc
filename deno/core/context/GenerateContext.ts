@@ -439,6 +439,15 @@ export class GenerateContext implements GenerateContextType {
     return this.#captureChannel?.sink
   }
 
+  /**
+   * Whether this run has a capturing render: it was given a capture
+   * channel. A `SnippetBase` instance installs its `toString` wrapper only
+   * then.
+   */
+  get capturesRender(): boolean {
+    return this.#captureChannel !== undefined
+  }
+
   /** Logs a caught error with its message, keeping the error for the line's `error` field. */
   #logError(error: unknown): void {
     this.logger.error(toSerializedError(error).message, error)

@@ -4,12 +4,16 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
-// SnippetBase self-wraps `toString` at construction (own-property wrapper)
-// and reads the capture sink through `this.context.captureSink`. Outside
-// the capture interval the wrapper is a pure pass-through. Full occurrence
-// semantics live in CaptureSink.test.ts; here we pin SnippetBase's own
-// contract.
-const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
+// In a run that captures a render (`context.capturesRender`), SnippetBase
+// self-wraps `toString` at construction (own-property wrapper) and reads the
+// capture sink through `this.context.captureSink`. Outside the capture
+// interval the wrapper is a pure pass-through. Full occurrence semantics
+// live in CaptureSink.test.ts; here we pin SnippetBase's own contract.
+const stubContext = (): GenerateContextType =>
+  ({ capturesRender: true }) as unknown as GenerateContextType
+
+/** The context of a run with no capturing render: a bare mock reads `capturesRender` as `undefined`. */
+const plainContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class FakeSnippet extends SnippetBase {
   body: () => string
@@ -42,8 +46,20 @@ Deno.test('SnippetBase - installs a shared, non-enumerable own-property toString
   assertEquals(`${second}`, 'world')
 })
 
+// The wrapper costs one property definition for each snippet of a run. A
+// run that emits no attribution never opens the capture interval, so its
+// snippets must not pay for it.
+Deno.test('SnippetBase - installs no wrapper in a run with no capturing render', () => {
+  const s = new FakeSnippet(plainContext(), () => 'hello')
+
+  assertEquals(Object.hasOwn(s, 'toString'), false)
+  assertStrictEquals(s.toString, FakeSnippet.prototype.toString)
+  assertEquals(`${s}`, 'hello')
+  assertEquals(s.toStringCalls, 1)
+})
+
 Deno.test('SnippetBase - toString is a pure pass-through outside the capture interval', () => {
-  // Bare mock context: `.captureSink` reads `undefined` → pass-through.
+  // `.captureSink` reads `undefined` → pass-through.
   const s = new FakeSnippet(stubContext(), () => 'hello')
   assertEquals(`${s}`, 'hello')
   assertEquals(`${s}`, 'hello')
@@ -53,7 +69,7 @@ Deno.test('SnippetBase - toString is a pure pass-through outside the capture int
 
 Deno.test('SnippetBase - observes into the context capture sink during a file render', () => {
   const sink = new CaptureSink()
-  const context = { captureSink: sink } as unknown as GenerateContextType
+  const context = { captureSink: sink, capturesRender: true } as unknown as GenerateContextType
   const s = new FakeSnippet(context, () => 'observed')
 
   // Inside the sink's file render, the wrapper routes through observe —

@@ -4,8 +4,9 @@
  * The capture mechanism for gen-maps. A {@link CaptureSink} is owned by
  * {@link import('@/context/RenderContext.ts').RenderContext} for the
  * duration of the single render pass and published to snippets through the
- * shared {@link CaptureChannel}: every `SnippetBase` instance self-wraps
- * its `toString` at construction (own-property wrapper), and the wrapper
+ * shared {@link CaptureChannel}: in a run that has a channel, every
+ * `SnippetBase` instance self-wraps its `toString` at construction
+ * (own-property wrapper), and the wrapper
  * observes into the channel's sink while the **capture interval** is open
  * — the span while `channel.sink` is set. Each `toString` invocation is
  * observed into an **occurrence tree** — one node per call, keyed by

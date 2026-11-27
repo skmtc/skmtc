@@ -224,9 +224,9 @@ Subclasses should:
 - Not perform side effects (register, etc. — those go in the
   constructor)
 - Declare `toString` as a **prototype method, never an instance
-  field** — every instance self-wraps its `toString` at construction
-  for attribution capture (gen-maps), and an arrow-function field
-  would overwrite the wrapper
+  field**. In a run that emits gen-maps, each instance wraps its
+  `toString` at construction for attribution capture. An
+  arrow-function field would overwrite the wrapper.
 
 ## Common questions
 

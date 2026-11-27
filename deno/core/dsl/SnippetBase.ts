@@ -27,8 +27,9 @@ export type SnippetBaseArgs = {
 }
 
 /**
- * The own-property `toString` wrapper every {@link SnippetBase} instance
- * installs at construction — ONE shared function, no per-instance closure.
+ * The own-property `toString` wrapper a {@link SnippetBase} instance
+ * installs at construction, in a run that captures a render
+ * (`context.capturesRender`) — ONE shared function, no per-instance closure.
  *
  * Own properties shadow every prototype, so this intercepts the leaf
  * subclass's `toString` no matter where in the hierarchy it is declared —
@@ -38,9 +39,7 @@ export type SnippetBaseArgs = {
  * instance's own property).
  *
  * Outside the capture interval (`context.captureSink` unset) this is a
- * pure pass-through — one property read and one branch. Bare test mocks
- * (`{} as GenerateContextType`) read `undefined` and take the pass-through
- * path.
+ * pure pass-through — one property read and one branch.
  */
 const capturingToString = function (this: SnippetBase): string {
   const impl = Object.getPrototypeOf(this).toString
@@ -71,8 +70,11 @@ const capturingToString = function (this: SnippetBase): string {
  *
  * ## Attribution (gen-maps)
  *
- * Every instance self-wraps its `toString` at construction (an
- * own-property wrapper — shared function, non-enumerable). The wrapper is
+ * In a run that captures a render (`context.capturesRender`: attribution
+ * emission is configured), every instance self-wraps its `toString` at
+ * construction (an own-property wrapper — shared function,
+ * non-enumerable). In any other run no instance has a wrapper, and
+ * `toString` is the subclass's own. The wrapper is
  * gated by the **capture interval**: the span while
  * {@link import('@/context/generateTypes.ts').GenerateContextType.captureSink}
  * is set, which `RenderContext` opens around the one capturing render and
@@ -117,10 +119,14 @@ export class SnippetBase {
     // Self-wrap for attribution capture: an own-property `toString`
     // (shared function value, non-enumerable) that observes into the
     // context's capture sink while the capture interval is open and
-    // passes through otherwise.
-    Object.defineProperty(this, 'toString', {
-      value: capturingToString,
-      configurable: true
-    })
+    // passes through otherwise. A run with no capturing render never
+    // opens the interval, so its snippets get no wrapper: one property
+    // definition for each snippet of the run is otherwise made for nothing.
+    if (context.capturesRender) {
+      Object.defineProperty(this, 'toString', {
+        value: capturingToString,
+        configurable: true
+      })
+    }
   }
 }

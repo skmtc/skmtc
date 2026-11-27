@@ -1,21 +1,22 @@
 /**
  * Attribution (gen-maps) **emission** config.
  *
- * Attribution *capture* is always on and needs no configuration — it is
- * intrinsic to the pipeline:
+ * Attribution *location capture* is always on and needs no configuration:
  *
  * - **Parse phase**: every parsed OAS / GQL node snapshots the visitor's
  *   `StackTrail` into its `OasBase` base (`toLocation()` → JSON Pointer).
- * - **Generate phase**: every `SnippetBase` instance wraps its
- *   `toString` to capture parent/child edges via a render stack, so
- *   the post-render span resolver can attribute byte ranges to producers.
+ * - **Generate phase**: in a run with `postPass`, every `SnippetBase`
+ *   instance wraps its `toString` to capture parent/child edges, so the
+ *   post-render span resolver can attribute byte ranges to producers. A
+ *   run with no `postPass` installs no wrapper.
  *
  * This type configures only **emission**: it is supplied at the run level
  * (`CoreContext.toArtifacts`) and consumed solely by the post-render
- * pass. The parse and generate contexts do not carry it, because capture
- * is unconditional. Without `postPass` you still get capture but no
- * on-disk output; setting `postPass` activates the pass and surfaces
- * `sidecars` / `generationMap` on the result.
+ * pass. The parse and generate contexts do not carry it; the generate
+ * context only knows whether the run has a capture channel. Without
+ * `postPass` you get location capture but no on-disk output; setting
+ * `postPass` activates the pass and surfaces `sidecars` /
+ * `generationMap` on the result.
  */
 
 import type { ParserAdapter } from '@/anchors/ParserAdapter.ts'

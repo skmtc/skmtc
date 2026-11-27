@@ -209,9 +209,8 @@ export class RenderContext {
   render(stackTrail: StackTrail): RenderPhaseResult {
     const postPassConfig = this.attribution?.postPass
 
-    // No emission configured → plain render, no capture: the capture
-    // interval never opens, so every snippet's `toString` wrapper takes
-    // the pass-through path.
+    // No emission configured → plain render, no capture: the run has no
+    // capture channel, so its snippets have no `toString` wrapper.
     if (!postPassConfig) {
       const result = this.collate(stackTrail)
       return {
