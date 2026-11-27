@@ -12,12 +12,14 @@ deno run --allow-read --allow-env <this skill>/scripts/complexity.ts <generator>
 ```
 
 The script scores each function and method: 1, plus one for each `if`,
-loop, `case`, `catch`, `?:`, `&&`, `||` and `??`. It lists what is over
-the limit and exits 1 when anything is.
+loop, `case`, `catch`, `?:`, `&&`, `||`, `??`, `&&=`, `||=` and `??=`.
+It lists what is over the limit and exits 1 when anything is.
 
-- **The limit is 10.** A function whose branches are the cases of one
-  `switch` is a router: the script marks it `switch` and does not count
-  it against the limit.
+- **The limit is 10.** A function is a router when more than half of its
+  branches are the cases of a `switch`. The cases of a router do not
+  count toward the limit. Its other branches do, so a router that also
+  holds ten `if`s is over. The script lists a router that passes for
+  this reason as `switch (exempt)`.
 - A constructor over the limit holds two concepts. Split it by concept
   (`producers.md`, rules 1 and 9), not by line count.
 - The script also lists each function outside a class. Each one needs a
@@ -30,7 +32,8 @@ For a change to a generator that exists, run the script on the base
 too, and compare. A change that renders one new case adds about one
 class, one router case, and no function outside a class.
 
-`--max <n>` sets another limit. The script needs `--allow-env` because
+`--max <n>` or `--max=<n>` sets another limit. Any other `--` argument
+stops the script with exit code 2. The script needs `--allow-env` because
 the TypeScript parser reads the environment when it loads.
 
 ## 2. Read the diff for these patterns

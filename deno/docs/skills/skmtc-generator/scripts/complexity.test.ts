@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { isSwitch, scoreSource } from './complexity.ts'
+import { isSwitch, scoreSource, toLimitedScore, toOptions } from './complexity.ts'
 
 const toScores = (text: string): Record<string, number> =>
   Object.fromEntries(scoreSource({ file: 'x.ts', text }).map(unit => [unit.name, unit.score]))
@@ -76,4 +76,81 @@ Deno.test('a router is a switch, and a constructor with the same score is not', 
 
   assertEquals([router.score, router.cases, isSwitch(router)], [5, 3, true])
   assertEquals([constructor.score, constructor.cases, isSwitch(constructor)], [5, 0, false])
+})
+
+// The trap: an exemption for the whole function would let a router carry
+// any number of `if`s. Only its cases are free.
+Deno.test('the limit applies to the branches of a router that are not cases', () => {
+  const [router] = scoreSource({
+    file: 'x.ts',
+    text: `
+      const toValue = (schema: { type: string; a?: string; b?: string; c?: string }) => {
+        const fallback = schema.a ?? schema.b ?? schema.c ?? ''
+        switch (schema.type) {
+          case 'a': return 1
+          case 'b': return 2
+          case 'c': return 3
+          case 'd': return 4
+          default: return fallback
+        }
+      }`
+  })
+
+  assertEquals([router.score, router.cases, isSwitch(router)], [8, 4, true])
+  assertEquals(toLimitedScore(router), 4)
+})
+
+Deno.test('the logical assignments &&=, ||= and ??= each add 1', () => {
+  const text = `
+    function fill(a: { x?: number; y?: number; z?: number }) {
+      a.x ??= 1
+      a.y ||= 2
+      a.z &&= 3
+    }`
+
+  assertEquals(toScores(text), { fill: 4 })
+})
+
+// The trap: a function with no name and no unit around it would be scored
+// nowhere, and its branches would not be in the report at all.
+Deno.test('a default export with no name is a unit', () => {
+  const text = `export default (schema: { nullable?: boolean }) => (schema.nullable ? 'a' : 'b')`
+
+  assertEquals(toScores(text), { '<default>': 2 })
+})
+
+Deno.test('a callback that no unit holds is a unit', () => {
+  const text = `[1, 2].forEach(item => { if (item > 1) { console.log(item) } })`
+
+  assertEquals(toScores(text), { '<anonymous>': 2 })
+})
+
+Deno.test('the value of a field or of a module variable is a unit when it branches', () => {
+  const text = `
+    const items: (string | undefined)[] = []
+    const labels = items.map(item => (item === undefined ? '' : item))
+    class Entries {
+      names = items.map(item => item ?? '')
+      count = items.length
+      toString() { return this.names.join(', ') }
+    }`
+
+  assertEquals(toScores(text), { labels: 2, 'Entries.names': 2, 'Entries.toString': 1 })
+})
+
+Deno.test('the limit is read from --max 5 and from --max=5', () => {
+  assertEquals(toOptions(['src']), { root: 'src', max: 10 })
+  assertEquals(toOptions(['src', '--max', '5']), { root: 'src', max: 5 })
+  assertEquals(toOptions(['--max=5', 'src']), { root: 'src', max: 5 })
+})
+
+// The trap: an argument that is dropped without a message leaves the limit at
+// 10, and a run that was meant to be stricter passes.
+Deno.test('an argument the script does not know gives no options', () => {
+  assertEquals(toOptions(['src', '--limit=5']), undefined)
+  assertEquals(toOptions(['src', '--max']), undefined)
+  assertEquals(toOptions(['src', '--max=five']), undefined)
+  assertEquals(toOptions(['src', '--max=0']), undefined)
+  assertEquals(toOptions(['src', 'other']), undefined)
+  assertEquals(toOptions([]), undefined)
 })

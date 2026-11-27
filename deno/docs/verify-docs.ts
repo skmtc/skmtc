@@ -102,7 +102,7 @@
  * `deno task verify-docs`.
  */
 
-import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
+import { basename, dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { parse as parseYaml } from 'jsr:@std/yaml@^1'
 import {
   computeSkillsDigest,
@@ -201,17 +201,28 @@ const llmsFacts = parseFactList(await Deno.readTextFile(llmsPath), /^## Read thi
 
 // The skill is its SKILL.md and the references that file routes to: a fact
 // can be in either, since an author reads the reference for the work in hand.
-const generatorReferencesDir = join(docsDir, 'skills', 'skmtc-generator', 'references')
-const generatorReferenceNames: string[] = []
-for await (const entry of Deno.readDir(generatorReferencesDir)) {
-  if (entry.isFile && entry.name.endsWith('.md')) generatorReferenceNames.push(entry.name)
+//
+// Every check that reads "the skills" reads the references through this
+// function. A check that lists only `SKILL.md` stops covering a page on the
+// day it moves into `references/`.
+const readReferencePaths = async (skillDirectory: string): Promise<string[]> => {
+  const referencesDir = join(docsDir, 'skills', skillDirectory, 'references')
+  const names: string[] = []
+  try {
+    for await (const entry of Deno.readDir(referencesDir)) {
+      if (entry.isFile && entry.name.endsWith('.md')) names.push(entry.name)
+    }
+  } catch (error) {
+    // A skill with no references folder has none to read.
+    if (!(error instanceof Deno.errors.NotFound)) throw error
+  }
+  return names.sort().map(name => join(referencesDir, name))
 }
+
 const generatorSkillText = [
   await Deno.readTextFile(generatorSkillPath),
   ...(await Promise.all(
-    generatorReferenceNames
-      .sort()
-      .map(name => Deno.readTextFile(join(generatorReferencesDir, name)))
+    (await readReferencePaths('skmtc-generator')).map(path => Deno.readTextFile(path))
   ))
 ].join('\n')
 
@@ -304,6 +315,7 @@ for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
   } catch {
     // skill dir without SKILL.md — nothing to check
   }
+  surfaceFiles.push(...(await readReferencePaths(entry.name)))
 }
 let deadModelHits = 0
 for (const file of surfaceFiles) {
@@ -367,7 +379,7 @@ for (const { packageDirectory, skillFile, guardPrefix } of languageSyncTargets) 
   const kindWord = numberWords[factoryNames.length]
   if (!skill.includes(`${kindWord} entity kinds`)) {
     fail(
-      `skills/${skillFile}:expected "${kindWord} entity kinds" ` +
+      `skills/${skillFile}: expected "${kindWord} entity kinds" ` +
         `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${factoryNames.join(
           ', '
         )})`
@@ -380,7 +392,7 @@ for (const { packageDirectory, skillFile, guardPrefix } of languageSyncTargets) 
 
   for (const factory of factoryNames) {
     if (!skill.includes(factory)) {
-      fail(`skills/${skillFile}:identifier factory ${factory} is exported but never mentioned`)
+      fail(`skills/${skillFile}: identifier factory ${factory} is exported but never mentioned`)
     }
   }
 
@@ -388,7 +400,7 @@ for (const { packageDirectory, skillFile, guardPrefix } of languageSyncTargets) 
   const protocolGuards = [...new Set([...packageMod.matchAll(guardPattern)].map(m => m[1]))]
   for (const guard of protocolGuards) {
     if (!skill.includes(guard)) {
-      fail(`skills/${skillFile}:value-protocol guard ${guard} is exported but never mentioned`)
+      fail(`skills/${skillFile}: value-protocol guard ${guard} is exported but never mentioned`)
     }
   }
   if (protocolGuards.every(guard => skill.includes(guard))) {
@@ -1410,12 +1422,21 @@ const readDescribes = (skillText: string): Record<string, string> | undefined =>
 let declaredVersionFailures = 0
 let declarationCount = 0
 
-/** Every SKILL.md by `skills/<dir>/SKILL.md`, read once here and reused by check 19. */
+/**
+ * Every SKILL.md by `skills/<dir>/SKILL.md` and every reference by
+ * `skills/<dir>/references/<name>.md`, read once here and reused by check 19.
+ */
 const skillTexts = new Map<string, string>()
 
 for (const directory of skillDirectories) {
   const skillText = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
   skillTexts.set(`skills/${directory}/SKILL.md`, skillText)
+  for (const referencePath of await readReferencePaths(directory)) {
+    skillTexts.set(
+      `skills/${directory}/references/${basename(referencePath)}`,
+      await Deno.readTextFile(referencePath)
+    )
+  }
   const describes = readDescribes(skillText)
   const published = publishedSkillNames.includes(directory)
 
