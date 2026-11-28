@@ -165,6 +165,14 @@ export const toEmittedText = (node: Deno.lint.TemplateLiteral): string =>
   node.quasis.map(quasi => quasi.raw).join(INTERPOLATION_PLACEHOLDER)
 
 /**
+ * A node's source text, collapsed to one line and not truncated. Use it for
+ * a name that another program must give in the same form, such as the unit
+ * names of `skmtc/complexity`.
+ */
+export const toOneLineText = (sourceCode: Deno.lint.SourceCode, node: Deno.lint.Node): string =>
+  sourceCode.getText(node).replace(/\s+/g, ' ').trim()
+
+/**
  * A node's source text, collapsed to one line and truncated — the form
  * every message quotes it in. Diagnostic messages MUST stay single-line:
  * `deno lint --json` does not escape control characters, so a newline
@@ -175,7 +183,7 @@ export const toInlineText = (
   node: Deno.lint.Node,
   limit = 60
 ): string => {
-  const text = sourceCode.getText(node).replace(/\s+/g, ' ').trim()
+  const text = toOneLineText(sourceCode, node)
   return text.length > limit ? `${text.slice(0, limit)}…` : text
 }
 

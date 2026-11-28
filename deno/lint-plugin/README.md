@@ -29,6 +29,12 @@ rule that is violated explains itself where the violation is.
 | `skmtc/no-emitted-todos` | Generated output is complete: a `TODO` left for the consumer is wiped on the next run. |
 | `skmtc/no-redundant-ref-guard` | `.resolve()` is called unconditionally — it is identity on every concrete schema. Auto-fixable. |
 | `skmtc/runtime-discipline` | Generator code is valid synchronous Deno; its only side effects are logs and register/insert. |
+| `skmtc/complexity` | Each function has a cyclomatic complexity of 10 or less. The cases of a router's `switch` do not count; its other branches do. Since 0.1.3. |
+
+`skmtc/complexity` is new in 0.1.3. A project with the range `^0.1.0` gets it
+the next time `deno` resolves the plugin, and a function over the limit then
+fails `deno lint` with no edit in the project. Split the function, sign it off
+with a directive, or exclude the rule (see "Signing off a violation").
 
 Each rule module's doc comment carries the doctrine, the source check it was
 ported from, and its **known false negatives**. The precision policy is

@@ -14,6 +14,8 @@
  * `packages/gen-eval/docs/<check>.md`. Two go further than the harness here
  * — `single-dispatch` has no counterpart in it, and `tostring-purity`'s
  * construction clause is not in check 8 — and say so in their doc comments.
+ * A tenth rule, `complexity`, is not from the harness: it is the count of
+ * `scripts/complexity.ts` in the `skmtc-generator` skill, as a rule.
  * Every rule module carries its doctrine and its known false negatives.
  *
  * Cross-file and aggregate checks — producer share, package structure, the
@@ -26,6 +28,7 @@
  * legitimately do the things the rules forbid (see `src/shared/target.ts`).
  */
 
+import { complexity } from './src/rules/complexity.ts'
 import { methodDiscipline } from './src/rules/method-discipline.ts'
 import { noAdhocToString } from './src/rules/no-adhoc-tostring.ts'
 import { noAsCasts } from './src/rules/no-as-casts.ts'
@@ -52,7 +55,8 @@ export const plugin: Deno.lint.Plugin = {
     'no-emitted-todos': noEmittedTodos,
     'no-redundant-ref-guard': noRedundantRefGuard,
     'runtime-discipline': runtimeDiscipline,
-    'method-discipline': methodDiscipline
+    'method-discipline': methodDiscipline,
+    complexity
   }
 }
 
