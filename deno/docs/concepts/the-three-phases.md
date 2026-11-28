@@ -215,8 +215,10 @@ an in-memory map of files-to-render.
 ### The outer loop
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`) iterates
-the configured generators. For each generator, it applies the whole-generator
-`skip` check, then dispatches by generator type:
+the configured generators. The model generators run first, then the
+operation generators, then the webhook generators. Generators of one kind
+run in the order of the config. For each generator, it applies the
+whole-generator `skip` check, then dispatches by generator type:
 
 ```ts
 generators.forEach(generatorConfig => {
@@ -257,10 +259,12 @@ generator of that kind.
 
 A file plan tells the run which subjects hold a file. The plan comes from
 the `projections` that each entry lists, and from the `$ref`s that the
-parser read. The two orders write the same files. If two generators insert
-into one file, the definitions in it can be in a different order. This
-includes the file of a model generator, when an operation generator that
-comes before it in the config inserts its projection. See
+parser read.
+
+The two orders write the same files. If two generators insert into one
+file, the definitions in it can be in a different order. The order
+generator by generator takes the model generators first. Thus, the order
+of the kinds in the config changes no file, in either order. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle
@@ -302,9 +306,9 @@ combine to make it work:
 So whichever generator's `transform` runs first for a given
 `(projection, operation)` pair triggers the construction. Later generators that
 depend on the same projection (e.g., a form depending on a mutation hook) get a
-cache hit. The output `#files` map has the same files and the same
-definitions in each order of the outer loop. Only the order of the
-definitions in a file that more than one generator inserts into can change.
+cache hit. The output `#files` map has the same files in each order of the
+outer loop. Some parts of a file can change with the order. See
+[the other order](#the-other-order-subject-by-subject).
 
 This is what underlies "generators run in any order" — it's a structural
 property, not a feature you have to maintain.
