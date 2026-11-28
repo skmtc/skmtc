@@ -108,6 +108,8 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
 
   // Wait for generators to load and error to occur
   await waitFor(() => assertSpyCalls(leaveSpy, 1))
+  // Still once after the effects that call queued have run
+  assertSpyCalls(leaveSpy, 1)
 
   // Verify console.error was called with the error
   assertSpyCalls(consoleErrorSpy, 1)
@@ -177,6 +179,8 @@ Deno.test({
 
     // Verify leave was called with task state
     await waitFor(() => assertSpyCalls(leaveSpy, 1))
+    // Still once after the effects that call queued have run
+    assertSpyCalls(leaveSpy, 1)
     assertSpyCall(leaveSpy, 0, {
       args: [
         {
@@ -232,6 +236,8 @@ Deno.test({
     try {
       // Wait for generators to load and Project.create to be called
       await waitFor(() => assertSpyCalls(projectCreateStub, 1))
+      // Still once after the effects that call queued have run
+      assertSpyCalls(projectCreateStub, 1)
 
       // Verify it was called with correct arguments
       assertSpyCall(projectCreateStub, 0, {
@@ -308,6 +314,8 @@ Deno.test({
 
     // Verify Project.create was called with the exact task state values
     await waitFor(() => assertSpyCalls(projectCreateStub, 1))
+    // Still once after the effects that call queued have run
+    assertSpyCalls(projectCreateStub, 1)
     assertSpyCall(projectCreateStub, 0, {
       args: [
         {
