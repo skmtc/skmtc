@@ -262,8 +262,6 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   destinationPath: string
   /** Function to transform the schema into a generated value */
   schemaToValueFn: SchemaToValueFn
-  /** The ref of the model whose value tree holds the schema */
-  rootRef?: RefParts
   /** Whether to exclude this definition from exports */
   noExport?: boolean
 }
@@ -1712,7 +1710,6 @@ export class GenerateContext implements GenerateContextType {
       context: this,
       projection,
       ref,
-      rootRef: ref,
       ...toInsertOptions(rest)
     })
 

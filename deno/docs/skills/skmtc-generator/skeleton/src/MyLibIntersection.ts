@@ -4,7 +4,6 @@ import type {
   GeneratorKey,
   Modifiers,
   OasIntersection,
-  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { toMyLibValue } from './MyLib.ts'
@@ -17,7 +16,6 @@ type MyLibIntersectionArgs = {
   intersectionSchema: OasIntersection
   modifiers: Modifiers
   generatorKey: GeneratorKey
-  rootRef?: RefParts
 }
 
 export class MyLibIntersection extends TsSnippet {
@@ -32,7 +30,6 @@ export class MyLibIntersection extends TsSnippet {
       destinationPath,
       intersectionSchema,
       modifiers,
-      rootRef,
     }: MyLibIntersectionArgs,
   ) {
     super({
@@ -47,7 +44,6 @@ export class MyLibIntersection extends TsSnippet {
         schema: member,
         required: true,
         context,
-        rootRef,
       })
     )
 

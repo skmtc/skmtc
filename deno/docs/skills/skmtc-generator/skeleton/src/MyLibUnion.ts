@@ -6,7 +6,6 @@ import type {
   OasDiscriminator,
   OasRef,
   OasSchema,
-  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { toMyLibValue } from './MyLib.ts'
@@ -22,7 +21,6 @@ type MyLibUnionArgs = {
   discriminator?: OasDiscriminator
   modifiers: Modifiers
   generatorKey: GeneratorKey
-  rootRef?: RefParts
 }
 
 export class MyLibUnion extends TsSnippet {
@@ -39,7 +37,6 @@ export class MyLibUnion extends TsSnippet {
       members,
       discriminator,
       modifiers,
-      rootRef,
       schema,
     }: MyLibUnionArgs,
   ) {
@@ -51,7 +48,6 @@ export class MyLibUnion extends TsSnippet {
         schema: member,
         required: true,
         context,
-        rootRef,
       })
     )
 
