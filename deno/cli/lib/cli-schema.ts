@@ -2,8 +2,11 @@
  * Single source of truth for the SKMTC CLI's command surface.
  *
  * Used by:
- *   - `mod.ts`               — builds each Cliffy command from the
- *                              schema's description + args + flags.
+ *   - `mod.ts`               — takes each Cliffy command's description
+ *                              from the schema. It declares the args and
+ *                              options by hand; `cli-schema.test.ts`
+ *                              checks that each command's long option
+ *                              names match its entry's flags.
  *   - `agent-context-headless.ts` — re-exports {@link COMMAND_DESCRIPTORS}
  *                              so agents can introspect the surface.
  *   - `commands/agent-context.ts` — prints the descriptors as text/JSON.
@@ -129,6 +132,11 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '-g, --generator <id>',
         description: 'Generator id to clone. Repeat for multiple.'
+      },
+      {
+        flag: '--force',
+        description:
+          'Replace a generator that is already cloned: delete its folder and its edits, and clone the published version again.'
       }
     ],
     agentMode: 'full'
@@ -447,6 +455,30 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
         description: 'Watch schema for changes (incompatible with --json).'
       },
       {
+        flag: '--typecheck',
+        description:
+          "After generating, run `tsc --noEmit` against the consumer tsconfig and report the diagnostics in this run's files. Exits 1 on any type error."
+      },
+      {
+        flag: '--tsconfig <path>',
+        description:
+          'The tsconfig for --typecheck. Defaults to the nearest tsconfig.json up from basePath.'
+      },
+      {
+        flag: '--tsc-cmd <cmd>',
+        description: 'The tsc command for --typecheck. Defaults to `npx tsc`.'
+      },
+      {
+        flag: '--anchors',
+        description:
+          'Turn gen-maps (attribution) output on, whatever `settings.anchors.enabled` says.'
+      },
+      {
+        flag: '--no-anchors',
+        description:
+          'Turn gen-maps (attribution) output off, whatever `settings.anchors.enabled` says.'
+      },
+      {
         flag: '--save',
         description:
           'Store the [schema] argument as `source` in the project config, so later runs need no schema argument. Stored after a run with no error. Not with --debug.'
@@ -523,15 +555,19 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     name: 'create',
     description: 'Create new generator',
     args: ['<project>', '<generator>', '<type>'],
-    flags: [],
+    flags: [
+      {
+        flag: '-l, --lang <language>',
+        description: 'Target output language for the scaffolded generator. Defaults to typescript.'
+      }
+    ],
     agentMode: 'none'
   }
 ]
 
 /**
  * Look up a command's descriptor by name. Used by the Cliffy wiring
- * in `mod.ts` to pull `description` / `args` / `flags` from a single
- * source instead of hand-duplicating them on each Cliffy command.
+ * in `mod.ts` to take each command's `description` from the schema.
  *
  * Throws when the name isn't in the schema — that's a developer
  * error (typo in `mod.ts`'s `getCommandDescriptor('foo')` call), not
