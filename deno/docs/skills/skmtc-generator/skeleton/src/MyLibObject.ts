@@ -8,7 +8,6 @@ import type {
   OasObject,
   OasRef,
   OasSchema,
-  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { toMyLibValue } from './MyLib.ts'
@@ -22,7 +21,6 @@ type MyLibObjectArgs = {
   objectSchema: OasObject
   modifiers: Modifiers
   generatorKey: GeneratorKey
-  rootRef?: RefParts
 }
 
 export class MyLibObject extends TsSnippet {
@@ -38,7 +36,6 @@ export class MyLibObject extends TsSnippet {
       destinationPath,
       objectSchema,
       modifiers,
-      rootRef,
     }: MyLibObjectArgs,
   ) {
     super({
@@ -59,7 +56,6 @@ export class MyLibObject extends TsSnippet {
         generatorKey,
         destinationPath,
         schema: additionalProperties,
-        rootRef,
       })
       : null
 
@@ -73,7 +69,6 @@ export class MyLibObject extends TsSnippet {
         // about the object itself. Each property's optionality renders
         // at that property's own leaf via its modifiers.
         required,
-        rootRef,
       })
       : null
 
@@ -112,7 +107,6 @@ type MyLibObjectPropertiesArgs = {
   properties: Record<string, OasSchema | OasRef<'schema'> | CustomValue>
   required: OasObject['required']
   generatorKey: GeneratorKey
-  rootRef?: RefParts
 }
 
 class MyLibObjectProperties extends TsSnippet {
@@ -128,7 +122,6 @@ class MyLibObjectProperties extends TsSnippet {
       destinationPath,
       properties,
       required = [],
-      rootRef,
     }: MyLibObjectPropertiesArgs,
   ) {
     super({ context, generatorKey })
@@ -145,7 +138,6 @@ class MyLibObjectProperties extends TsSnippet {
           schema: property,
           required: required.includes(key),
           context,
-          rootRef,
         }),
       ]),
     )
@@ -184,14 +176,13 @@ type MyLibRecordArgs = {
   destinationPath: string
   schema: true | OasSchema | OasRef<'schema'>
   generatorKey: GeneratorKey
-  rootRef?: RefParts
 }
 
 class MyLibRecord extends TsSnippet {
   value: TypeSystemValue
 
   constructor(
-    { context, generatorKey, destinationPath, schema, rootRef }:
+    { context, generatorKey, destinationPath, schema }:
       MyLibRecordArgs,
   ) {
     super({ context, generatorKey })
@@ -205,7 +196,6 @@ class MyLibRecord extends TsSnippet {
         schema,
         required: true,
         context,
-        rootRef,
       })
   }
 

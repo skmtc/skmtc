@@ -4,7 +4,6 @@ import type {
   GenerateContextType,
   Modifiers,
   OasRef,
-  RefParts,
 } from '@skmtc/core'
 import { applyModifiers } from './modifiers.ts'
 import { MyLibProjection } from './MyLibProjection.ts'
@@ -17,7 +16,6 @@ type MyLibRefArgs = {
   modifiers: Modifiers
   /** The ref: a component, or a place inside one, such as a `$defs` entry. Its trail gives fine-grained attribution. */
   ref: OasRef<'schema'>
-  rootRef?: RefParts
 }
 
 /**
@@ -35,7 +33,7 @@ export class MyLibRef extends TsSnippet {
   deferred: boolean
 
   constructor(
-    { context, ref, destinationPath, modifiers, rootRef }: MyLibRefArgs,
+    { context, ref, destinationPath, modifiers }: MyLibRefArgs,
   ) {
     super({
       context,
@@ -57,7 +55,6 @@ export class MyLibRef extends TsSnippet {
       context,
       ref,
       destinationPath,
-      rootRef,
       projection: MyLibProjection,
       variant: 'main',
     })

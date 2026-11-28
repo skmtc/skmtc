@@ -6,7 +6,6 @@ import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { CustomValue } from '../dsl/CustomValue.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { RefParts } from '@/helpers/refFns.ts'
 
 /**
  * Union type representing all possible type system values in the SKMTC code generation system.
@@ -593,8 +592,6 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   destinationPath: string
   /** The schema to transform */
   schema: Schema
-  /** The ref of the model whose value tree holds the schema */
-  rootRef?: RefParts
   /** Whether the schema field is required */
   required: boolean | undefined
 }

@@ -75,7 +75,6 @@ type ValueArgs<Schema> = {
   destinationPath: string
   generatorKey: GeneratorKey
   modifiers: Modifiers
-  rootRef: RefParts | undefined
   schema: Schema
 }
 
@@ -186,7 +185,7 @@ class WorkArray extends TsSnippet {
   modifiers: Modifiers
 
   constructor(args: ValueArgs<OasArray>) {
-    const { context, destinationPath, generatorKey, modifiers, rootRef, schema } = args
+    const { context, destinationPath, generatorKey, modifiers, schema } = args
 
     super({ context, generatorKey, stackTrail: schema.stackTrail.clone() })
 
@@ -194,7 +193,6 @@ class WorkArray extends TsSnippet {
     this.items = toWorkValue({
       context,
       destinationPath,
-      rootRef,
       required: true,
       schema: schema.items
     })
@@ -212,14 +210,14 @@ class WorkUnion extends TsSnippet {
   modifiers: Modifiers
 
   constructor(args: ValueArgs<OasUnion>) {
-    const { context, destinationPath, generatorKey, modifiers, rootRef, schema } = args
+    const { context, destinationPath, generatorKey, modifiers, schema } = args
 
     super({ context, generatorKey, stackTrail: schema.stackTrail.clone() })
 
     this.modifiers = modifiers
     this.discriminator = schema.discriminator?.propertyName
     this.members = schema.members.map(member =>
-      toWorkValue({ context, destinationPath, rootRef, required: true, schema: member })
+      toWorkValue({ context, destinationPath, required: true, schema: member })
     )
   }
 
@@ -234,13 +232,13 @@ class WorkIntersection extends TsSnippet {
   modifiers: Modifiers
 
   constructor(args: ValueArgs<OasIntersection>) {
-    const { context, destinationPath, generatorKey, modifiers, rootRef, schema } = args
+    const { context, destinationPath, generatorKey, modifiers, schema } = args
 
     super({ context, generatorKey, stackTrail: schema.stackTrail.clone() })
 
     this.modifiers = modifiers
     this.members = schema.members.map(member =>
-      toWorkValue({ context, destinationPath, rootRef, required: true, schema: member })
+      toWorkValue({ context, destinationPath, required: true, schema: member })
     )
   }
 
@@ -255,7 +253,6 @@ type WorkPropertiesArgs = {
   generatorKey: GeneratorKey
   properties: Record<string, OasSchema | OasRef<'schema'> | CustomValue>
   required: string[]
-  rootRef: RefParts | undefined
 }
 
 class WorkProperties extends TsSnippet {
@@ -263,7 +260,7 @@ class WorkProperties extends TsSnippet {
   required: string[]
 
   constructor(args: WorkPropertiesArgs) {
-    const { context, destinationPath, generatorKey, properties, required, rootRef } = args
+    const { context, destinationPath, generatorKey, properties, required } = args
 
     super({ context, generatorKey })
 
@@ -274,7 +271,6 @@ class WorkProperties extends TsSnippet {
         toWorkValue({
           context,
           destinationPath,
-          rootRef,
           required: required.includes(key),
           schema
         })
@@ -297,7 +293,6 @@ type WorkRecordPropertiesArgs = {
   context: GenerateContextType
   destinationPath: string
   generatorKey: GeneratorKey
-  rootRef: RefParts | undefined
   schema: true | OasSchema | OasRef<'schema'>
 }
 
@@ -305,14 +300,14 @@ class WorkRecordProperties extends TsSnippet {
   value: TypeSystemValue
 
   constructor(args: WorkRecordPropertiesArgs) {
-    const { context, destinationPath, generatorKey, rootRef, schema } = args
+    const { context, destinationPath, generatorKey, schema } = args
 
     super({ context, generatorKey })
 
     this.value =
       schema === true || isEmpty(schema)
         ? new WorkUnknown({ context, generatorKey })
-        : toWorkValue({ context, destinationPath, rootRef, required: true, schema })
+        : toWorkValue({ context, destinationPath, required: true, schema })
   }
 
   override toString(): string {
@@ -327,7 +322,7 @@ class WorkObject extends TsSnippet {
   modifiers: Modifiers
 
   constructor(args: ValueArgs<OasObject>) {
-    const { context, destinationPath, generatorKey, modifiers, rootRef, schema } = args
+    const { context, destinationPath, generatorKey, modifiers, schema } = args
     const { properties, required = [], additionalProperties } = schema
 
     super({ context, generatorKey, stackTrail: schema.stackTrail.clone() })
@@ -340,8 +335,7 @@ class WorkObject extends TsSnippet {
             destinationPath,
             generatorKey,
             properties,
-            required,
-            rootRef
+            required
           })
         : null
     this.recordProperties = additionalProperties
@@ -349,7 +343,6 @@ class WorkObject extends TsSnippet {
           context,
           destinationPath,
           generatorKey,
-          rootRef,
           schema: additionalProperties
         })
       : null
@@ -367,7 +360,6 @@ type WorkRefArgs = {
   destinationPath: string
   modifiers: Modifiers
   ref: OasRef<'schema'>
-  rootRef: RefParts | undefined
 }
 
 class WorkRef extends TsSnippet {
@@ -375,7 +367,7 @@ class WorkRef extends TsSnippet {
   name: string
   modifiers: Modifiers
 
-  constructor({ context, destinationPath, modifiers, ref, rootRef }: WorkRefArgs) {
+  constructor({ context, destinationPath, modifiers, ref }: WorkRefArgs) {
     super({
       context,
       generatorKey: toModelGeneratorKey({ generatorId: MODEL_ID, ref, variant: 'main' }),
@@ -386,7 +378,6 @@ class WorkRef extends TsSnippet {
       context,
       destinationPath,
       ref,
-      rootRef,
       projection: WorkModel,
       variant: 'main'
     })
@@ -401,7 +392,7 @@ class WorkRef extends TsSnippet {
 }
 
 const toWorkValue: SchemaToValueFn = args => {
-  const { context, destinationPath, required, rootRef } = args
+  const { context, destinationPath, required } = args
   const schema: SchemaType = args.schema
   const generatorKey = toGeneratorOnlyKey({ generatorId: MODEL_ID })
   const modifiers: Modifiers = {
@@ -409,13 +400,13 @@ const toWorkValue: SchemaToValueFn = args => {
     nullable: 'nullable' in schema ? schema.nullable : undefined,
     description: 'description' in schema ? schema.description : undefined
   }
-  const shared = { context, destinationPath, generatorKey, modifiers, rootRef }
+  const shared = { context, destinationPath, generatorKey, modifiers }
 
   switch (schema.type) {
     case 'custom':
       return schema
     case 'ref':
-      return new WorkRef({ context, destinationPath, modifiers, ref: schema, rootRef })
+      return new WorkRef({ context, destinationPath, modifiers, ref: schema })
     case 'array':
       return new WorkArray({ ...shared, schema })
     case 'object':
@@ -455,19 +446,17 @@ type WorkModelArgs = {
   destinationPath: string
   ref: RefParts
   settings: ContentSettings<EmptyEnrichments>
-  rootRef?: RefParts
 }
 
 class WorkModel extends WorkModelBase {
   value: TypeSystemValue
 
-  constructor({ context, destinationPath, ref, settings, rootRef }: WorkModelArgs) {
+  constructor({ context, destinationPath, ref, settings }: WorkModelArgs) {
     super({ context, ref, settings })
 
     this.value = toWorkValue({
       context,
       destinationPath,
-      rootRef,
       required: true,
       schema: context.resolveSchemaRefOnce(ref)
     })

@@ -229,8 +229,7 @@ export const toKtValue = (args: TypeSystemArgs<SchemaType>): TypeSystemValue & K
       // recipe, then replace this throw with a one-line
       // \`return new UnionValue({ ... })\` — like every other case: the
       // UnionValue CONSTRUCTOR owns member routing, parent
-      // annotations, membership assignment, and the tag removal (the
-      // parent's ref arrives as \`args.rootRef\`).
+      // annotations, membership assignment, and the tag removal.
       throw new Error(\`toKtValue: 'union' is not mapped — decide the Kotlin shape for oneOf\`)
     case 'intersection':
       // An allOf that keeps a reference (one that closes a cycle). Kotlin has

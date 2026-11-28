@@ -48,7 +48,7 @@ exports the resulting base class.
 
 The Projection class extends your base, takes
 `{ context, operation, settings }` (or
-`{ context, ref, settings, destinationPath, rootRef }` for
+`{ context, ref, settings, destinationPath }` for
 models), and in the constructor:
 
 - Pulls peer artifacts via
