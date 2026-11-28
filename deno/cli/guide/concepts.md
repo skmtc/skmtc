@@ -11,8 +11,8 @@ schema source pinned in each project.
 | Skmtc root | nearest ancestor dir containing `.skmtc/` | Created by `skmtc init` |
 | Project | `<root>/.skmtc/<project>/` | One schema + one set of generators |
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
-| Schema pin | `<root>/.skmtc/<project>/.settings/skmtc.config.json` | `source` field — URL or path. Resolution: explicit schema arg → `skmtc.config.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
-| **basePath** | `skmtc.config.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
+| Schema pin | `<root>/.skmtc/<project>/.settings/skmtc.config.json` | `source` field — URL or path. Resolution: explicit schema arg → `skmtc.config.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error). `skmtc generate <project> <schema> --save` writes it |
+| **basePath** | `skmtc.config.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. `init` reads the alias from a tsconfig's `paths` or a `deno.json` import map: with no `basePath` argument it uses that folder, and with another folder it warns. `skmtc doctor` checks the match as `project-alias/<project>` |
 | Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Built by `generate`/`dev` when its inputs changed (recorded in `.settings/bundle-inputs.json`), and always by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |

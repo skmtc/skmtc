@@ -105,6 +105,97 @@ Deno.test('runDoctor - flags an absolute basePath as error (friction #13)', asyn
   })
 })
 
+type AliasProject = {
+  settings: Record<string, unknown>
+  /** Files of the app root, such as `tsconfig.json`. */
+  appFiles?: Record<string, string>
+}
+
+/** The `project-alias` check of one project, in a root with these app files. */
+const runAliasCheck = async ({ settings, appFiles = {} }: AliasProject) => {
+  const found: (Awaited<ReturnType<typeof runDoctor>>['checks'][number] | undefined)[] = []
+
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'my-api')
+    await ensureDir(join(projectPath, '.settings'))
+    await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
+    await Deno.writeTextFile(
+      join(projectPath, '.settings', 'skmtc.config.json'),
+      JSON.stringify({ settings })
+    )
+    for (const [name, text] of Object.entries(appFiles)) {
+      await Deno.writeTextFile(join(tempRoot, name), text)
+    }
+
+    const result = await runDoctor({ cliVersion: '0.1.5', offline: true })
+    found.push(result.checks.find(check => check.id === 'project-alias/my-api'))
+  })
+
+  return found[0]
+}
+
+const SRC_ALIAS = JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } })
+
+Deno.test('runDoctor - project-alias is ok when basePath is the folder "@/" points to', async () => {
+  const check = await runAliasCheck({
+    settings: { basePath: './src' },
+    appFiles: { 'tsconfig.json': SRC_ALIAS }
+  })
+
+  assertEquals(check?.status, 'ok')
+})
+
+// The trap: this project generates with no error, and its files then import
+// `@/types/…` from a folder the app resolves somewhere else.
+Deno.test('runDoctor - project-alias warns when basePath is another folder', async () => {
+  const check = await runAliasCheck({
+    settings: { basePath: 'src/generated' },
+    appFiles: { 'tsconfig.json': SRC_ALIAS }
+  })
+
+  assertEquals(check?.status, 'warning')
+  assertStringIncludes(check?.message ?? '', '"@/" points to "src" (tsconfig.json)')
+  assertStringIncludes(check?.hint ?? '', 'Set `settings.basePath` to "src"')
+})
+
+Deno.test('runDoctor - project-alias is skipped when it cannot tell', async () => {
+  const noAlias = await runAliasCheck({ settings: { basePath: 'src' } })
+  const packages = await runAliasCheck({
+    settings: { basePath: '.', packages: [{ rootPath: 'packages/sdk/src' }] },
+    appFiles: { 'tsconfig.json': SRC_ALIAS }
+  })
+
+  assertEquals(noAlias?.status, 'skipped')
+  assertStringIncludes(noAlias?.message ?? '', 'No "@/" alias found in tsconfig.json')
+  assertEquals(packages?.status, 'skipped')
+  assertStringIncludes(packages?.message ?? '', 'settings.packages')
+})
+
+// The trap: an alias outside the root, or one behind a config that cannot
+// be read, is not "no alias". Each says what it found.
+Deno.test('runDoctor - project-alias says why an alias it found cannot be compared', async () => {
+  const outside = await runAliasCheck({
+    settings: { basePath: 'src' },
+    appFiles: {
+      'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['../shared/src/*'] } } })
+    }
+  })
+  const unreadable = await runAliasCheck({
+    settings: { basePath: 'src' },
+    appFiles: {
+      'tsconfig.json': JSON.stringify({
+        extends: '@acme/tsconfig',
+        compilerOptions: { paths: { '@/*': ['./src/*'] } }
+      })
+    }
+  })
+
+  assertEquals(outside?.status, 'skipped')
+  assertStringIncludes(outside?.message ?? '', '"@/" points to "../shared/src" (tsconfig.json), a folder outside')
+  assertEquals(unreadable?.status, 'skipped')
+  assertStringIncludes(unreadable?.message ?? '', 'extends "@acme/tsconfig", and skmtc could not read that config')
+})
+
 Deno.test('runDoctor - warns on stale-schema manifest (friction #26)', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     const projectPath = join(tempRoot, '.skmtc', 'stale-manifest')

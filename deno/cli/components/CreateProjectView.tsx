@@ -6,17 +6,21 @@ import { GeneratorsTask } from '@/tasks/GeneratorsTask.tsx'
 import { BasePathTask } from '@/tasks/BasePathTask.tsx'
 import { ProjectNameTask } from '@/tasks/ProjectNameTask.tsx'
 import { CreateProjectTask } from '@/tasks/CreateProjectTask.tsx'
+import type { AliasRoot } from '@/lib/alias-root.ts'
 
 type CreateProjectViewProps = {
   projectName: string | undefined
   generators: string[] | undefined
   basePath: string | undefined
+  /** The folder the app's `@/` alias points to: the default of the basePath prompt. */
+  aliasRoot?: AliasRoot
 }
 
 export const CreateProjectView = ({
   projectName,
   generators,
-  basePath
+  basePath,
+  aliasRoot
 }: CreateProjectViewProps) => {
   const { state, dispatch } = useSkmtc()
 
@@ -51,7 +55,7 @@ export const CreateProjectView = ({
           taskKey: 'base-path',
           include: includeBasePath,
           state: basePath,
-          render: () => <BasePathTask />
+          render: () => <BasePathTask aliasRoot={aliasRoot} />
         },
         {
           taskKey: 'create-project',

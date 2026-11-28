@@ -9,6 +9,7 @@ import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
 import { type CreateProjectArgs, Project } from '../lib/project.ts'
 import { pointer } from '@/test/pointer.ts'
+import type { AliasRoot } from '@/lib/alias-root.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -42,6 +43,7 @@ type RenderCreateProjectProps = {
   projectName: string | undefined
   generators: string[] | undefined
   basePath: string | undefined
+  aliasRoot?: AliasRoot
 }
 
 // Test helper to render component with context
@@ -60,7 +62,7 @@ const renderCreateProject = ({ initialState, ...props }: RenderCreateProjectProp
 Deno.test('CreateProject - requests project name and loads generators', async () => {
   using fetchStub = stubRegistryGenerators(mockGenerators)
 
-  const projectCreateStub = stub(Project, 'create', ({ name }: CreateProjectArgs) =>
+  using projectCreateStub = stub(Project, 'create', ({ name }: CreateProjectArgs) =>
     Promise.resolve({ name } as unknown as Project)
   )
 
@@ -153,5 +155,40 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
   })
 
   // Component should render without errors
+  unmount()
+})
+
+// The trap: `init` at a terminal asked for the folder with a default of
+// `src`, whatever the app's `@/` alias said. Generated files import each
+// other through `@/`, so `src` in an app with `@/` at `app/src` is a
+// project whose imports do not resolve.
+Deno.test('CreateProject - the basePath prompt names the "@/" folder and has it as the default', async () => {
+  using _fetchStub = stubRegistryGenerators(mockGenerators)
+  using projectCreateStub = stub(Project, 'create', ({ name }: CreateProjectArgs) =>
+    Promise.resolve({ name } as unknown as Project)
+  )
+
+  const initialState = createInitialState({ interactive: false })
+
+  const { lastFrame, unmount, stdin } = renderCreateProject({
+    initialState,
+    projectName: 'test-project',
+    generators: [],
+    basePath: undefined,
+    aliasRoot: { path: 'app/src', from: 'tsconfig.json' }
+  })
+
+  assertEquals(
+    lastFrame()?.trim(),
+    `│  Output directory for generated files ("@/" points to "app/src" in tsconfig.json)
+│  app/src`
+  )
+
+  stdin.write('\r')
+
+  await new Promise(resolve => setTimeout(resolve, 250))
+
+  assertEquals(projectCreateStub.calls[0].args[0].basePath, 'app/src')
+
   unmount()
 })

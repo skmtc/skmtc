@@ -16,6 +16,13 @@ import { existsSync } from '@std/fs/exists'
 import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
+import {
+  ALIAS_FILE_NAMES,
+  type AliasSearch,
+  findAliasRoot,
+  isAliasRoot,
+  toAliasUnusableText
+} from '@/lib/alias-root.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { homedir } from 'node:os'
@@ -133,7 +140,10 @@ export const runDoctor = async ({
   checks.push(checkHubAuth())
 
   const cliCorePin = readCliCorePin()
-  const projectCtx: CheckProjectContext = { cliCorePin }
+  const projectCtx: CheckProjectContext = {
+    cliCorePin,
+    aliasSearch: findAliasRoot({ appRootPath: join(skmtcRootPath, '..') })
+  }
   // `deno info` runs once per project; run them side by side.
   const packageCopiesChecks = await Promise.all(
     projects.map(project =>
@@ -462,6 +472,8 @@ type CheckProjectContext = {
    * from `runDoctor` rather than re-read per check.
    */
   cliCorePin: string | null
+  /** What the app's files say about its `@/` alias. */
+  aliasSearch: AliasSearch
 }
 
 const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] => {
@@ -472,6 +484,7 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   const checks: Check[] = []
   checks.push(checkProjectDenoJson(projectName, denoJsonPath))
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
+  checks.push(checkProjectAlias(projectName, clientJsonPath, ctx.aliasSearch))
   checks.push(checkProjectConfigNames(projectName, projectPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
@@ -797,6 +810,104 @@ const checkProjectDenoJson = (projectName: string, denoJsonPath: string): Check 
       message: `Project "${projectName}" deno.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}.`,
       hint: `Open ${denoJsonPath} and fix the syntax error, then re-run.`
     }
+  }
+}
+
+const outputSettings = v.object({
+  settings: v.object({
+    basePath: v.string(),
+    packages: v.optional(v.array(v.unknown()))
+  })
+})
+
+type OutputSettings = {
+  basePath: string | undefined
+  hasPackages: boolean
+}
+
+/** `settings.basePath`, and whether `settings.packages` has entries. Nothing for a file that does not read. */
+const readOutputSettings = (clientJsonPath: string): OutputSettings => {
+  try {
+    const parsed = v.safeParse(outputSettings, JSON.parse(Deno.readTextFileSync(clientJsonPath)))
+
+    return parsed.success
+      ? {
+          basePath: parsed.output.settings.basePath,
+          hasPackages: (parsed.output.settings.packages ?? []).length > 0
+        }
+      : { basePath: undefined, hasPackages: false }
+  } catch {
+    return { basePath: undefined, hasPackages: false }
+  }
+}
+
+/**
+ * Generated files import each other through `@/`, so those imports resolve
+ * only when `basePath` is the folder that alias points to. A mismatch
+ * generates with no error, and the app then fails to resolve the imports.
+ *
+ * `skipped` whenever the CLI cannot tell: `project-base-path` already
+ * reports a missing or unreadable `basePath`, a project with `packages`
+ * has one `@/` for each package, an alias that only a bundler config
+ * states is not readable from here, an alias to a folder outside the root
+ * is one no `basePath` can be, and an extended config that cannot be read
+ * may move the alias.
+ */
+const checkProjectAlias = (
+  projectName: string,
+  clientJsonPath: string,
+  aliasSearch: AliasSearch
+): Check => {
+  const id = `project-alias/${projectName}`
+  const { basePath, hasPackages } = readOutputSettings(clientJsonPath)
+
+  if (basePath === undefined) {
+    return { id, status: 'skipped', message: `Project "${projectName}" has no basePath to compare.` }
+  }
+
+  if (hasPackages) {
+    return {
+      id,
+      status: 'skipped',
+      message: `Project "${projectName}" sets settings.packages, so each package root has its own "@/".`
+    }
+  }
+
+  const unusable = toAliasUnusableText(aliasSearch)
+
+  if (unusable !== undefined) {
+    return { id, status: 'skipped', message: unusable }
+  }
+
+  if (aliasSearch.type !== 'found') {
+    return {
+      id,
+      status: 'skipped',
+      message: `No "@/" alias found in ${ALIAS_FILE_NAMES.join(', ')}; an alias in a bundler config is not read.`
+    }
+  }
+
+  const { aliasRoot } = aliasSearch
+
+  if (isAliasRoot(basePath, aliasRoot)) {
+    return {
+      id,
+      status: 'ok',
+      message: `Project "${projectName}" basePath "${basePath}" is the folder "@/" points to (${aliasRoot.from}).`,
+      data: { basePath, aliasRoot }
+    }
+  }
+
+  return {
+    id,
+    status: 'warning',
+    message: `Project "${projectName}" basePath is "${basePath}", and "@/" points to "${aliasRoot.path}" (${aliasRoot.from}).`,
+    hint:
+      'Generated files import each other through "@/", so those imports resolve only when ' +
+      `the two are one folder. Set \`settings.basePath\` to "${aliasRoot.path}" and run ` +
+      `\`skmtc generate ${projectName}\`, or point "@/" at "${basePath}". ` +
+      '`skmtc guide model` gives the convention.',
+    data: { basePath, aliasRoot }
   }
 }
 

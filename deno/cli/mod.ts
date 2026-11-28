@@ -183,6 +183,11 @@ const run = async () => {
     )
     .option('--no-anchors', 'Force gen-maps (attribution) output OFF, regardless of config.')
     .option(
+      '--save',
+      'Store the [schema] argument as `source` in the project config, so later runs ' +
+        'need no schema argument.'
+    )
+    .option(
       '--count-tokens',
       'Count the GPT tokens of the generated files and report them in the summary line ' +
         'and in `stats.tokens` of the --json result.'
@@ -199,10 +204,22 @@ const run = async () => {
     )
     .action(
       async (
-        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, countTokens, debug, auto },
+        { watch, json, input, typecheck, tsconfig, tscCmd, anchors, save, countTokens, debug, auto },
         projectName,
         schemaSourceString
       ) => {
+        // A debug session stores nothing, and a flag that does nothing is a
+        // trap: the next run would fail for a missing schema.
+        if (debug && save) {
+          const { failWithInvalidArg } = await import('@/lib/strict-mode.ts')
+          failWithInvalidArg({
+            message:
+              '--save and --debug do not go together. A debug session does not store the ' +
+              'schema source. Run once with --save, then debug with no schema argument.',
+            usage: 'skmtc generate <project> <schema> --save',
+            example: 'skmtc generate my-api ./schema.json --save'
+          })
+        }
         if (debug) {
           const { renderDebug } = await import('@/commands/debug.ts')
           await renderDebug({
@@ -225,6 +242,7 @@ const run = async () => {
           // Cliffy maps `--anchors` / `--no-anchors` to a `boolean |
           // undefined` field — undefined when neither was passed.
           anchorsFlag: anchors,
+          saveFlag: save,
           countTokens
         })
       }

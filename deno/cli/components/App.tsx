@@ -44,9 +44,14 @@ export const ViewManager = () => {
       return <HomeView />
     }
     case 'create-project': {
-      const { projectName, generators, basePath } = state.view
+      const { projectName, generators, basePath, aliasRoot } = state.view
       return (
-        <CreateProjectView projectName={projectName} generators={generators} basePath={basePath} />
+        <CreateProjectView
+          projectName={projectName}
+          generators={generators}
+          basePath={basePath}
+          aliasRoot={aliasRoot}
+        />
       )
     }
     case 'project': {

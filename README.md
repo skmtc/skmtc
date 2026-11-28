@@ -33,8 +33,8 @@ Set up Skmtc in this project. Skmtc generates TypeScript code from an OpenAPI do
 4. From the project root, run:
    skmtc init <project> <basePath>
    skmtc install <generators> <project>
-   skmtc generate <project> <schema>
-   <project> is a short name in kebab case. <basePath> is the folder that the "@/" import alias of this project points to, such as src. Generated files import each other through that alias. If the project has no such alias, ask me before you add one.
+   skmtc generate <project> <schema> --save
+   <project> is a short name in kebab case. <basePath> is the folder that the "@/" import alias of this project points to, such as src. Generated files import each other through that alias. You can leave <basePath> out when a tsconfig or deno.json states the alias: init then uses its folder. If init or skmtc doctor warns that basePath and the alias differ, or the project has no such alias, ask me before you change either. --save stores the schema in the project config, so later runs are skmtc generate <project>.
 5. Add a note to AGENTS.md, and create the file if needed: before Skmtc work, run skmtc agent-context --json, then read the guide topic for the job with skmtc guide <topic>. To write or change a generator, follow the skmtc-generator skill. Do not edit a generated file. Change the settings or the generator, then run skmtc generate again.
 
 If a command fails, run skmtc doctor and show me its report. Do not edit .skmtc/<project>/deno.json, delete a lockfile or change Deno's minimum dependency age to get past an error.
@@ -93,13 +93,16 @@ skmtc init petstore src/generated
 # Add a generator from JSR
 skmtc install @skmtc/gen-zod petstore
 
-# Generate from an OpenAPI document: a URL or a local path
-skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
+# Generate from an OpenAPI document: a URL or a local path.
+# --save stores it, so the next run is `skmtc generate petstore`.
+skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json --save
 ```
 
 The generated files are in `src/generated/`. They import each other through
 the `@/` alias, so in an app the folder you give to `init` is the one that
-alias points to.
+alias points to. When a tsconfig or a `deno.json` states the alias, `init`
+reads it: leave the folder out and it uses the right one, and
+`skmtc doctor` reports a mismatch.
 [Your first generation](deno/docs/using/tutorials/01-your-first-generation.md)
 explains each step.
 

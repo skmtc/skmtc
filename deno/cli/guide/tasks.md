@@ -5,14 +5,20 @@
 cd path/to/your-app                           # this becomes the Skmtc root
 skmtc init my-api ./src --json                # creates .skmtc/my-api/
 skmtc install @skmtc/gen-zod @skmtc/gen-typescript my-api --json
-skmtc generate my-api ./openapi.json --json   # the schema: a path or a URL
+skmtc generate my-api ./openapi.json --save --json   # the schema: a path or a URL
 ```
 
 The final `--json` run returns `{ files, stats, errors, parseIssues, ... }`.
 Inspect `errors` and `parseIssues` for any non-success outcomes.
 
-`generate` does not save the schema you passed. For later runs, pass it
-again or pin it: `skmtc guide pin-source`.
+- **The folder for `init`** is the one that the app's `@/` import alias
+  points to, because generated files import each other through `@/`.
+  When a tsconfig or a `deno.json` of the app states the alias, you can
+  leave the folder out (`skmtc init my-api --json`) and `init` uses it.
+  With another folder, the result has `alias.matches: false`.
+- **`--save`** stores the schema as `source` in the project config, so
+  later runs are `skmtc generate my-api --json`. Without it, `generate`
+  does not keep the schema you passed.
 
 <!-- topic add-generator: Add a generator to a project that exists -->
 ## Adding a generator to an existing project
@@ -64,10 +70,24 @@ is enough) or remove the other variants.
 <!-- topic pin-source: Store the schema source, so generate needs no schema argument -->
 ## Pinning the schema source
 
-1. Edit `.skmtc/<project>/.settings/skmtc.config.json` → add `"source"` at
-   the top level.
-2. After this, `skmtc generate <project>` works without the schema
-   positional arg.
+```bash
+skmtc generate <project> <schema> --save --json
+```
+
+`--save` writes the schema you pass as `"source"` at the top level of
+`.skmtc/<project>/.settings/skmtc.config.json`, and changes no other
+key. The file keeps its indent. A relative path is read from the folder
+that holds `.skmtc/`, when you pass it and in later runs, so the stored
+path works from any folder. After this, `skmtc generate <project>`
+works without the schema positional arg. The result has
+`savedSource: { source, configPath, changed, stored }`.
+
+The source is stored after a run with no error. A run with an `error`
+level issue stores nothing (`stored: false`), and the source that was
+there stays.
+
+To change the source later, run the same command with the new schema,
+or edit `"source"` in the file.
 
 <!-- topic clean: Delete every generated file of a project -->
 ## Cleaning a project's generated output

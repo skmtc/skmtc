@@ -17,7 +17,7 @@
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { isAbsolutePath } from '@skmtc/core'
+import { hasParentSegment, isAbsolutePath } from '@skmtc/core'
 
 type InitHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -45,9 +45,10 @@ export class InvalidBasePathError extends Error {
  * throws `InvalidBasePathError` with a caller-actionable message
  * otherwise.
  *
- * The single rule today is "no absolute paths" — see friction #13.
- * Other rules (e.g. "must resolve to the consumer app's `@` alias
- * root") are conventions documented in that topic but not enforceable
+ * The rules are those of core's settings schema, so that a basePath
+ * `init` writes is one every later command reads: no absolute path (see
+ * friction #13), and no `..` segment. Other rules (e.g. "must resolve
+ * to the consumer app's `@` alias root") are conventions documented in that topic but not enforceable
  * here because the consumer's bundler config isn't visible.
  */
 export const validateBasePath = (basePath: string): string => {
@@ -55,6 +56,12 @@ export const validateBasePath = (basePath: string): string => {
     throw new InvalidBasePathError(
       basePath,
       `basePath must be relative to the SKMTC root (the directory containing .skmtc/). Got an absolute path: ${basePath}`
+    )
+  }
+  if (hasParentSegment(basePath)) {
+    throw new InvalidBasePathError(
+      basePath,
+      `basePath must be a forward path with no ".." segments: it is the folder below the SKMTC root (the directory containing .skmtc/) that every generated file sits below. Got: ${basePath}`
     )
   }
   return basePath

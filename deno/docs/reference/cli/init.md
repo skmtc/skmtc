@@ -30,12 +30,16 @@ The `basePath` for generated output. Two-role value:
 - The on-disk root for generated files (relative to the Skmtc root)
 - The `@` alias root in the consuming app's bundler resolver
 
-**Must be relative.** Absolute paths are rejected with exit 2 and a
-recipe error. `init` does not create the directory at `basePath` —
+**Must be relative, with no `..` segment.** An absolute path, or a path
+with a `..` segment (`../shared/src`), is rejected with exit 2 and a
+recipe error, as the settings schema rejects it. `init` does not create the directory at `basePath` —
 it just records the value; the directory is created lazily by the
 first `generate` run.
 
-Required in strict mode.
+In strict mode you can leave `basePath` out when a file of the app
+states the `@/` alias. `init` then uses the folder that the alias
+points to. See [The `@/` alias](#the--alias). With no such file, you
+must give `basePath`.
 
 ## Options
 
@@ -89,7 +93,7 @@ the pin appears.
 }
 ```
 
-`source` is intentionally absent — set it after `init` to pin a
+`source` is intentionally absent — `skmtc generate <project> <schema> --save` writes it, or set it after `init` to pin a
 schema, or pass the schema positionally to `generate`.
 
 `client.json` is the old, deprecated name of this file. It still
@@ -107,7 +111,7 @@ No files are overwritten; the existing config is preserved.
 
 ### basePath validation
 
-The CLI rejects absolute paths:
+The CLI rejects absolute paths and paths with a `..` segment:
 
 ```
 $ skmtc init my-api /tmp/foo --json
@@ -117,7 +121,8 @@ Usage:   skmtc init <projectName> <basePath>
 Example: skmtc init my-api ./src
 ```
 
-Exit code 2.
+Exit code 2. A `..` segment fails the same way: `basePath` is the
+folder below the Skmtc root that every generated file sits below.
 
 The reason: `basePath` must align with the bundler's `@` alias root
 in the consuming app. Absolute paths can't be portable across
@@ -132,9 +137,17 @@ machines or CI environments.
   "type": "created",
   "projectName": "my-api",
   "basePath": "./src",
+  // "argument", or "alias" when you gave no basePath.
+  "basePathFrom": "argument",
+  // Only when a file of the app states the `@/` alias.
+  "alias": { "path": "src", "from": "tsconfig.json", "matches": true },
   "nextStep": "skmtc install <generators...> my-api"
 }
 ```
+
+`alias.matches` is `false` when `basePath` is not the folder that `@/`
+points to. The text output then has a `Warning:` line with the two
+folders and how to make them one.
 
 ### On existing
 
@@ -200,17 +213,50 @@ At runtime the bundler resolves `@/...` to the alias root. On disk,
 Skmtc writes to `<basePath>/forms/CreateUserForm.generated.tsx`. For
 these to match, the two paths must point at the same directory.
 
-The CLI doesn't verify the alignment — it can't read the consumer's
-bundler config. The check is the user's responsibility, with help
-from `skmtc doctor`'s `project-base-path/<project>` check (which
-catches obvious mistakes like missing or absolute paths).
+## The `@/` alias
+
+`init` and `skmtc doctor` read the alias from the first of these files
+that states one, in the folder that holds `.skmtc/`:
+
+| File | Where the alias is |
+|---|---|
+| `tsconfig.json`, `tsconfig.app.json`, `jsconfig.json` | `compilerOptions.paths["@/*"]`, read from `baseUrl` |
+| `deno.json`, `deno.jsonc` | `imports["@/"]` |
+
+- With no `basePath` argument, the folder of the alias is the
+  `basePath`. At a terminal, `init` asks for the folder, and the folder
+  of the alias is the default.
+- With a `basePath` that is another folder, `init` creates the project
+  and warns. `skmtc doctor` reports the same as
+  `project-alias/<project>`.
+- With no alias in those files, `init` has nothing to compare and says
+  nothing.
+- With an alias to a folder outside the Skmtc root (`"@/*":
+  ["../shared/src/*"]`, or `baseUrl: ".."`), no `basePath` can be that
+  folder, because `basePath` has no `..` segment. `init` does not use
+  it: with no `basePath` argument it exits 2 and names the alias
+  target, and at a terminal the default is `src`.
+
+The CLI reads `baseUrl` and `paths` as TypeScript does: an absolute
+`baseUrl` or target is that folder, and `${configDir}` is the folder of
+the app's tsconfig. It reads `baseUrl` through `extends`: a path from
+the config, or a package in the `node_modules/` of the config's folder
+or of a folder above it (a monorepo that hoists its packages). For a
+package, it reads the `exports` or `tsconfig` field of its
+`package.json`. When an extended config is not on disk, it may set a
+`baseUrl`, so the CLI reads no alias from that tsconfig, and says which
+extended config it could not read.
+
+The CLI does not read a bundler config (`vite.config.ts`,
+`webpack.config.js`), or `paths` that only an extended tsconfig holds.
+For an alias that only those state, the match is yours to check.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Success — project created OR already existed |
-| `2` | Required argument missing OR `basePath` was absolute |
+| `2` | Required argument missing (`basePath` with no usable `@/` alias to read) OR `basePath` was absolute or had a `..` segment |
 
 ## See also
 

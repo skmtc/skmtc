@@ -16,6 +16,7 @@ import { printJsonResult } from '@/lib/project-config.ts'
 import type { GenerateLocalResult } from '@/lib/generate-local.ts'
 import { toGenerateMessageString } from '@/lib/to-generate-message-string.ts'
 import type { TypecheckResult } from '@/lib/typecheck.ts'
+import type { SaveReport } from '@/lib/save-source.ts'
 
 type PrintGenerateResultArgs = {
   result: GenerateLocalResult
@@ -28,6 +29,8 @@ type PrintGenerateResultArgs = {
    * structured output covering both phases.
    */
   typecheck?: TypecheckResult
+  /** What `--save` did with the schema source. Absent without `--save`. */
+  savedSource?: SaveReport
   format: 'text' | 'json'
 }
 
@@ -37,6 +40,7 @@ export const printGenerateResult = ({
   basePath,
   manifestPath,
   typecheck,
+  savedSource,
   format
 }: PrintGenerateResultArgs): void => {
   switch (format) {
@@ -74,6 +78,17 @@ export const printGenerateResult = ({
         // can pin to it.
         enrichmentWarnings: result.enrichmentWarnings,
         ...(typecheck ? { typecheck } : {}),
+        // `--save`: the stored source, and whether the file changed.
+        ...(savedSource
+          ? {
+              savedSource: {
+                source: savedSource.source,
+                configPath: savedSource.configPath,
+                changed: savedSource.type === 'saved',
+                stored: savedSource.type !== 'skipped'
+              }
+            }
+          : {}),
         // Gen-maps summary — present only when the post-pass ran
         // (anchors enabled via config + flag resolution). Omitted
         // entirely when off so the field's presence is the signal.
@@ -104,6 +119,9 @@ export const printGenerateResult = ({
       if (typecheck) {
         printTypecheckText(typecheck)
       }
+      if (savedSource) {
+        console.log(`\n${toSavedSourceText(savedSource, projectName)}`)
+      }
       return
     }
     default: {
@@ -111,6 +129,21 @@ export const printGenerateResult = ({
       throw new Error(`Unhandled output format: ${JSON.stringify(_exhaustive)}`)
     }
   }
+}
+
+/** The line that says what `--save` did with the schema source. */
+const toSavedSourceText = (savedSource: SaveReport, projectName: string): string => {
+  if (savedSource.type === 'skipped') {
+    return (
+      'Schema source not saved: the run had an error, so the source is not known to work. ' +
+      `${savedSource.configPath} is as it was.`
+    )
+  }
+
+  return (
+    `Schema source ${savedSource.type === 'saved' ? 'saved to' : 'already in'} ` +
+    `${savedSource.configPath}. Next time: skmtc generate ${projectName}`
+  )
 }
 
 const printTypecheckText = (typecheck: TypecheckResult): void => {
