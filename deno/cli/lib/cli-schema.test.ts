@@ -159,3 +159,70 @@ Deno.test('cli-schema - doctor declares --offline, which agents discover through
   assertEquals(flags.includes('--json'), true)
   assertEquals(flags.includes('--offline'), true)
 })
+
+/** The long names (`--name`) in a flag or option string such as `-l, --lang <language>`. */
+const toLongNames = (flag: string): string[] =>
+  [...flag.matchAll(/--[A-Za-z0-9][\w-]*/g)].map(match => match[0])
+
+/**
+ * The commands a block of Cliffy source builds: the name it passes to
+ * `getCommandDescriptor`, or, for a builder that passes its `name`
+ * parameter, each name in that parameter's union type.
+ */
+const toBlockCommandNames = (block: string): string[] => {
+  const literal = block.match(/getCommandDescriptor\('([^']+)'\)/)?.[1]
+  if (literal !== undefined) return [literal]
+  if (!block.includes('getCommandDescriptor(name)')) return []
+  const union = block.match(/\(name: ('[^']+'(?: \| '[^']+')*)\)/)?.[1] ?? ''
+  return [...union.matchAll(/'([^']+)'/g)].map(match => match[1])
+}
+
+/**
+ * `unreadOptions` counts the `.option(` calls whose first argument is
+ * not a single-quoted literal, such as a constant: their flags cannot
+ * be read from the source text.
+ */
+type DeclaredCommand = { name: string; longNames: string[]; unreadOptions: number }
+
+const toDeclaredCommands = (blocks: string[]): DeclaredCommand[] =>
+  blocks.flatMap(block => {
+    const literalOptions = [...block.matchAll(/\.option\(\s*'([^']+)'/g)]
+    const longNames = literalOptions.flatMap(match => toLongNames(match[1]))
+    const unreadOptions = [...block.matchAll(/\.option\(/g)].length - literalOptions.length
+    return toBlockCommandNames(block).map(name => ({ name, longNames, unreadOptions }))
+  })
+
+Deno.test('cli-schema - each command with an entry declares exactly the long flags its entry lists', async () => {
+  // `agent-context` prints these entries, and `mod.ts` declares each
+  // option by hand. The test reads the source text: importing `mod.ts`
+  // runs the CLI.
+  const modSource = await Deno.readTextFile(new URL('../mod.ts', import.meta.url))
+  const installSource = await Deno.readTextFile(
+    new URL('../commands/install-command.ts', import.meta.url)
+  )
+  const modBlocks = modSource.split(/\n  const \w+ = (?=new Command\(\)|\(name)/).slice(1)
+  const declared = toDeclaredCommands([...modBlocks, installSource])
+
+  assertEquals(
+    declared.map(command => command.name).sort(),
+    COMMAND_DESCRIPTORS.map(descriptor => descriptor.name).sort(),
+    'Each entry of COMMAND_DESCRIPTORS is compared with exactly one command'
+  )
+
+  const differences = declared.flatMap(({ name, longNames, unreadOptions }) => {
+    const listed = getCommandDescriptor(name).flags.flatMap(item => toLongNames(item.flag))
+    return [
+      ...(unreadOptions > 0
+        ? [`${name}: ${unreadOptions} .option( call(s) without a single-quoted flag string`]
+        : []),
+      ...longNames
+        .filter(flag => !listed.includes(flag))
+        .map(flag => `${name}: ${flag} is declared by the command, not listed in its entry`),
+      ...listed
+        .filter(flag => !longNames.includes(flag))
+        .map(flag => `${name}: ${flag} is listed in its entry, not declared by the command`)
+    ]
+  })
+
+  assertEquals(differences, [])
+})
