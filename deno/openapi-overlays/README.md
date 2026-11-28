@@ -27,6 +27,16 @@ like `$..[?(@.description == '…')]` applies cleanly over real specs (no `@ && 
 ```ts
 import { applyOverlay } from '@skmtc/openapi-overlays'
 
+const spec = {
+  openapi: '3.0.3',
+  info: { title: 'Pets', version: '1.0.0' },
+  servers: [
+    { url: 'https://dev.example.com', description: 'Dev' },
+    { url: 'https://api.example.com', description: 'Production' },
+  ],
+  paths: { '/pets': { get: { responses: { '200': { description: 'OK' } } } } },
+}
+
 const updated = applyOverlay(spec, {
   overlay: '1.0.0',
   actions: [
