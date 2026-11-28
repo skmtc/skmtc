@@ -61,13 +61,17 @@ has none.
 
 ## Troubleshooting
 
-- **"GET <url> returned 401"** — The schema endpoint requires
-  auth, but Skmtc doesn't support auth headers in `skmtc.config.json`
-  (for security reasons; see [source-resolution
+- **"could not fetch the schema from <url>: 401 Unauthorized"** —
+  The schema endpoint requires auth, but Skmtc doesn't support auth
+  headers in `skmtc.config.json` (for security reasons; see
+  [source-resolution
   reference](../../reference/settings/source-resolution.md#authentication)).
   Bundle the spec to a local file or run a local proxy.
-- **"GET <url> returned 404"** — Wrong URL, or the endpoint is
-  unreachable. Check directly with `curl`.
+- **"could not fetch the schema from <url>: 404 Not Found"** — Wrong
+  URL. Check directly with `curl`.
+- **"the answer from <url> is not a schema"** — The URL sent a
+  page that is not a schema. An example is a login page. Check it
+  with `curl`.
 - **Relative path not found** — Paths in `source` resolve against
   the **workspace root**, not the project directory. Use
   `./openapi.json` for a workspace-root spec; use

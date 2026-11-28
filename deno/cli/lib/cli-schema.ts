@@ -447,6 +447,11 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
         description: 'Watch schema for changes (incompatible with --json).'
       },
       {
+        flag: '--count-tokens',
+        description:
+          'Count the GPT tokens of the generated files: the summary line names them and --json gains stats.tokens.'
+      },
+      {
         flag: '--debug',
         description:
           'Run under the V8 inspector in source mode so a debugger can pause on breakpoints in generator code and inspect the live files map at each stop.'

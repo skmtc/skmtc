@@ -9,6 +9,7 @@
  *
  * JSON shape is deliberately flat-ish and stable so agents can pin to
  * it. New fields can be added; existing fields shouldn't change shape.
+ * `stats.tokens` is present only with `--count-tokens` (since cli 0.13).
  */
 
 import { printJsonResult } from '@/lib/project-config.ts'
@@ -46,6 +47,7 @@ export const printGenerateResult = ({
         basePath: basePath ?? null,
         manifestPath,
         stats: {
+          // `undefined` without `--count-tokens`, which JSON leaves out: the key is absent, never `null`.
           tokens: result.stats.tokens,
           lines: result.stats.lines,
           files: result.stats.files,

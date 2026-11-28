@@ -4,8 +4,9 @@
 
 Regenerates `worker.ts` from `deno.json#imports`, then runs
 `deno bundle worker.ts -o bundle.js`. `skmtc generate` runs the same
-build before every generation, so you do not need to run `bundle`
-before `generate`. Use `bundle` to check that a project builds
+build when an input of the build changed (see
+[`skmtc generate`](generate.md#the-bundle-is-built-when-its-inputs-change)),
+so you do not need to run `bundle` before `generate`. Use `bundle` to check that a project builds
 without generating.
 
 Every project builds a local bundle — remote-only (all generators
@@ -98,7 +99,9 @@ Project "api" resolves more than one copy of @skmtc/core:
 `worker.ts` imports `@skmtc/core`, so it marks the copy the project's
 own pin resolves to. Change the pins in the project's `deno.json` so
 that those packages agree, then run the command again. `skmtc generate`
-runs the same check before every generation.
+runs the same check with each build, when an input of the build
+changed. A refused graph writes no record, so the next `generate`
+checks it again.
 
 ### Bundle output
 

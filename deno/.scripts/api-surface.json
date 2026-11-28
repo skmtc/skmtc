@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.54",
+    "minor": "0.57",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -22,7 +22,7 @@
       "ContainerGeneratorKey": "d22e22aa51c39f61",
       "ContentSettings": "09fc02366130513f",
       "ContextRegisterArgs": "19b4dc785df34ec5",
-      "CoreContext": "17265b8a58c2ff62",
+      "CoreContext": "df87f5a05dee7546",
       "CreateAndRegisterDefinition": "47db312d441dda41",
       "CustomValue": "1c02c56ab3e2bc05",
       "DEFAULT_GENERATED_SUFFIX": "92387e879945c3fc",
@@ -64,7 +64,7 @@
       "FindDefinitionArgs": "1619b53f8b0dd10d",
       "FindDefinitionsQuery": "c8f87bc0306f199f",
       "GENERATOR_ENRICHMENT_KEY": "0e3c47b2d008bb38",
-      "GenerateContext": "3ac98bbf8002a3c4",
+      "GenerateContext": "860c51ca99dbc93b",
       "GenerateContextType": "0a958fdac7064269",
       "GeneratePhase": "9c6db0829ae64934",
       "GenerateResult": "634b987a8b21d1c2",
@@ -340,7 +340,7 @@
       "SystemSettings": "80c08d27f9afc02b",
       "TagFields": "525108eaf603e0b8",
       "ToArrayArgs": "6f0fbe1740e57bc3",
-      "ToArtifactsArgs": "257d987f0aab798f",
+      "ToArtifactsArgs": "c3583d0b5ceb48cd",
       "ToArtifactsResult": "d33dd8dd85ddaa01",
       "ToBooleanArgs": "02cd05a724bc6647",
       "ToContainerGeneratorKeyArgs": "459a0b33e95b4d75",
@@ -566,7 +566,7 @@
       "systemSettings": "9e1835656a3acc19",
       "toArgsName": "de0185f30caa9010",
       "toArray": "debd6c14b47cc777",
-      "toArtifacts": "ca71e43c5927d254",
+      "toArtifacts": "d554c0343270f97f",
       "toBoolean": "92fe65a66677fb16",
       "toComponentsBucket": "4f024349e7e0e437",
       "toContainerGeneratorKey": "0c83516db8f2daa7",

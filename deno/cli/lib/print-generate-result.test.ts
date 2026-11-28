@@ -82,6 +82,22 @@ Deno.test('printGenerateResult - json format includes file list and manifest pat
   assertEquals(parsed.files[0], 'src/types/User.generated.ts')
 })
 
+Deno.test('printGenerateResult - json stats has no tokens key when the tokens were not counted', async () => {
+  const { tokens: _tokens, ...uncounted } = baseResult.stats
+  const logs = await captureStdout(async () => {
+    printGenerateResult({
+      result: { ...baseResult, stats: uncounted },
+      projectName: 'my-api',
+      basePath: './src',
+      manifestPath: '/m.json',
+      format: 'json'
+    })
+  })
+  const parsed = JSON.parse(logs[0])
+  assertEquals(parsed.stats, { lines: 1234, files: 3, totalTimeMs: 180 })
+  assertEquals('tokens' in parsed.stats, false)
+})
+
 Deno.test('printGenerateResult - json format emits basePath: null when undefined', async () => {
   // `null` rather than missing key keeps the shape stable for
   // consumers — they don't have to handle both "field is null" and

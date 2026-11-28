@@ -155,19 +155,22 @@ JS file. This is what the Worker spawns.
 
 ### One bundle path for every project
 
-`skmtc generate` builds the project-local `bundle.js` before every
-run — it is the only artifact `generate` loads. Generator source enters the
+`skmtc generate` builds the project-local `bundle.js` when an input of
+the build changed. It is the only artifact `generate` loads. Generator source enters the
 bundle either as a `jsr:` specifier (installed) or a relative path
 (cloned / locally authored); `deno bundle` resolves both through the
 project's import map.
 
-### The bundle is rebuilt on every run
+### The bundle is built when its inputs change
 
 `worker.ts` and `bundle.js` are derived from `deno.json#imports` and
-the generator source. `generate` rebuilds both before every run, so
-a hand-edited `deno.json`, a changed pin or an edited clone applies
-on the next `generate` with no separate step. The build refuses a
-module graph with two copies of `@skmtc/core`.
+the generator source. `generate` writes `worker.ts` before every run.
+It builds `bundle.js` again when an input of the build changed. So a
+hand-edited `deno.json`, a changed pin or an edited clone applies on
+the next `generate`, with no separate step.
+The inputs and the record of them are in
+[`skmtc generate`](../reference/cli/generate.md#the-bundle-is-built-when-its-inputs-change).
+The build refuses a module graph with two copies of `@skmtc/core`.
 
 ## The structured-clone boundary
 
@@ -216,9 +219,10 @@ exception details. The host treats this as exit-code-1 territory.
 The protocol is intentionally minimal. There's no progress-streaming,
 no incremental artifact streaming, no bidirectional question-asking.
 Generation is a request/response, period. If a generator needs to
-report progress, it does so via `console.log` (which the Worker's
-stdout pipe routes to the host's stderr); structured progress
-reporting isn't part of the protocol.
+report progress, it does so via `console.error`. The Worker shares
+the host's stdout, so a `console.log` line lands in the CLI's result
+output and breaks `generate --json`. Structured progress reporting
+isn't part of the protocol.
 
 ## Sandbox API (the remote path)
 

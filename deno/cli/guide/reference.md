@@ -324,6 +324,7 @@ generator.
   "projectName": "my-api",
   "basePath": "mobile-app/src",
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
+  // stats.tokens: only with --count-tokens (never null; test for the key)
   "stats": { "tokens": 201029, "lines": 1234, "files": 753, "totalTimeMs": 180 },
   "files": ["mobile-app/src/types/User.generated.ts", "..."],
   // errors: array of paths through manifest.results ending at 'error' leaves.
@@ -342,6 +343,11 @@ generator.
 
 With `--typecheck`, gains a `typecheck` field (`{ type: "passed" | "failed" | "no-tsconfig" | "tsc-error" | "skipped", ... }`).
 A `failed` typecheck → exit 1; generated files stay on disk.
+
+`stats.tokens` is there only with `--count-tokens`, which counts the
+GPT tokens of the output. Without the flag the run does not load the
+tokenizer, and the summary line is
+`Generated <files> files[ under <basePath>] in <time>ms.`.
 
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
 single result and exits; `--watch` is a long-running stream. Passing
@@ -431,7 +437,7 @@ work:
 | Add a config flag to customize a stock generator | Use `skmtc clone` and edit the source |
 | Run Prettier in the pipeline | Don't — produce valid TS; consumer formats separately |
 | Restart from scratch when something's off | Run `skmtc doctor --json` first; targeted fix beats nuke-and-pave |
-| Manually edit `bundle.js` or `worker.ts` | They're derived; `skmtc generate` rebuilds both on every run |
+| Manually edit `bundle.js` or `worker.ts` | They're derived; `skmtc generate` writes `worker.ts` on every run and builds `bundle.js` again when an input changed |
 | "Publish" a stack to the hub, then deploy it later | One step: `skmtc deploy` stores the immutable semver version (`POST /v1/stacks/{account}/{stack}/versions`) and deploys it (`POST /v1/stacks/{account}/{stack}/servers`), so a version that cannot build fails at once. `skmtc publish` is its old name. Deploying never moves the `production` alias — that belongs to hub *projects*, driven from the web app. |
 | After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `skmtc guide enrichments`. |
 | Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |

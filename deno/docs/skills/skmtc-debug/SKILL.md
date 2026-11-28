@@ -346,9 +346,9 @@ operation produced no files.
 **Symptom:** `generate` exits 1 before any generation runs, with
 `Error: Failed to create bundle — \`deno bundle\` failed in …`.
 
-`generate` rebuilds `worker.ts` and `bundle.js` from the project's
-`deno.json` and generator source on every run, so a build failure
-is about the project as it is now — never an older bundle.
+`generate` builds `bundle.js` from the project's `deno.json` and
+generator source when one of them changed, so a build failure is
+about the project as it is now — never an older bundle.
 
 1. Read the `deno bundle` error in the message (the full output is
    in `.settings/error-logs.txt`). It names the import or pin that

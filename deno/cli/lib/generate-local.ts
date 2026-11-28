@@ -47,6 +47,8 @@ type GenerateLocalArgs = {
    * - `undefined` (default) — use the config value
    */
   anchorsFlag?: boolean
+  /** `true` from `--count-tokens`: count the GPT tokens of the output into `stats.tokens`. */
+  countTokens?: boolean
 }
 
 /**
@@ -117,7 +119,8 @@ export const generateLocal = async ({
   manifestPath,
   projectPath,
   schemaSource,
-  anchorsFlag
+  anchorsFlag,
+  countTokens
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
     const attribution = toAttributionPayload({
@@ -237,7 +240,11 @@ export const generateLocal = async ({
       Object.entries(artifacts).filter(([artifactPath]) => !escapedSet.has(artifactPath))
     )
 
-    const stats = toGenerationStats({ manifest, artifacts: writtenArtifacts })
+    const stats = await toGenerationStats({
+      manifest,
+      artifacts: writtenArtifacts,
+      countTokens
+    })
 
     return {
       stats,

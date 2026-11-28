@@ -215,8 +215,10 @@ an in-memory map of files-to-render.
 ### The outer loop
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`) iterates
-the configured generators. For each generator, it applies the whole-generator
-`skip` check, then dispatches by generator type:
+the configured generators. The model generators run first, then the
+operation generators, then the webhook generators. Generators of one kind
+run in the order of the config. For each generator, it applies the
+whole-generator `skip` check, then dispatches by generator type:
 
 ```ts
 generators.forEach(generatorConfig => {
@@ -242,6 +244,28 @@ where the generator produces its output — but not by returning strings (it
 returns `void`). Instead, the transform calls
 `context.insertOperation({ projection: MyProjection, operation })` or
 `context.insertNormalizedModel(MyProjection, args)`, which delegate to Drivers.
+
+### The other order: subject by subject
+
+A host can pass `onArtifact` to `toArtifacts`. The run then gives each file
+to the host when the file is complete, and lets it go. For that, the outer
+loop goes subject by subject: for one model or one operation, it runs every
+generator of that kind.
+
+- The models run in document order.
+- The operations run in document order. An operation runs after the last
+  model that it can reach.
+- After each subject, the run gives the files that no later subject holds.
+
+A file plan tells the run which subjects hold a file. The plan comes from
+the `projections` that each entry lists, and from the `$ref`s that the
+parser read.
+
+The two orders write the same files. If two generators insert into one
+file, the definitions in it can be in a different order. The order
+generator by generator takes the model generators first. Thus, the order
+of the kinds in the config changes no file, in either order. See
+[`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle
 
@@ -282,8 +306,9 @@ combine to make it work:
 So whichever generator's `transform` runs first for a given
 `(projection, operation)` pair triggers the construction. Later generators that
 depend on the same projection (e.g., a form depending on a mutation hook) get a
-cache hit. The output `#files` map is identical regardless of which order the
-outer loop happens to visit generators in.
+cache hit. The output `#files` map has the same files in each order of the
+outer loop. Some parts of a file can change with the order. See
+[the other order](#the-other-order-subject-by-subject).
 
 This is what underlies "generators run in any order" — it's a structural
 property, not a feature you have to maintain.

@@ -26,9 +26,15 @@ type GenerateProps = {
   project: Project
   schemaSourceString: string | undefined
   watchMode: boolean | undefined
+  countTokens?: boolean
 }
 
-export const GenerateView = ({ project, schemaSourceString, watchMode }: GenerateProps) => {
+export const GenerateView = ({
+  project,
+  schemaSourceString,
+  watchMode,
+  countTokens
+}: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
 
   const basePath = useMemo(() => {
@@ -93,7 +99,7 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
           taskKey: 'generate-view-content-task',
           include: true,
           state: undefined,
-          render: () => <GenerateTask project={project} />
+          render: () => <GenerateTask project={project} countTokens={countTokens} />
         }
       ]}
       leave={() => {
@@ -111,9 +117,10 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
 
 type GenerateTaskProps = {
   project: Project
+  countTokens?: boolean
 }
 
-const GenerateTask = ({ project }: GenerateTaskProps) => {
+const GenerateTask = ({ project, countTokens }: GenerateTaskProps) => {
   const { state: taskState } = useTask()
 
   const {
@@ -133,12 +140,14 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
       project={project}
       bundlePath={bundlePath}
       schemaSourceString={schemaLocation}
+      countTokens={countTokens}
     />
   ) : (
     <RunGenerateTask
       project={project}
       bundlePath={bundlePath}
       schemaSourceString={schemaLocation}
+      countTokens={countTokens}
     />
   )
 }
@@ -147,9 +156,15 @@ type RunGenerateProps = {
   project: Project
   bundlePath: string
   schemaSourceString: string
+  countTokens?: boolean
 }
 
-const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerateProps) => {
+const RunGenerateTask = ({
+  project,
+  bundlePath,
+  schemaSourceString,
+  countTokens
+}: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
 
@@ -164,33 +179,34 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerat
   })
 
   useEffect(() => {
-    toSchemaContents(schemaSourceString)
-      .then(schemaContents => {
-        try {
-          return generate({
-            project,
-            bundlePath,
-            skmtcRoot: state.skmtcRoot,
-            schemaContents: schemaContents.contents,
-            fileType: schemaContents.fileType,
-            clientSettings: project.clientJson?.contents?.settings
+    toSchemaContents(schemaSourceString).then(
+      schemaContents =>
+        generate({
+          project,
+          bundlePath,
+          skmtcRoot: state.skmtcRoot,
+          schemaContents: schemaContents.contents,
+          fileType: schemaContents.fileType,
+          clientSettings: project.clientJson?.contents?.settings,
+          countTokens
+        })
+          .then(stats => {
+            dispatchMessage(toGenerateMessage(stats))
+
+            leave({ state: tasksToState(taskState.tasks) })
           })
-        } catch (error) {
-          console.error(error)
+          .catch(error => {
+            console.error(error)
 
-          throw error
-        }
-      })
-      .then(stats => {
-        dispatchMessage(toGenerateMessage(stats))
-
-        leave({ state: tasksToState(taskState.tasks) })
-      })
-      .catch(error => {
-        console.error(error)
+            leave({ state: tasksToState(taskState.tasks) })
+          }),
+      error => {
+        // A schema that cannot be read is reported by its message, without a stack.
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
         leave({ state: tasksToState(taskState.tasks) })
-      })
+      }
+    )
   }, [])
 
   return (
@@ -206,9 +222,15 @@ type WatchGenerateProps = {
   project: Project
   bundlePath: string
   schemaSourceString: string
+  countTokens?: boolean
 }
 
-const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGenerateProps) => {
+const WatchGenerateTask = ({
+  project,
+  bundlePath,
+  schemaSourceString,
+  countTokens
+}: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -239,29 +261,40 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
       return
     }
 
-    SchemaFile.getFromSource(toSchemaSource(schemaSourceString))
-      .then(({ contents, fileType }) => {
-        return generate({
+    const fail = () => {
+      dispatchMessage({ error: 'Failed to generate' })
+
+      leave({ state: tasksToState(taskState.tasks) })
+    }
+
+    SchemaFile.getFromSource(toSchemaSource(schemaSourceString)).then(
+      ({ contents, fileType }) =>
+        generate({
           project,
           bundlePath,
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
           fileType,
-          clientSettings: project.clientJson?.contents?.settings
+          clientSettings: project.clientJson?.contents?.settings,
+          countTokens
         })
-      })
-      .then(stats => {
-        dispatchMessage(toGenerateMessage(stats))
+          .then(stats => {
+            dispatchMessage(toGenerateMessage(stats))
 
-        setActivity('watching')
-      })
-      .catch(error => {
-        console.error(error)
+            setActivity('watching')
+          })
+          .catch(error => {
+            console.error(error)
 
-        dispatchMessage({ error: 'Failed to generate' })
+            fail()
+          }),
+      error => {
+        // A schema that cannot be read is reported by its message, without a stack.
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
-        leave({ state: tasksToState(taskState.tasks) })
-      })
+        fail()
+      }
+    )
   }, [watcher, activity])
 
   useEffect(() => {

@@ -33,6 +33,8 @@ type GenerateSwitchArgs = {
    * to honour the config value.
    */
   anchorsFlag?: boolean
+  /** `true` from `--count-tokens`: count the GPT tokens of the output and report them. */
+  countTokens?: boolean
   /** Override for the generation run — tests stub this to skip the worker. */
   generateLocalFn?: typeof generateLocal
 }
@@ -47,6 +49,7 @@ export const generateSwitch = async ({
   tsconfig,
   tscCmd,
   anchorsFlag,
+  countTokens,
   generateLocalFn
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
@@ -75,6 +78,11 @@ export const generateSwitch = async ({
     projectName,
     schemaSourceString,
     watch
+  }).catch(error => {
+    // A schema that cannot be read (an unreachable URL, an error page) is a
+    // failed generate, not a crash.
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+    return Deno.exit(1)
   })
 
   // Strict mode and `toGenerateLocalArgs` couldn't resolve everything
@@ -96,16 +104,23 @@ export const generateSwitch = async ({
   }
 
   if (generateLocalArgs) {
-    // A local project rebuilds bundle.js on every run, from the pins and
-    // generator source it has now, and runs the bundle that build returns.
-    // The build refuses a module graph with two copies of `@skmtc/core` or
-    // a `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
+    // A local project builds bundle.js from the pins and generator source it
+    // has now, and runs the bundle that build returns. It skips the build
+    // when `.settings/bundle-inputs.json` records that bundle.js was built
+    // from those same inputs (see `@/lib/bundle-inputs.ts`). The build
+    // refuses a module graph with two copies of `@skmtc/core` or a
+    // `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
     // runs on the stack server and builds nothing locally.
     const bundlePath = generateLocalArgs.stackUrl ? undefined : await buildForRun(projectName)
 
     const runGenerateLocal =
       generateLocalFn ?? (await import('@/lib/generate-local.ts')).generateLocal
-    const result = await runGenerateLocal({ ...generateLocalArgs, bundlePath, anchorsFlag })
+    const result = await runGenerateLocal({
+      ...generateLocalArgs,
+      bundlePath,
+      anchorsFlag,
+      countTokens
+    })
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped
@@ -162,7 +177,7 @@ export const generateSwitch = async ({
   // Interactive mode + no resolvable args → mount Ink for the user
   // to fill in the gaps.
   const { renderGenerate } = await import('@/commands/generate.tsx')
-  return await renderGenerate({ projectName, schemaSourceString, watch })
+  return await renderGenerate({ projectName, schemaSourceString, watch, countTokens })
 }
 
 /**
@@ -181,7 +196,10 @@ const buildForRun = async (projectName: string): Promise<string> => {
   }
 
   try {
-    return await createBundle({ project: await openBundleProject(projectName, new Manager()) })
+    return await createBundle({
+      project: await openBundleProject(projectName, new Manager()),
+      reuse: true
+    })
   } catch (error) {
     console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
     return Deno.exit(1)

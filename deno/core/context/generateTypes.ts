@@ -642,11 +642,11 @@ export type GenerateContextType = {
   registerJson: ({ destinationPath, json }: RegisterJsonArgs) => void
   registerMarkdown: ({ destinationPath, markdown }: RegisterMarkdownArgs) => void
   register: (args: ContextRegisterArgs) => void
-  /** Look up an existing file by path (no creation); the neutral read primitive. */
+  /** Look up an existing file by path (no creation); the neutral read primitive. Throws for a file given to the host by `onArtifact`. */
   getFile: (filePath: string) => FileBase | undefined
-  /** Look up an existing file by its normalized path, which is its key: a miss is not normalized again. */
+  /** Look up an existing file by its normalized path, which is its key: a miss is not normalized again. Throws for a file given to the host by `onArtifact`. */
   getFileByWorkspacePath: (path: WorkspacePath) => FileBase | undefined
-  /** Read-only view of every file generated so far — an inspection/tooling seam (not coordination). */
+  /** Read-only view of every file generated so far, without those given to the host by `onArtifact` — an inspection/tooling seam (not coordination). */
   inspectedFiles: ReadonlyMap<string, FileBase>
   /** Store a language-constructed file; the neutral write primitive. Returns the stored file. */
   addFile: <File extends FileBase>(file: File) => File

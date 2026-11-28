@@ -70,12 +70,34 @@ export class EnrichmentAudit {
   #warnings: EnrichmentWarning[] = []
   /** Identity keys of reported warnings — reads repeat, warnings must not. */
   #reported = new Set<string>()
+  /** `false` inside {@link withoutRecording}. */
+  #records = true
+
+  /**
+   * Runs `fn` with nothing recorded: no lookup counts as a use, and no
+   * warning is kept. For a reader that is not the run, such as the file
+   * plan: it reads enrichments for projections the run may never insert,
+   * and those reads must not make configured paths look used.
+   */
+  withoutRecording<T>(fn: () => T): T {
+    const records = this.#records
+
+    this.#records = false
+
+    try {
+      return fn()
+    } finally {
+      this.#records = records
+    }
+  }
 
   /**
    * Record one enrichment lookup. Every prefix of `segments` is marked
    * consumed, so block-level and leaf-level reads land in one namespace.
    */
   consume(segments: readonly string[]): void {
+    if (!this.#records) return
+
     let parentKey = toPathKey([])
 
     for (let end = 1; end <= segments.length; end++) {
@@ -99,6 +121,8 @@ export class EnrichmentAudit {
    * warning.
    */
   report(warning: EnrichmentWarning): void {
+    if (!this.#records) return
+
     const key = toPathKey([warning.type, ...warning.path])
     if (this.#reported.has(key)) return
 

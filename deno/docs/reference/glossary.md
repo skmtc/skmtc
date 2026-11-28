@@ -94,8 +94,8 @@ app. See
 ### Bundle
 
 `bundle.js` — the compiled JS file the Skmtc Worker loads, produced by
-`deno bundle worker.ts -o bundle.js`. `skmtc generate` rebuilds it
-before every run. See
+`deno bundle worker.ts -o bundle.js`. `skmtc generate` builds it
+again when an input of the build changed. See
 [the-worker-runtime](../concepts/the-worker-runtime.md).
 
 ## C
