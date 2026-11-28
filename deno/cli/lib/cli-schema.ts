@@ -2,11 +2,15 @@
  * Single source of truth for the SKMTC CLI's command surface.
  *
  * Used by:
- *   - `mod.ts`               — takes each Cliffy command's description
- *                              from the schema. It declares the args and
- *                              options by hand; `cli-schema.test.ts`
- *                              checks that each command's long option
- *                              names match its entry's flags.
+ *   - `mod.ts`               — for each command that has an entry here,
+ *                              takes the description from the schema. It
+ *                              declares the args and options by hand;
+ *                              `cli-schema.test.ts` checks that the long
+ *                              option names of each command with an entry
+ *                              match its entry's flags. `project create`,
+ *                              `project rm`, `migrate variants` and the
+ *                              command groups have no entry and are not
+ *                              checked.
  *   - `agent-context-headless.ts` — re-exports {@link COMMAND_DESCRIPTORS}
  *                              so agents can introspect the surface.
  *   - `commands/agent-context.ts` — prints the descriptors as text/JSON.
@@ -457,7 +461,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--typecheck',
         description:
-          "After generating, run `tsc --noEmit` against the consumer tsconfig and report the diagnostics in this run's files. Exits 1 on any type error."
+          "After generating, run `tsc --noEmit` against the consumer tsconfig and report the diagnostics in this run's files. Exits 1 when there is one."
       },
       {
         flag: '--tsconfig <path>',
@@ -567,7 +571,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
 
 /**
  * Look up a command's descriptor by name. Used by the Cliffy wiring
- * in `mod.ts` to take each command's `description` from the schema.
+ * in `mod.ts` to take the `description` of each command that has an
+ * entry here from the schema.
  *
  * Throws when the name isn't in the schema — that's a developer
  * error (typo in `mod.ts`'s `getCommandDescriptor('foo')` call), not
