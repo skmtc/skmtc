@@ -33,7 +33,9 @@ a Projection that nobody asks for is never constructed.
 ## What `GenerateContext.toArtifacts` actually does
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`)
-iterates the configured generators in order. For each one, it
+iterates the configured generators: the model generators first, then
+the operation generators, then the webhook generators. Generators of one
+kind run in the order of the config. For each one, it
 routes by `type` to one loop, `#runSubjects`, with the items of that
 kind:
 

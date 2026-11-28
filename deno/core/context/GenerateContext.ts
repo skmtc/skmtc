@@ -195,6 +195,26 @@ type SubjectFilters<Filter> = {
   skip: Filter | undefined
 }
 
+/**
+ * Where a generator's kind comes in a run: the model generators, then the
+ * operation generators, then the webhook generators.
+ */
+const toKindRank = ({ type }: GeneratorConfig): number => {
+  switch (type) {
+    case 'model':
+      return 0
+    case 'oasOperation':
+    case 'gqlOperation':
+      return 1
+    case 'webhook':
+      return 2
+    default: {
+      const _exhaustive: never = type
+      throw new Error(`Invalid generator type: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
 /** What one of a generator's subjects is called on its log line. */
 const toSubjectNoun = ({ type }: GeneratorConfig): string => {
   switch (type) {
@@ -563,9 +583,10 @@ export class GenerateContext implements GenerateContextType {
     const generators: GeneratorConfig[] = Object.values(this.toGeneratorConfigMap())
 
     // A run that gives each file when it is complete goes subject by
-    // subject. Any other run goes generator by generator. Both write the
-    // same files; a file that more than one generator inserts into can have
-    // its definitions in another order.
+    // subject. Any other run goes generator by generator, by kind: the
+    // models, the operations, the webhooks. Both write the same files,
+    // whatever the order of the kinds in the config; a file that more than
+    // one generator inserts into can have its definitions in another order.
     if (release !== undefined && this.document.type === 'oas') {
       this.#runBySubject(this.document.value, generators, stackTrail, release)
     } else {
@@ -633,8 +654,16 @@ export class GenerateContext implements GenerateContextType {
     )
   }
 
-  /** The run generator by generator: one generator runs all its subjects, then the next one. */
-  #runByGenerator(generators: GeneratorConfig[], stackTrail: StackTrail): void {
+  /**
+   * The run generator by generator: one generator runs all its subjects, then
+   * the next one. The model generators run first, then the operation
+   * generators, then the webhook generators; generators of one kind keep the
+   * order of the config. A model's file thus starts from the model, as in
+   * {@link #runBySubject}, and not from the first operation that gets to it.
+   */
+  #runByGenerator(listed: GeneratorConfig[], stackTrail: StackTrail): void {
+    const generators = listed.toSorted((first, second) => toKindRank(first) - toKindRank(second))
+
     generators.forEach(generatorConfig => {
       stackTrail.trace(generatorConfig.id, st => {
         // Whole-generator skip (string entry in `skip`). No per-operation
@@ -674,8 +703,8 @@ export class GenerateContext implements GenerateContextType {
    * can get to has run. A file that only one generator inserts into keeps
    * its bytes as {@link #runByGenerator} writes them. A file that more than
    * one generator inserts into has its definitions in the order of the
-   * subjects. This includes a model generator's file that an operation
-   * generator listed before it inserts into: here the models come first.
+   * subjects. {@link #runByGenerator} takes the kinds in the same order, so
+   * the order of the config does not add to that difference.
    */
   #runBySubject(
     oasDocument: OasDocument,

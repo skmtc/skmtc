@@ -78,11 +78,13 @@ type TransformArgs = {
    * to run can write to it or read from it, so that a host can write it and
    * the run can let it go. That run goes subject by subject, and writes the
    * same files. A file can have its definitions in another order when more
-   * than one generator inserts into it, as when an operation generator that
-   * the config lists before a model generator inserts that generator's
-   * projection: each subject runs every generator before the next subject
-   * runs, and the models run first. A run with `attribution.postPass` or
-   * `inspect`, or of a GraphQL document, gives every file at the end.
+   * than one generator inserts into it: each subject runs every generator
+   * before the next subject runs. A run without `onArtifact` takes the model
+   * generators first, then the operation generators, then the webhook
+   * generators, so the order of these kinds in the config changes no file.
+   * A run with
+   * `attribution.postPass` or `inspect`, or of a GraphQL document, gives
+   * every file at the end.
    *
    * A run that fails has no files. What it gave before it failed, the host
    * must drop. After the first subject that fails it gives no more.
