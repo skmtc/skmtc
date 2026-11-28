@@ -1,5 +1,5 @@
 import { render } from 'ink-testing-library'
-import { assertEquals } from '@std/assert'
+import { assertEquals, assertStringIncludes } from '@std/assert'
 import { InstallGeneratorView } from '@/components/InstallGeneratorView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
@@ -8,7 +8,8 @@ import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
 import type { Project } from '@/lib/project.ts'
 import type { Generator as GeneratorClass } from '@/lib/generator.ts'
-import { pointer } from '@/test/pointer.ts'
+import { pointer, tick } from '@/test/pointer.ts'
+import { waitFor } from '@/test/wait-for.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -117,73 +118,77 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
   })
 
   // Should prompt for project selection
-  const projectPrompt = lastFrame()
-
-  assertEquals(
-    projectPrompt,
-    `│  Select project
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Select project
 │  ${pointer} test-project
 │    Create new project`
+    )
   )
 
   // Select the project
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
   // Should now show generators selection
-  const generatorsPrompt = lastFrame()
-
-  assertEquals(
-    generatorsPrompt,
-    `│  Select project
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Select project
 │  test-project
 │
 │  Select generators to install
 │  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
+    )
   )
 
   // Arrow down to select the Zod generator
   stdin.write('\u001B[B')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Select project
+│  test-project
+│
+│  Select generators to install
+│    @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-zod`
+    )
+  )
 
   stdin.write(' ')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Select project
+│  test-project
+│
+│  Select generators to install
+│    @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-zod ${tick}`
+    )
+  )
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  // Should show installing spinner (spinner character may vary)
-  const installingFrame = lastFrame()
-
-  // Check that it contains the key parts (spinner character varies)
-  const hasCorrectStructure =
-    installingFrame &&
-    installingFrame.includes('Select project') &&
-    installingFrame.includes('test-project') &&
-    installingFrame.includes('Select generators to install') &&
-    installingFrame.includes('@skmtc/gen-zod') &&
-    installingFrame.includes('Installing generators...')
-
-  assertEquals(
-    hasCorrectStructure,
-    true,
-    `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`
-  )
-
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  // Verify installGenerator was called
-  assertSpyCall(installStub, 0, {
-    args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+  // Should show installing spinner, then call installGenerator
+  await waitFor(() => {
+    const installingFrame = lastFrame() ?? ''
+    assertStringIncludes(installingFrame, 'Select project')
+    assertStringIncludes(installingFrame, 'test-project')
+    assertStringIncludes(installingFrame, 'Select generators to install')
+    assertStringIncludes(installingFrame, '@skmtc/gen-zod')
+    assertStringIncludes(installingFrame, 'Installing generators...')
   })
 
-  // Wait for any pending timers to complete
-  await new Promise(resolve => setTimeout(resolve, 100))
+  await waitFor(() =>
+    assertSpyCall(installStub, 0, {
+      args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+    })
+  )
 
   unmount()
   installStub.restore()
@@ -209,52 +214,43 @@ Deno.test(
       generators: undefined
     })
 
-    // Wait for generators to load
-    await new Promise(resolve => setTimeout(resolve, 250))
-
-    // Should skip project selection and go to generators
-    const generatorsPrompt = lastFrame()
-
-    assertEquals(
-      generatorsPrompt,
-      `│  Select generators to install
+    // Should skip project selection and go to generators once they load
+    await waitFor(() =>
+      assertEquals(
+        lastFrame(),
+        `│  Select generators to install
 │  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
+      )
     )
 
     // Select TypeScript generator
     stdin.write(' ')
 
-    await new Promise(resolve => setTimeout(resolve, 250))
+    await waitFor(() =>
+      assertEquals(
+        lastFrame(),
+        `│  Select generators to install
+│  ${pointer} @skmtc/gen-typescript ${tick}
+│    @skmtc/gen-zod`
+      )
+    )
 
     stdin.write('\r')
 
-    await new Promise(resolve => setTimeout(resolve, 250))
-
-    // Should show installing spinner (spinner character may vary)
-    const installingFrame = lastFrame()
-
-    const hasCorrectStructure =
-      installingFrame &&
-      installingFrame.includes('Select generators to install') &&
-      installingFrame.includes('@skmtc/gen-typescript') &&
-      installingFrame.includes('Installing generators...')
-
-    assertEquals(
-      hasCorrectStructure,
-      true,
-      `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`
-    )
-
-    await new Promise(resolve => setTimeout(resolve, 250))
-
-    // Verify installGenerator was called with correct args
-    assertSpyCall(installStub, 0, {
-      args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
+    // Should show installing spinner, then call installGenerator
+    await waitFor(() => {
+      const installingFrame = lastFrame() ?? ''
+      assertStringIncludes(installingFrame, 'Select generators to install')
+      assertStringIncludes(installingFrame, '@skmtc/gen-typescript')
+      assertStringIncludes(installingFrame, 'Installing generators...')
     })
 
-    // Wait for any pending timers to complete
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await waitFor(() =>
+      assertSpyCall(installStub, 0, {
+        args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
+      })
+    )
 
     unmount()
     installStub.restore()
@@ -281,27 +277,17 @@ Deno.test(
       generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
     })
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
-    // Should go directly to installing (spinner character may vary)
-    const installingFrame = lastFrame()
-
-    const hasSpinner = installingFrame && installingFrame.includes('Installing generators...')
-    assertEquals(
-      hasSpinner,
-      true,
-      `Expected installing spinner, got:\n${installingFrame || 'undefined'}`
-    )
-
-    // Wait for installation to complete
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Should go directly to installing
+    await waitFor(() => assertStringIncludes(lastFrame() ?? '', 'Installing generators...'))
 
     // Verify both generators were installed
-    assertSpyCall(installStub, 0, {
-      args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
-    })
-    assertSpyCall(installStub, 1, {
-      args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+    await waitFor(() => {
+      assertSpyCall(installStub, 0, {
+        args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
+      })
+      assertSpyCall(installStub, 1, {
+        args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+      })
     })
 
     unmount()
@@ -326,15 +312,8 @@ Deno.test(
       generators: undefined
     })
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
     // Should show "No projects found" message
-    const noProjectsFrame = lastFrame()
-
-    assertEquals(noProjectsFrame, `│  No projects found`)
-
-    // Wait for any pending timers to complete
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await waitFor(() => assertEquals(lastFrame(), `│  No projects found`))
 
     unmount()
   }
@@ -356,15 +335,13 @@ Deno.test(
       generators: undefined
     })
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
     // Not "No projects found": the folder is there, and its warning is above.
-    assertEquals(
-      lastFrame(),
-      `│  No project loaded. Did not load: broken (see the warnings above).`
+    await waitFor(() =>
+      assertEquals(
+        lastFrame(),
+        `│  No project loaded. Did not load: broken (see the warnings above).`
+      )
     )
-
-    await new Promise(resolve => setTimeout(resolve, 800))
 
     unmount()
   }
@@ -391,22 +368,22 @@ Deno.test(
       generators: ['jsr:@skmtc/gen-zod']
     })
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
-    assertEquals(
-      lastFrame(),
-      `│  Select project
+    await waitFor(() =>
+      assertEquals(
+        lastFrame(),
+        `│  Select project
 │  ${pointer} test-project
 │    Create new project`
+      )
     )
 
     stdin.write('\r')
 
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    assertSpyCall(installStub, 0, {
-      args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
-    })
+    await waitFor(() =>
+      assertSpyCall(installStub, 0, {
+        args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+      })
+    )
 
     unmount()
     installStub.restore()

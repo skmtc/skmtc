@@ -11,6 +11,9 @@ on:
       # doc-test type-checks the code blocks of the root README.
       - 'README.md'
       - '.github/workflows/coverage.yml'
+  # Runs the suite again on a branch, such as main to check that a test no
+  # longer fails at random.
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:

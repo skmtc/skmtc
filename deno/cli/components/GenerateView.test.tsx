@@ -1,6 +1,6 @@
 import '@/tests/setup.ts'
 import { render } from 'ink-testing-library'
-import { assertEquals } from '@std/assert'
+import { assertEquals, assertStringIncludes } from '@std/assert'
 import { GenerateView } from '@/components/GenerateView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
@@ -10,6 +10,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
 import { pointer } from '@/test/pointer.ts'
+import { waitFor } from '@/test/wait-for.ts'
 import { join } from '@std/path/join'
 
 /**
@@ -228,60 +229,49 @@ Deno.test(
         watchMode: undefined
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       // Should prompt for schema location
-      const schemaPrompt = lastFrame()
-
-      assertEquals(
-        schemaPrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
+        )
       )
 
       // Enter schema path
       stdin.write('schema.json')
 
-      await new Promise(resolve => setTimeout(resolve, 25))
-
-      const schemaPath = lastFrame()
-
-      assertEquals(
-        schemaPath,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json`
+        )
       )
-
-      await new Promise(resolve => setTimeout(resolve, 25))
 
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
-
       // Should prompt for bundle creation
-      const bundlePrompt = lastFrame()
-
-      assertEquals(
-        bundlePrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes for bundle (to continue task flow)
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
-
       // Should prompt for watch mode
-      const watchPrompt = lastFrame()
-
-      assertEquals(
-        watchPrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -292,21 +282,17 @@ Deno.test(
 │  Watch for changes?
 │  ${pointer} Yes
 │    No`
+        )
       )
-
-      await new Promise(resolve => setTimeout(resolve, 50))
 
       // Select Yes (default) - just hit enter
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 150))
-
       // Should show watching spinner (not generating, since we selected Yes for watch mode)
-      const watchingFrame = lastFrame()
-
-      assertEquals(
-        watchingFrame,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  schema.json
 │
 │  Worker not found. Create it?
@@ -318,6 +304,7 @@ Deno.test(
 │  Yes
 │
 │  ⠋ Watching...`
+        )
       )
 
       unmount()
@@ -404,29 +391,24 @@ Deno.test(
         watchMode: undefined
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       // Should show bundle prompt first
-      const bundlePrompt = lastFrame()
-
-      assertEquals(
-        bundlePrompt,
-        `│  Worker not found. Create it?
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Worker not found. Create it?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes for bundle (to continue task flow)
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
-
       // Should now show watch mode prompt
-      const watchPrompt = lastFrame()
-
-      assertEquals(
-        watchPrompt,
-        `│  Worker not found. Create it?
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Worker not found. Create it?
 │  Yes
 │
 │  Bundle created
@@ -434,23 +416,14 @@ Deno.test(
 │  Watch for changes?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 25))
-
       // Should show watching spinner (different from generating)
-      const watchingFrame = lastFrame()
-
-      const hasWatchingSpinner = watchingFrame && watchingFrame.includes('Watching...')
-
-      assertEquals(
-        hasWatchingSpinner,
-        true,
-        `Expected watching frame, got:\n${watchingFrame || 'undefined'}`
-      )
+      await waitFor(() => assertStringIncludes(lastFrame() ?? '', 'Watching...'))
 
       unmount()
     } finally {
@@ -543,33 +516,21 @@ Deno.test(
         watchMode: false
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       // Should show bundle prompt first
-      const bundlePrompt = lastFrame()
-
-      assertEquals(
-        bundlePrompt,
-        `│  Worker not found. Create it?
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Worker not found. Create it?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes for bundle (to continue task flow)
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
-
       // Should go directly to generating (watchMode: false was provided)
-      const generatingFrame = lastFrame()
-
-      const hasGeneratingSpinner = generatingFrame && generatingFrame.includes('Generating...')
-
-      assertEquals(
-        hasGeneratingSpinner,
-        true,
-        `Expected generating spinner, got:\n${generatingFrame || 'undefined'}`
-      )
+      await waitFor(() => assertStringIncludes(lastFrame() ?? '', 'Generating...'))
 
       unmount()
     } finally {
@@ -666,33 +627,21 @@ Deno.test(
         watchMode: undefined
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       // Should show bundle prompt first
-      const bundlePrompt = lastFrame()
-
-      assertEquals(
-        bundlePrompt,
-        `│  Worker not found. Create it?
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Worker not found. Create it?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes for bundle (to continue task flow)
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
-
       // Should go directly to generating (remote schema skips watch mode)
-      const generatingFrame = lastFrame()
-
-      const hasGeneratingSpinner = generatingFrame && generatingFrame.includes('Generating...')
-
-      assertEquals(
-        hasGeneratingSpinner,
-        true,
-        `Expected generating spinner for remote schema, got:\n${generatingFrame || 'undefined'}`
-      )
+      await waitFor(() => assertStringIncludes(lastFrame() ?? '', 'Generating...'))
 
       unmount()
     } finally {
@@ -788,50 +737,49 @@ Deno.test(
         watchMode: undefined
       })
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       // Should prompt for schema location
-      const schemaPrompt = lastFrame()
-
-      assertEquals(
-        schemaPrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │`
+        )
       )
 
       // Enter remote URL
       stdin.write('https://api.example.com/openapi.json')
 
-      await new Promise(resolve => setTimeout(resolve, 25))
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
+│  https://api.example.com/openapi.json`
+        )
+      )
 
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
-
       // Should show bundle prompt
-      const bundlePrompt = lastFrame()
-
-      assertEquals(
-        bundlePrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select Yes for bundle (to continue task flow)
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
-
       // Should show watch prompt even for remote URL
-      const watchPrompt = lastFrame()
-
-      assertEquals(
-        watchPrompt,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -842,23 +790,36 @@ Deno.test(
 │  Watch for changes?
 │  ${pointer} Yes
 │    No`
+        )
       )
 
       // Select No for remote URL (can't watch remote)
       stdin.write('\u001B[B') // Arrow down to "No"
 
-      await new Promise(resolve => setTimeout(resolve, 25))
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
+│  https://api.example.com/openapi.json
+│
+│  Worker not found. Create it?
+│  Yes
+│
+│  Bundle created
+│
+│  Watch for changes?
+│    Yes
+│  ${pointer} No`
+        )
+      )
 
       stdin.write('\r')
 
-      await new Promise(resolve => setTimeout(resolve, 50))
-
       // Should now show generating
-      const generatingFrame = lastFrame()
-
-      assertEquals(
-        generatingFrame,
-        `│  Input schema path or URL (.json / .yaml / .graphql)
+      await waitFor(() =>
+        assertEquals(
+          lastFrame(),
+          `│  Input schema path or URL (.json / .yaml / .graphql)
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
@@ -870,6 +831,7 @@ Deno.test(
 │  No
 │
 │  ⠋ Generating...`
+        )
       )
 
       unmount()

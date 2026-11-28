@@ -9,6 +9,7 @@ import type { Generator } from '@/types/generator.ts'
 import { stubRegistryGenerators } from '../tests/mocks/registry.mock.ts'
 import { MessageBox } from '@/components/MessageBox.tsx'
 import { assertStringIncludes } from '@std/assert/string-includes'
+import { waitFor } from '@/test/wait-for.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -51,6 +52,13 @@ const createMockTasks = (): Task[] => [
     render: () => null
   }
 ]
+
+/**
+ * Gives a second `leave` or `Project.create` call time to show up before a
+ * test asserts there was only one. A correct run passes however long this
+ * takes, so the sleep cannot make the test fail at random.
+ */
+const settleForSecondCall = () => new Promise(resolve => setTimeout(resolve, 300))
 
 const createMockProject = () => ({
   name: 'test-project',
@@ -106,7 +114,10 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
   )
 
   // Wait for generators to load and error to occur
-  await new Promise(resolve => setTimeout(resolve, 300))
+  await waitFor(() => assertSpyCalls(leaveSpy, 1))
+  // Still once: a second call would come from the effect running again
+  await settleForSecondCall()
+  assertSpyCalls(leaveSpy, 1)
 
   // Verify console.error was called with the error
   assertSpyCalls(consoleErrorSpy, 1)
@@ -174,10 +185,10 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 300))
-
     // Verify leave was called with task state
+    await waitFor(() => assertSpyCalls(leaveSpy, 1))
+    // Still once: a second call would come from the effect running again
+    await settleForSecondCall()
     assertSpyCalls(leaveSpy, 1)
     assertSpyCall(leaveSpy, 0, {
       args: [
@@ -233,9 +244,9 @@ Deno.test({
 
     try {
       // Wait for generators to load and Project.create to be called
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // Verify Project.create was called
+      await waitFor(() => assertSpyCalls(projectCreateStub, 1))
+      // Still once: a second call would come from the effect running again
+      await settleForSecondCall()
       assertSpyCalls(projectCreateStub, 1)
 
       // Verify it was called with correct arguments
@@ -311,9 +322,10 @@ Deno.test({
 
     const { unmount } = render(<TestWrapper />)
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
     // Verify Project.create was called with the exact task state values
+    await waitFor(() => assertSpyCalls(projectCreateStub, 1))
+    // Still once: a second call would come from the effect running again
+    await settleForSecondCall()
     assertSpyCalls(projectCreateStub, 1)
     assertSpyCall(projectCreateStub, 0, {
       args: [
@@ -362,12 +374,15 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await waitFor(() => {
+      const frame = (lastFrame() ?? '').replace(/\s+/g, ' ')
 
-    const frame = (lastFrame() ?? '').replace(/\s+/g, ' ')
-
-    assertStringIncludes(frame, 'Project "test-project" created')
-    assertStringIncludes(frame, 'Warning: "@/" points to "app/src" (tsconfig.json), not to "./src"')
+      assertStringIncludes(frame, 'Project "test-project" created')
+      assertStringIncludes(
+        frame,
+        'Warning: "@/" points to "app/src" (tsconfig.json), not to "./src"'
+      )
+    })
 
     unmount()
   }
