@@ -89,11 +89,18 @@ const isFunctionLike = (node: ts.Node): node is ts.FunctionLikeDeclaration =>
   ts.isGetAccessorDeclaration(node) ||
   ts.isSetAccessorDeclaration(node)
 
-/** A class field or a variable whose value is not a function. */
+/** The expression inside any number of parentheses. */
+const skipParentheses = (node: ts.Expression): ts.Expression =>
+  ts.isParenthesizedExpression(node) ? skipParentheses(node.expression) : node
+
+/**
+ * A class field or a variable whose value is not a function. The parentheses
+ * around a value are skipped: the rule reads ESTree, which drops them.
+ */
 const isInitializer = (node: ts.Node): node is Initializer =>
   (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node)) &&
   node.initializer !== undefined &&
-  !isFunctionLike(node.initializer)
+  !isFunctionLike(skipParentheses(node.initializer))
 
 const toClassName = (node: ts.Node): string | undefined => {
   const parent = node.parent
@@ -111,23 +118,38 @@ const isMember = (node: ts.Node): node is Member =>
 const isHolder = (node: ts.Node): node is Holder =>
   ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node)
 
-/** The name of a member, a field or a variable, with its class when it has one. */
+/**
+ * The name of a member, a field or a variable, with its class when it has
+ * one. The name is on one line and not truncated, as the rule gives it.
+ */
 const toOwnedName = (node: Member | Holder): string => {
   const owner = toClassName(node)
-  const name = node.name.getText()
+  const name = node.name.getText().replace(/\s+/g, ' ').trim()
 
   return owner === undefined ? name : `${owner}.${name}`
 }
 
-/** The name of a function expression, from the variable or property that holds it. */
-const toHeldName = (node: ts.FunctionLikeDeclaration): string | undefined => {
-  const parent = node.parent
+/** The first node above `node` that is not a pair of parentheses. */
+const toParentOutsideParentheses = (node: ts.Node): ts.Node =>
+  ts.isParenthesizedExpression(node.parent) ? toParentOutsideParentheses(node.parent) : node.parent
 
-  if (ts.isExportAssignment(parent)) {
+/**
+ * The name of a function expression, from the variable or property that
+ * holds it. Parentheses around the function are skipped: the rule reads
+ * ESTree, which drops them, so `const f = (() => …)` is the unit `f` in both.
+ */
+const toHeldName = (node: ts.FunctionLikeDeclaration): string | undefined => {
+  const holder = toParentOutsideParentheses(node)
+
+  if (ts.isExportAssignment(holder)) {
     return '<default>'
   }
 
-  return isHolder(parent) && parent.initializer === node ? toOwnedName(parent) : undefined
+  return isHolder(holder) &&
+    holder.initializer !== undefined &&
+    skipParentheses(holder.initializer) === node
+    ? toOwnedName(holder)
+    : undefined
 }
 
 /** The name of a function, or `undefined` for a callback written inline. */

@@ -1,4 +1,4 @@
-import { toInlineText } from '../shared/nodes.ts'
+import { toOneLineText } from '../shared/nodes.ts'
 import { isGeneratorSource } from '../shared/target.ts'
 
 /**
@@ -35,7 +35,9 @@ import { isGeneratorSource } from '../shared/target.ts'
  *
  * The report is at the name of the unit, not at the function. `deno lint`
  * matches a directive to the line where the report starts, and the function
- * of `const toValue =\n  (schema) => …` starts one line below its name.
+ * of `const toValue =\n  (schema) => …` starts one line below its name. A
+ * class member with decorators is reported at its first decorator, so the
+ * directive goes above the decorator.
  *
  * The rule reads generator source only ({@link isGeneratorSource}): not a
  * test, and not a file under a folder such as `examples/`, `fixtures/` or
@@ -145,17 +147,24 @@ const toClassName = (ancestors: Deno.lint.Node[]): string =>
 /**
  * Whether a key is written in brackets. The parser leaves `computed` false
  * on a method (`[key]() {}`), so the source decides for it: only a computed
- * key comes straight after a `[`.
+ * key comes straight after a `[`. Only the text of the member is read, so a
+ * comment above it that ends in `[` does not count.
  */
-const isComputedKey = (sourceCode: Deno.lint.SourceCode, { key, computed }: Keyed): boolean =>
-  computed || sourceCode.getText().slice(0, key.range[0]).trimEnd().endsWith('[')
+const isComputedKey = (sourceCode: Deno.lint.SourceCode, keyed: Keyed): boolean =>
+  keyed.computed ||
+  sourceCode
+    .getText(keyed)
+    .slice(0, keyed.key.range[0] - keyed.range[0])
+    .trimEnd()
+    .endsWith('[')
 
 /**
  * A key as the source writes it, on one line: `name`, `#name`,
- * `'quoted-key'`, `[computed]`. The script names a unit the same way.
+ * `'quoted-key'`, `[computed]`, not truncated. The script names a unit the
+ * same way.
  */
 const toKeyText = (sourceCode: Deno.lint.SourceCode, keyed: Keyed): string => {
-  const text = toInlineText(sourceCode, keyed.key)
+  const text = toOneLineText(sourceCode, keyed.key)
 
   return isComputedKey(sourceCode, keyed) ? `[${text}]` : text
 }
@@ -164,7 +173,7 @@ const toKeyText = (sourceCode: Deno.lint.SourceCode, keyed: Keyed): string => {
 const toVariableName = (
   sourceCode: Deno.lint.SourceCode,
   { id }: Deno.lint.VariableDeclarator
-): string => (id.type === 'Identifier' ? id.name : toInlineText(sourceCode, id))
+): string => (id.type === 'Identifier' ? id.name : toOneLineText(sourceCode, id))
 
 /**
  * The name of what holds a function or a value: a class member with its
@@ -191,15 +200,21 @@ const toHolderName = (
   return holder.type === 'ExportDefaultDeclaration' ? '<default>' : undefined
 }
 
-/** The node that names what `holder` holds: a key, or the name of a variable. */
+/**
+ * The node that names what `holder` holds: a key, or the name of a variable.
+ * A class member with decorators is named from its first decorator, so that
+ * a directive above `@dec()` on its own line signs the member off.
+ */
 const toNameNode = (holder: Deno.lint.Node): Deno.lint.Node => {
   if (holder.type === 'VariableDeclarator') {
     return holder.id
   }
 
-  return holder.type === 'MethodDefinition' || holder.type === 'Property' || isField(holder)
-    ? holder.key
-    : holder
+  if (holder.type === 'MethodDefinition' || isField(holder)) {
+    return holder.decorators.at(0) ?? holder.key
+  }
+
+  return holder.type === 'Property' ? holder.key : holder
 }
 
 /** The unit that `holder` names, or `undefined` when it names none. */
@@ -275,22 +290,34 @@ export const toComplexityRule = ({ limit }: RuleOptions): Deno.lint.Rule => ({
     if (!isGeneratorSource(context.filename)) return {}
     const { sourceCode } = context
     const units = new Map<Deno.lint.Node, Unit>()
+    // The owner in effect at each node already read, the node included. The
+    // nodes above a node do not change, so neither does its owner, and each
+    // node is read and named once however many branches are below it.
+    const owners = new Map<Deno.lint.Node, Owner | undefined>()
 
     // The unit a node is in: the last node on its way down from the root
     // that starts a unit. A named function starts one wherever it is.
     const toOwner = (node: Deno.lint.Node): Owner | undefined => {
       const path = sourceCode.getAncestors(node)
+      const known = path.findLastIndex(ancestor => owners.has(ancestor))
+      const first = known + 1
 
-      return path.reduce<Owner | undefined>((current, ancestor, index) => {
-        const start = toUnitStart(
-          sourceCode,
-          ancestor,
-          path.slice(0, index),
-          current !== undefined
-        )
+      return path.slice(first).reduce<Owner | undefined>(
+        (current, ancestor, offset) => {
+          const start = toUnitStart(
+            sourceCode,
+            ancestor,
+            path.slice(0, first + offset),
+            current !== undefined
+          )
+          const owner = start === undefined ? current : { node: ancestor, ...start }
 
-        return start === undefined ? current : { node: ancestor, ...start }
-      }, undefined)
+          owners.set(ancestor, owner)
+
+          return owner
+        },
+        known === -1 ? undefined : owners.get(path[known])
+      )
     }
 
     const count = (node: Deno.lint.Node, isCase = false): void => {

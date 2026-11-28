@@ -127,3 +127,32 @@ ${toBranches(11)}
   assertEquals(codes, [])
   assertEquals(exitCode, 0)
 })
+
+// The trap: the report was at the key of a member, one line below a
+// decorator on its own line, so the directive above the decorator matched
+// no report.
+Deno.test('deno lint: the directive above a decorator signs off the member', async () => {
+  const source = `const dec = () => (_value: unknown, _context: unknown) => {}
+
+export class Table {
+  // deno-lint-ignore skmtc/complexity -- a table of fixed codes, read top to bottom
+  @dec()
+  toCode(n: number): number {
+${toBranches(11)}
+    return -1
+  }
+
+  // deno-lint-ignore skmtc/complexity -- a table of fixed codes, read top to bottom
+  @dec()
+  codes = [1].map(n => {
+${toBranches(11)}
+    return -1
+  })
+}
+`
+
+  const { codes, exitCode } = await lintProject({ lint: { plugins: [PLUGIN_PATH] } }, source)
+
+  assertEquals(codes, [])
+  assertEquals(exitCode, 0)
+})

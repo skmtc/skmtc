@@ -154,6 +154,45 @@ Deno.test('complexity: the report is at the name of the unit', () => {
   assertEquals(source.slice(diagnostic.range[0], diagnostic.range[1]), 'curried')
 })
 
+// The trap: `deno lint` matches a directive to the line where the report
+// starts. A report at the key of a decorated member is one line below a
+// decorator on its own line, where the directive goes.
+Deno.test('complexity: a decorated member is reported at its first decorator', () => {
+  const source = `class Table {
+    @first()
+    @second()
+    toCode(n: number) {
+      ${toIfs(10)}
+    }
+    @first()
+    codes = [1].map(n => {
+      ${toIfs(10)}
+    })
+  }`
+
+  const diagnostics = lint(RULE, source)
+
+  assertEquals(
+    diagnostics.map(diagnostic => source.slice(diagnostic.range[0], diagnostic.range[1])),
+    ['@first()', '@first()']
+  )
+})
+
+// The trap: the rule read the whole file before a key, so a comment above
+// a member that ends in `[` made a plain key read as computed.
+Deno.test('complexity: a comment ending in a bracket above a member does not make its key computed', () => {
+  const source = `class Indexed {
+    // index into x[
+    plain() {
+      ${toIfs(10)}
+    }
+  }`
+
+  assertEquals(messagesFrom(RULE, source), [
+    'Indexed.plain has a complexity of 11; the limit is 10'
+  ])
+})
+
 Deno.test('complexity: silent outside generator source', () => {
   const source = `function decide() {\n${toIfs(12)}\n}`
 
@@ -224,7 +263,42 @@ const PARITY_SOURCES: Record<string, string> = {
       const inner = (b: boolean) => (b ? 1 : 2)
       return [1, 2].map(n => (a ? n : inner(a)))
     }
-    globalThis.items.forEach(item => { if (item > 1) { console.log(item) } })`
+    globalThis.items.forEach(item => { if (item > 1) { console.log(item) } })`,
+  // ESTree drops parentheses and the TypeScript tree keeps them, so a
+  // function in parentheses was the unit `f` in the rule and part of
+  // `A.method` in the script.
+  parenthesized: `
+    class A {
+      method() {
+        const f = (() => {
+          if (a0) {}
+          if (a1) {}
+        })
+        return f
+      }
+      field = ((x: boolean) => (x ? 1 : 2))
+      value = (items.map(item => item ?? ''))
+    }
+    const table = { toCode: ((x: boolean) => (x ? 1 : 2)) }
+    export default ((x: boolean) => (x ? 1 : 2))`,
+  // A comment that ends in `[` above a member is not part of its key.
+  comments: `
+    class Indexed {
+      // index into x[
+      plain() { return a ? 1 : 2 }
+      /* [ */ other() { return a ? 1 : 2 }
+    }`,
+  // The rule quoted a name with `toInlineText`, which cuts it at 60
+  // characters, and the script gave it in full.
+  longNames: `
+    const table = {
+      'a-key-that-is-much-longer-than-sixty-characters-so-a-truncation-shows': (x: boolean) =>
+        (x ? 1 : 2)
+    }
+    export const {
+      name,
+      path
+    } = [1].reduce((acc, n) => (n ? acc : acc), { name: '', path: '' })`
 }
 
 const UNIT_MESSAGE = /^(.+) has a complexity of (\d+)(?: without its (\d+) switch cases \((\d+) with them\))?;/
