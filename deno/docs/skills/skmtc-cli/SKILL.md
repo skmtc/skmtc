@@ -19,7 +19,7 @@ allowed-tools:
   - Edit
 metadata:
   describes:
-    '@skmtc/cli': '0.13'
+    '@skmtc/cli': '0.14'
 ---
 
 # Skmtc CLI
