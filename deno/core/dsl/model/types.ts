@@ -24,7 +24,6 @@ export type ModelProjectionConstructorArgs<
   ref: RefParts
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
-  rootRef?: RefParts
 } & ProjectionOptionsArg<ProjectionOptions>
 
 export type WithTransformModel = {
@@ -126,7 +125,6 @@ export type ModelProjection<
     ref,
     settings,
     destinationPath,
-    rootRef,
     options
   }: ModelProjectionConstructorArgs<EnrichmentType, ProjectionOptions>): V
   id: string

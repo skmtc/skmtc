@@ -116,7 +116,7 @@ rendered them:
 this.members = buildMembers(schema, member => {
   if ('members' in member && 'discriminator' in member && member.members.some(hasNoKeys)) {
     const union = new TsUnion({ context, generatorKey, destinationPath, members: [],
-      modifiers: { required: true, nullable: member.nullable }, rootRef, schema: member })
+      modifiers: { required: true, nullable: member.nullable }, schema: member })
     union.members = member.members.map(toValue)
     return union
   }
@@ -133,7 +133,7 @@ packages.
 
 ```ts
 this.members = schema.members.map(member => {
-  return toTsValue({ destinationPath, schema: member, required: true, context, rootRef })
+  return toTsValue({ destinationPath, schema: member, required: true, context })
 })
 ```
 

@@ -117,7 +117,6 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   context: GenerateContextType
   destinationPath: string
   schema: Schema
-  rootRef?: RefParts
   required: boolean | undefined
 }
 
@@ -149,8 +148,7 @@ export const toTsValue: SchemaToValueFn = ({
   schema: schemaNode,
   destinationPath,
   required,
-  context,
-  rootRef
+  context
 }) => {
   // `schemaNode` arrives typed as the generic `Schema` parameter, and TypeScript
   // does not narrow a type parameter by discriminant. Widening it to the
@@ -175,7 +173,6 @@ export const toTsValue: SchemaToValueFn = ({
         destinationPath,
         ref: schema,
         modifiers,
-        rootRef,
         schema
       })
     case 'array':
@@ -185,7 +182,6 @@ export const toTsValue: SchemaToValueFn = ({
         modifiers,
         items: schema.items,
         generatorKey,
-        rootRef,
         schema
       })
     case 'object':
@@ -194,8 +190,7 @@ export const toTsValue: SchemaToValueFn = ({
         destinationPath,
         value: schema,
         modifiers,
-        generatorKey,
-        rootRef
+        generatorKey
       })
     case 'union':
       return new TsUnion({
@@ -205,7 +200,6 @@ export const toTsValue: SchemaToValueFn = ({
         discriminator: schema.discriminator,
         modifiers,
         generatorKey,
-        rootRef,
         schema
       })
     case 'number':
@@ -333,12 +327,12 @@ on the schema being rendered:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsProjection.ts
-constructor({ context, ref, settings, rootRef }: ConstructorArgs) {
+constructor({ context, ref, settings }: ConstructorArgs) {
   super({ context, ref, settings })
   const schema = context.resolveSchemaRefOnce(ref)
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
-    context, rootRef
+    context
   })
 }
 ```
@@ -448,7 +442,6 @@ case 'ref':
     destinationPath,
     ref: schema, // the OasRef: its refName and refPath travel together
     modifiers,
-    rootRef,
     schema
   })
 ```
@@ -565,7 +558,7 @@ When you write a model generator that has a `'ref'` branch in
 `schemaToValueFn`, the `Ref` Snippet must:
 
 1. **Call** `toModelRef({ context, ref, destinationPath,
-   rootRef, projection: YourProjection, variant })`. It constructs
+   projection: YourProjection, variant })`. It constructs
    the model, reuses it, or returns it `suspended`. It also stitches
    the import into `destinationPath`.
 2. **Take the name** from `ref.settings.identifier.name`.
@@ -605,15 +598,6 @@ property-vs-not distinction doesn't apply). Branches typically
 treat `undefined` like `false` (optional). The explicit `undefined`
 lets `schemaToValueFn` preserve "unknown requirement" through
 nested calls instead of coercing it.
-
-### What's `rootRef` for?
-
-`rootRef` is the ref (`RefParts`) of the top-level model that started
-the current render — used to detect recursive type references. A nested
-schema whose `schemaToValueFn` call encounters a `$ref` back to
-`rootRef` can render a self-reference rather than recursing into
-infinite expansion. Most generator branches just thread it through
-to child constructors and inspect it only inside the `ref` branch.
 
 ### Why does `schemaToValueFn` take `destinationPath`?
 

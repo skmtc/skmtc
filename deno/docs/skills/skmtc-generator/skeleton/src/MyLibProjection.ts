@@ -15,14 +15,13 @@ type ConstructorArgs = {
   destinationPath: string
   ref: RefParts
   settings: ContentSettings<EnrichmentSchema>
-  rootRef?: RefParts
 }
 
 export class MyLibProjection extends MyLibBase {
   value: TypeSystemValue
 
   constructor(
-    { context, ref, settings, destinationPath, rootRef }: ConstructorArgs,
+    { context, ref, settings, destinationPath }: ConstructorArgs,
   ) {
     super({ context, ref, settings })
 
@@ -33,7 +32,6 @@ export class MyLibProjection extends MyLibBase {
       required: true,
       destinationPath,
       context,
-      rootRef,
     })
 
     // A recursive schema renders a lazy back-reference (see MyLibRef).

@@ -31,7 +31,6 @@ type CreateModelArgs<V extends GeneratedValue, EnrichmentType, ProjectionOptions
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   /** The model's ref; an `OasRef` fits it. */
   ref: RefParts
-  rootRef?: RefParts
 } & InsertModelOptions<ProjectionOptions>
 type ApplyArgs = {
   destinationPath?: string
@@ -59,7 +58,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
-  rootRef?: RefParts
   noExport: boolean
   variant: string
   /** The caller's options, as passed to `insertModel`. */
@@ -78,7 +76,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       projection,
       ref,
       destinationPath,
-      rootRef,
       noExport = false,
       variant = DEFAULT_VARIANT
     } = args
@@ -87,7 +84,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     this.projection = projection
     this.ref = ref
     this.destinationPath = destinationPath
-    this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
     this.options = readProjectionOptions<ProjectionOptions>(args)
@@ -181,7 +177,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
           context: this.context,
           settings: this.settings,
           destinationPath: this.settings.exportPath,
-          rootRef: this.rootRef,
           options: this.options
         })
     )

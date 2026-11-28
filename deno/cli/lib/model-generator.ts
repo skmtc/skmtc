@@ -84,12 +84,11 @@ type ConstructorArgs = {
   ref: RefParts
   // Matches the base's \`toEnrichmentSchema: () => emptyEnrichmentSchema\`.
   settings: ContentSettings<EmptyEnrichments>
-  rootRef?: RefParts
 }
 
 export class ${mainModule}Projection extends ${mainModule}Base {
   value: TypeSystemValue
-  constructor({ context, ref, settings, destinationPath, rootRef }: ConstructorArgs) {
+  constructor({ context, ref, settings, destinationPath }: ConstructorArgs) {
     super({ context, ref, settings })
 
     const schema = context.resolveSchemaRefOnce(ref)
@@ -98,8 +97,7 @@ export class ${mainModule}Projection extends ${mainModule}Base {
       schema,
       required: true,
       destinationPath,
-      context,
-      rootRef
+      context
     })
   }
 
