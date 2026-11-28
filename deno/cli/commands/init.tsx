@@ -9,9 +9,12 @@ import { initHeadless, InvalidBasePathError, type InitHeadlessResult } from '@/l
 import {
   ALIAS_FILE_NAMES,
   type AliasRoot,
+  type AliasSearch,
   findAliasRoot,
   isAliasRoot,
-  toAliasMismatchText
+  toAliasMismatchText,
+  toAliasUnusableText,
+  toFoundAliasRoot
 } from '@/lib/alias-root.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { renderApp } from '@/commands/render-app.tsx'
@@ -58,7 +61,8 @@ export const renderInit = async ({
   // is the folder that alias points to. With no argument, that folder is
   // the basePath (the default of the prompt, at a terminal); with one, the
   // result says whether the two match.
-  const aliasRoot = findAliasRootFn({ appRootPath: toAbsoluteRootPath() })
+  const aliasSearch = findAliasRootFn({ appRootPath: toAbsoluteRootPath() })
+  const aliasRoot = toFoundAliasRoot(aliasSearch)
 
   if (mode === 'strict') {
     if (projectName === undefined) {
@@ -80,7 +84,7 @@ export const renderInit = async ({
         example: 'skmtc init my-api ./web/app/src',
         discover:
           "basePath is relative to the SKMTC root (the directory containing .skmtc/). It must also equal what the `@` alias resolves to in your consumer app's bundler, since generators emit `@/<subdir>/...` paths. " +
-          `skmtc found no \`@/\` alias in ${ALIAS_FILE_NAMES.join(', ')}, so it cannot propose the folder.`
+          toNoAliasRootText(aliasSearch)
       })
     }
 
@@ -88,7 +92,11 @@ export const renderInit = async ({
 
     let result: InitHeadlessResult
     try {
-      result = await initHeadless({ skmtcRoot, projectName, basePath: resolvedBasePath })
+      result = await initHeadless({
+        skmtcRoot,
+        projectName,
+        basePath: resolvedBasePath
+      })
     } catch (error) {
       if (error instanceof InvalidBasePathError) {
         return failWithRecipe({
@@ -138,6 +146,17 @@ export const renderInit = async ({
   }
 
   renderApp({ renderFn, AppComponent, initialState })
+}
+
+/** Why `init` cannot propose a basePath from the alias. */
+const toNoAliasRootText = (aliasSearch: AliasSearch): string => {
+  const unusable = toAliasUnusableText(aliasSearch)
+
+  return unusable === undefined
+    ? `skmtc found no \`@/\` alias in ${ALIAS_FILE_NAMES.join(
+        ', '
+      )}, so it cannot propose the folder.`
+    : `${unusable} So skmtc cannot propose the folder.`
 }
 
 /** The line under `basePath` that says how it relates to the `@/` alias, if any does. */

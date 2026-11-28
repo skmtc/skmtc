@@ -5,13 +5,14 @@
  * The source is the top-level `source` of the project's config file. The
  * file is read and written as plain JSON, not through the settings schema:
  * a save must change one key and leave every other key as its owner wrote
- * it, deprecated names too.
+ * it, deprecated names too. The file keeps its indent and its trailing
+ * newline, and a `source` that was there keeps its place.
  */
 
 import { skmtcClientConfig } from '@skmtc/core/Settings'
 import { basename } from '@std/path/basename'
 import { ConfigValidationError, parseOrExplain } from '@/lib/parse-or-explain.ts'
-import { toConfigFileText, toConfigLocation } from '@/lib/project-config.ts'
+import { toConfigLocation } from '@/lib/project-config.ts'
 
 type SaveSourceArgs = {
   projectPath: string
@@ -32,7 +33,11 @@ export type SavedSource = Exclude<SaveSourceResult, { type: 'no-config' }>
  * `--save` on a run that had an error. The source is not known to work, so
  * it is not stored, and the source that was there stays.
  */
-export type SkippedSource = { type: 'skipped'; source: string; configPath: string }
+export type SkippedSource = {
+  type: 'skipped'
+  source: string
+  configPath: string
+}
 
 /** What `--save` did, as the result of a run reports it. */
 export type SaveReport = SavedSource | SkippedSource
@@ -40,14 +45,35 @@ export type SaveReport = SavedSource | SkippedSource
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const readConfig = (path: string): Record<string, unknown> | undefined => {
-  try {
-    const config: unknown = JSON.parse(Deno.readTextFileSync(path))
+type ConfigFile = {
+  config: Record<string, unknown>
+  text: string
+}
 
-    return isRecord(config) ? config : undefined
+const readConfigFile = (path: string): ConfigFile | undefined => {
+  try {
+    const text = Deno.readTextFileSync(path)
+    const config: unknown = JSON.parse(text)
+
+    return isRecord(config) ? { config, text } : undefined
   } catch {
     return undefined
   }
+}
+
+const readConfig = (path: string): Record<string, unknown> | undefined =>
+  readConfigFile(path)?.config
+
+/**
+ * The config as text in the style of the file it replaces: the indent of
+ * its first indented line (none for a file on one line), and a trailing
+ * newline when it had one.
+ */
+export const toStyledConfigText = (config: Record<string, unknown>, original: string): string => {
+  const indent = original.match(/\n([ \t]+)\S/)?.[1] ?? ''
+  const newline = original.endsWith('\n') ? '\n' : ''
+
+  return `${JSON.stringify(config, null, indent)}${newline}`
 }
 
 /**
@@ -87,20 +113,23 @@ export const toSaveBlocker = (projectPath: string): string | undefined => {
 
 export const saveSource = ({ projectPath, source }: SaveSourceArgs): SaveSourceResult => {
   const configPath = toConfigLocation(projectPath).path
-  const config = readConfig(configPath)
+  const file = readConfigFile(configPath)
 
-  if (config === undefined) {
+  if (file === undefined) {
     return { type: 'no-config', configPath }
   }
+
+  const { config, text } = file
 
   if (config.source === source) {
     return { type: 'unchanged', source, configPath }
   }
 
-  const { source: _previous, ...rest } = config
+  // A `source` that was there keeps its place; a new one goes first, where
+  // the docs show it. No other key moves or changes.
+  const next = 'source' in config ? { ...config, source } : { source, ...config }
 
-  // `source` first, as `init` and the docs write the file.
-  Deno.writeTextFileSync(configPath, toConfigFileText({ source, ...rest }))
+  Deno.writeTextFileSync(configPath, toStyledConfigText(next, text))
 
   return { type: 'saved', source, configPath }
 }

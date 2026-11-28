@@ -25,20 +25,44 @@ const withProject = async <T>(
   }
 }
 
-Deno.test('saveSource - writes source as the first key and keeps the others', async () => {
+Deno.test('saveSource - writes a new source as the first key and keeps the others', async () => {
   const config = JSON.stringify({ settings: { basePath: 'src', enrichments: { a: 1 } } })
 
   await withProject({ fileName: 'skmtc.config.json', config }, (projectPath, configPath) => {
     const result = saveSource({ projectPath, source: './openapi.json' })
 
     assertEquals(result, { type: 'saved', source: './openapi.json', configPath })
+    // A file on one line stays on one line.
     assertEquals(
       Deno.readTextFileSync(configPath),
-      JSON.stringify(
-        { source: './openapi.json', settings: { basePath: 'src', enrichments: { a: 1 } } },
-        null,
-        2
-      )
+      JSON.stringify({ source: './openapi.json', settings: { basePath: 'src', enrichments: { a: 1 } } })
+    )
+  })
+})
+
+// The trap: a save that writes the file in its own style rewrites every
+// line of it, and the owner's diff no longer shows the one key that changed.
+Deno.test('saveSource - keeps the indent, the trailing newline and the place of source', async () => {
+  const config = `{
+    "settings": {
+        "basePath": "src"
+    },
+    "source": "./old.json"
+}
+`
+
+  await withProject({ fileName: 'skmtc.config.json', config }, (projectPath, configPath) => {
+    assertEquals(saveSource({ projectPath, source: './new.json' }).type, 'saved')
+    assertEquals(Deno.readTextFileSync(configPath), config.replace('./old.json', './new.json'))
+  })
+
+  const noNewline = '{\n\t"settings": {\n\t\t"basePath": "src"\n\t}\n}'
+
+  await withProject({ fileName: 'skmtc.config.json', config: noNewline }, (projectPath, configPath) => {
+    assertEquals(saveSource({ projectPath, source: './openapi.json' }).type, 'saved')
+    assertEquals(
+      Deno.readTextFileSync(configPath),
+      '{\n\t"source": "./openapi.json",\n\t"settings": {\n\t\t"basePath": "src"\n\t}\n}'
     )
   })
 })

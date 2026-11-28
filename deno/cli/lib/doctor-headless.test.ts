@@ -171,6 +171,31 @@ Deno.test('runDoctor - project-alias is skipped when it cannot tell', async () =
   assertStringIncludes(packages?.message ?? '', 'settings.packages')
 })
 
+// The trap: an alias outside the root, or one behind a config that cannot
+// be read, is not "no alias". Each says what it found.
+Deno.test('runDoctor - project-alias says why an alias it found cannot be compared', async () => {
+  const outside = await runAliasCheck({
+    settings: { basePath: 'src' },
+    appFiles: {
+      'tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['../shared/src/*'] } } })
+    }
+  })
+  const unreadable = await runAliasCheck({
+    settings: { basePath: 'src' },
+    appFiles: {
+      'tsconfig.json': JSON.stringify({
+        extends: '@acme/tsconfig',
+        compilerOptions: { paths: { '@/*': ['./src/*'] } }
+      })
+    }
+  })
+
+  assertEquals(outside?.status, 'skipped')
+  assertStringIncludes(outside?.message ?? '', '"@/" points to "../shared/src" (tsconfig.json), a folder outside')
+  assertEquals(unreadable?.status, 'skipped')
+  assertStringIncludes(unreadable?.message ?? '', 'extends "@acme/tsconfig", and skmtc could not read that config')
+})
+
 Deno.test('runDoctor - warns on stale-schema manifest (friction #26)', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     const projectPath = join(tempRoot, '.skmtc', 'stale-manifest')

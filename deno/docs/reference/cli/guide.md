@@ -65,15 +65,23 @@ tasks
 
 The command prints the topic as Markdown.
 
-```
+````
 $ skmtc guide pin-source
 ## Pinning the schema source
 
-1. Edit `.skmtc/<project>/.settings/skmtc.config.json` → add `"source"` at
-   the top level.
-2. After this, `skmtc generate <project>` works without the schema
-   positional arg.
+```bash
+skmtc generate <project> <schema> --save --json
 ```
+
+`--save` writes the schema you pass as `"source"` at the top level of
+`.skmtc/<project>/.settings/skmtc.config.json`, and changes no other
+key. The file keeps its indent. A relative path is read from the folder
+that holds `.skmtc/`, when you pass it and in later runs, so the stored
+path works from any folder. After this, `skmtc generate <project>`
+works without the schema positional arg. The result has
+`savedSource: { source, configPath, changed, stored }`.
+...
+````
 
 ### A topic that does not exist
 

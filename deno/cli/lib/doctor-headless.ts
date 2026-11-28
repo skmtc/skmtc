@@ -16,7 +16,13 @@ import { existsSync } from '@std/fs/exists'
 import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
-import { ALIAS_FILE_NAMES, type AliasRoot, findAliasRoot, isAliasRoot } from '@/lib/alias-root.ts'
+import {
+  ALIAS_FILE_NAMES,
+  type AliasSearch,
+  findAliasRoot,
+  isAliasRoot,
+  toAliasUnusableText
+} from '@/lib/alias-root.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { homedir } from 'node:os'
@@ -136,7 +142,7 @@ export const runDoctor = async ({
   const cliCorePin = readCliCorePin()
   const projectCtx: CheckProjectContext = {
     cliCorePin,
-    aliasRoot: findAliasRoot({ appRootPath: join(skmtcRootPath, '..') })
+    aliasSearch: findAliasRoot({ appRootPath: join(skmtcRootPath, '..') })
   }
   // `deno info` runs once per project; run them side by side.
   const packageCopiesChecks = await Promise.all(
@@ -466,8 +472,8 @@ type CheckProjectContext = {
    * from `runDoctor` rather than re-read per check.
    */
   cliCorePin: string | null
-  /** The folder the app's `@/` alias points to, or `undefined` when no file states one. */
-  aliasRoot: AliasRoot | undefined
+  /** What the app's files say about its `@/` alias. */
+  aliasSearch: AliasSearch
 }
 
 const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] => {
@@ -478,7 +484,7 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   const checks: Check[] = []
   checks.push(checkProjectDenoJson(projectName, denoJsonPath))
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
-  checks.push(checkProjectAlias(projectName, clientJsonPath, ctx.aliasRoot))
+  checks.push(checkProjectAlias(projectName, clientJsonPath, ctx.aliasSearch))
   checks.push(checkProjectConfigNames(projectName, projectPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
   checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
@@ -842,13 +848,15 @@ const readOutputSettings = (clientJsonPath: string): OutputSettings => {
  *
  * `skipped` whenever the CLI cannot tell: `project-base-path` already
  * reports a missing or unreadable `basePath`, a project with `packages`
- * has one `@/` for each package, and an alias that only a bundler config
- * states is not readable from here.
+ * has one `@/` for each package, an alias that only a bundler config
+ * states is not readable from here, an alias to a folder outside the root
+ * is one no `basePath` can be, and an extended config that cannot be read
+ * may move the alias.
  */
 const checkProjectAlias = (
   projectName: string,
   clientJsonPath: string,
-  aliasRoot: AliasRoot | undefined
+  aliasSearch: AliasSearch
 ): Check => {
   const id = `project-alias/${projectName}`
   const { basePath, hasPackages } = readOutputSettings(clientJsonPath)
@@ -865,13 +873,21 @@ const checkProjectAlias = (
     }
   }
 
-  if (aliasRoot === undefined) {
+  const unusable = toAliasUnusableText(aliasSearch)
+
+  if (unusable !== undefined) {
+    return { id, status: 'skipped', message: unusable }
+  }
+
+  if (aliasSearch.type !== 'found') {
     return {
       id,
       status: 'skipped',
       message: `No "@/" alias found in ${ALIAS_FILE_NAMES.join(', ')}; an alias in a bundler config is not read.`
     }
   }
+
+  const { aliasRoot } = aliasSearch
 
   if (isAliasRoot(basePath, aliasRoot)) {
     return {

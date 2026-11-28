@@ -42,8 +42,9 @@ project's config file. Later runs then need no schema argument.
   an `error` level issue stores nothing, and the source that was there
   stays. `generate` takes any text a URL returns as the schema. Thus
   the command stores a source only after it gave a result.
-- No other key of the config changes. A project on `client.json`
-  keeps that file.
+- No other key of the config changes. The file keeps its indent and
+  its trailing newline, and a `source` that was there keeps its place.
+  A project on `client.json` keeps that file.
 - `--save` with no `[schema]` exits with code 2.
 - `--save` with `--debug` exits with code 2. A debug session stores
   nothing.

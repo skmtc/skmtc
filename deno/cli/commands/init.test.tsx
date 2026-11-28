@@ -47,7 +47,10 @@ Deno.test('renderInit - interactive mode mounts the Ink App with the expected st
       basePath: testBasePath,
       renderFn: renderSpy as InkRenderFn,
       AppComponent: AppSpy,
-      findAliasRootFn: () => ({ path: 'app/src', from: 'tsconfig.json' })
+      findAliasRootFn: () => ({
+        type: 'found',
+        aliasRoot: { path: 'app/src', from: 'tsconfig.json' }
+      })
     })
 
     assertSpyCalls(renderSpy, 1)
@@ -179,7 +182,7 @@ Deno.test('renderInit - missing basePath fails with recipe', async () => {
       basePath: undefined,
       noInputFlag: true,
       // The test runs in the CLI package, whose deno.json maps `@/`.
-      findAliasRootFn: () => undefined
+      findAliasRootFn: () => ({ type: 'none' })
     })
   })
   assertEquals(exitCode, 2)
@@ -203,7 +206,10 @@ Deno.test('renderInit - with no basePath, the folder of the "@/" alias is the ba
         projectName: 'my-api',
         basePath: undefined,
         jsonFlag: true,
-        findAliasRootFn: () => ({ path: 'app/src', from: 'tsconfig.json' })
+        findAliasRootFn: () => ({
+        type: 'found',
+        aliasRoot: { path: 'app/src', from: 'tsconfig.json' }
+      })
       })
     })
     exits.push(exitCode)
@@ -278,6 +284,67 @@ Deno.test('validateBasePath - rejects absolute paths (friction #13)', () => {
     InvalidBasePathError,
     'absolute path'
   )
+})
+
+// The trap: core's settings schema rejects a `..` segment, so a config
+// that `init` wrote with one was read as no config by every later command.
+Deno.test('validateBasePath - rejects a ".." segment, as the settings schema does', () => {
+  for (const basePath of ['../shared/src', './src/../../out', '..\\out']) {
+    assertThrows(() => validateBasePath(basePath), InvalidBasePathError, 'no ".." segments')
+  }
+  assertEquals(validateBasePath('a/..b/c'), 'a/..b/c')
+})
+
+// The trap: the alias folder was the basePath with no argument, and an
+// alias outside the app root gave `../shared/src`, which init then wrote.
+Deno.test('renderInit - an alias outside the app root is not the basePath, and the error names it', async () => {
+  const skmtcRoot = createMockSkmtcRoot(createMockManager(), { projects: [] })
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInit({
+      skmtcRoot,
+      projectName: 'my-api',
+      basePath: undefined,
+      noInputFlag: true,
+      findAliasRootFn: () => ({ type: 'outside', target: '../shared/src', from: 'tsconfig.json' })
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertEquals(skmtcRoot.toProjectNames(), [])
+  assertStringIncludes(errors[0], 'missing required argument: <basePath>')
+  assertStringIncludes(errors[0], '"@/" points to "../shared/src" (tsconfig.json), a folder outside')
+})
+
+Deno.test('renderInit - an extended config that cannot be read is named, not reported as no alias', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInit({
+      projectName: 'my-api',
+      basePath: undefined,
+      noInputFlag: true,
+      findAliasRootFn: () => ({ type: 'unreadable', extended: '@acme/tsconfig', from: 'tsconfig.json' })
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertStringIncludes(errors[0], 'tsconfig.json extends "@acme/tsconfig", and skmtc could not read that config')
+  assertEquals(errors[0].includes('found no'), false)
+})
+
+Deno.test('renderInit - a basePath with a ".." segment in strict mode fails with recipe', async () => {
+  const skmtcRoot = createMockSkmtcRoot(createMockManager(), { projects: [] })
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInit({
+      skmtcRoot,
+      projectName: 'my-api',
+      basePath: '../shared/src',
+      noInputFlag: true,
+      findAliasRootFn: () => ({ type: 'none' })
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertEquals(skmtcRoot.toProjectNames(), [])
+  assertStringIncludes(errors[0], 'no ".." segments')
 })
 
 Deno.test('validateBasePath - accepts relative paths', () => {

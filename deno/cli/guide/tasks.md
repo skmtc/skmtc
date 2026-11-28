@@ -76,9 +76,11 @@ skmtc generate <project> <schema> --save --json
 
 `--save` writes the schema you pass as `"source"` at the top level of
 `.skmtc/<project>/.settings/skmtc.config.json`, and changes no other
-key. After this, `skmtc generate <project>` works without the schema
-positional arg. The result has `savedSource: { source, configPath,
-changed, stored }`.
+key. The file keeps its indent. A relative path is read from the folder
+that holds `.skmtc/`, when you pass it and in later runs, so the stored
+path works from any folder. After this, `skmtc generate <project>`
+works without the schema positional arg. The result has
+`savedSource: { source, configPath, changed, stored }`.
 
 The source is stored after a run with no error. A run with an `error`
 level issue stores nothing (`stored: false`), and the source that was

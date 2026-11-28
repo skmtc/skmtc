@@ -426,6 +426,51 @@ Deno.test('generateSwitch - --save stores the schema, and the next run needs no 
   })
 })
 
+// The trap: a relative schema path is read from the Skmtc root (the folder
+// that holds `.skmtc/`), not from the current folder. Stored as typed, it
+// is read the same way, so a saved source works from any folder below the root.
+Deno.test('generateSwitch - --save stores a relative path that later runs read from the root, in any folder', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ tempRoot, projectName, projectPath }) => {
+        const configPath = join(projectPath, '.settings', 'skmtc.config.json')
+        const { bundles, generateLocalFn } = toRecordingGenerateLocal()
+        const run = (schemaSourceString: string | undefined, saveFlag: boolean) =>
+          captureStdout(async () => {
+            await withCapturedExit(() =>
+              generateSwitch({
+                projectName,
+                schemaSourceString,
+                watch: undefined,
+                jsonFlag: true,
+                saveFlag,
+                generateLocalFn
+              })
+            )
+          })
+
+        await Deno.writeTextFile(configPath, JSON.stringify({ settings: { basePath: 'src/api' } }))
+        await ensureDir(join(tempRoot, 'web', 'app'))
+        Deno.chdir(join(tempRoot, 'web', 'app'))
+
+        const [saved] = await run('./openapi.json', true)
+
+        assertEquals(JSON.parse(saved).savedSource.source, './openapi.json')
+        assertEquals(JSON.parse(await Deno.readTextFile(configPath)).source, './openapi.json')
+
+        const [fromSubfolder] = await run(undefined, false)
+        Deno.chdir(tempRoot)
+        const [fromRoot] = await run(undefined, false)
+
+        assertEquals(JSON.parse(fromSubfolder).type, 'generated')
+        assertEquals(JSON.parse(fromRoot).type, 'generated')
+        assertEquals(bundles.length, 3)
+      }
+    )
+  })
+})
+
 // The trap: `generate` takes any text a URL returns as the schema, the page
 // of a 404 too. Stored before the run, a mistyped source replaced one that
 // worked, and each later run failed.
