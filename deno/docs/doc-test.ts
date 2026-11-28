@@ -58,7 +58,8 @@ const updateBaseline = Deno.args.includes('--update-baseline')
 const verbose = Deno.args.includes('--verbose')
 
 // ---------------------------------------------------------------------
-// Collect markdown files: the reader-facing tree, skills, llms.md.
+// Collect markdown files: the reader-facing tree, skills, llms.md, the
+// root README, docs/README.md and the README of each workspace member.
 // ---------------------------------------------------------------------
 
 const markdownFiles: string[] = [join(docsDir, 'llms.md')]
@@ -209,15 +210,20 @@ const isResolvable = (specifier: string): boolean => {
   if (specifier.startsWith('jsr:') || specifier.startsWith('npm:')) {
     return true
   }
-  if (memberNames.has(specifier)) return true
+  // A member is importable by its name and by its subpaths, such as
+  // `@skmtc/core/Settings`.
+  if ([...memberNames].some(name => specifier === name || specifier.startsWith(`${name}/`))) {
+    return true
+  }
   return rootImports.some(key => specifier === key || specifier.startsWith(`${key}/`))
 }
 
 // The names of an import can go over several lines, so the part before
-// `from` can hold line breaks. It cannot hold a quote, which keeps one
-// statement from reaching into the next.
+// `from` can hold line breaks. It holds only names, `*`, `as`, commas and
+// one `{ … }` list, so `export const x = 1` followed by a comment such as
+// `// rows from 'users'` is not read as an import.
 const importPattern =
-  /(?:^|\n)\s*(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
+  /(?:^|\n)\s*(?:import|export)\s+(?:type\s+)?[\w$*\s,]*(?:\{[^}]*\})?\s*from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
 type Skip = { block: Block; reason: string }
 
