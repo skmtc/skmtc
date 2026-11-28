@@ -120,7 +120,6 @@ type ConstructorArgs = {
   ref: RefParts
   settings: ContentSettings<EmptyEnrichments>
   destinationPath: string
-  rootRef?: RefParts
 }
 
 export class SchemaMetaProjection extends SchemaMetaBase {
@@ -156,9 +155,8 @@ Two things to note:
   `refPath` is `#/components/schemas`. A ref to a `$defs` entry or a
   property has a `refPath` inside the document.
 - `super(args)` only passes the three canonical fields
-  (`context`, `ref`, `settings`). `destinationPath` and
-  `rootRef` are scaffold-added fields available on the args but
-  not passed up.
+  (`context`, `ref`, `settings`). `destinationPath` is a
+  scaffold-added field available on the args but not passed up.
 
 The `toString()` returns the **value side** of the
 `export const X = ...` statement. The wrapping happens in the

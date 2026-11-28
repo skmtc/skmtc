@@ -61,8 +61,8 @@ scaffold:
 For models the constructor receives the model's `ref`
 (`{ refName, refPath }`), not a schema. The Projection constructor
 resolves the schema with `context.resolveSchemaRefOnce(ref)`.
-(The scaffold itself wraps these canonical args with optional
-`destinationPath` and `rootRef?` fields exposed to user code.)
+(The scaffold itself wraps these canonical args with a
+`destinationPath` field exposed to user code.)
 
 The `type` choice is permanent — you'd manually rewrite the scaffold
 to change it. Pick based on what your generator produces per input.
