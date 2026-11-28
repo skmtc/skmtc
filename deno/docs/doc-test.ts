@@ -5,7 +5,8 @@
  *
  * docs-writing §7: "a fenced code block is a claim; untested claims
  * rot." This harness makes the claim checkable: every ```ts block in
- * the reader-facing tree (+ skills + llms.md) whose imports resolve
+ * the reader-facing tree (+ skills + llms.md + the root README and the
+ * README of each package; ```typescript is read as ```ts) whose imports resolve
  * inside this workspace is extracted to `docs/.doc-test/` and run
  * through `deno check`. Workspace member resolution means
  * `@skmtc/core` / `@skmtc/lang-typescript` imports typecheck against
@@ -57,7 +58,8 @@ const updateBaseline = Deno.args.includes('--update-baseline')
 const verbose = Deno.args.includes('--verbose')
 
 // ---------------------------------------------------------------------
-// Collect markdown files: the reader-facing tree, skills, llms.md.
+// Collect markdown files: the reader-facing tree, skills, llms.md, the
+// root README, docs/README.md and the README of each workspace member.
 // ---------------------------------------------------------------------
 
 const markdownFiles: string[] = [join(docsDir, 'llms.md')]
@@ -96,6 +98,27 @@ for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
     await collectMarkdown(referencesDir)
   }
 }
+
+const rootConfig = JSON.parse(await Deno.readTextFile(join(denoDir, 'deno.json'))) as {
+  workspace?: string[]
+  imports?: Record<string, string>
+}
+
+// The README of a package is its page on JSR, and the root README is the
+// page on GitHub: the first code a reader copies. A block there is a claim
+// like any other, and no check read these files before. Only a workspace
+// member is a package: another folder under `deno/` can hold code written
+// for another version of core.
+const readmeFiles: string[] = [join(denoDir, '..', 'README.md'), join(docsDir, 'README.md')]
+for (const member of rootConfig.workspace ?? []) {
+  const readme = join(denoDir, member, 'README.md')
+  const hasReadme = await Deno.stat(readme).then(
+    stat => stat.isFile,
+    () => false
+  )
+  if (hasReadme) readmeFiles.push(readme)
+}
+markdownFiles.push(...readmeFiles.sort())
 
 // ---------------------------------------------------------------------
 // Extract fenced ts/tsx blocks.
@@ -143,10 +166,12 @@ for (const file of markdownFiles) {
       }
       continue
     }
-    const fence = line.match(/^\s*```(tsx?)\b(.*)$/)
+    // ```typescript is ```ts: a README written for GitHub uses the long
+    // name, and a block that is not read is not checked.
+    const fence = line.match(/^\s*```(tsx?|typescript)\b(.*)$/)
     if (fence) {
       open = {
-        lang: fence[1],
+        lang: fence[1] === 'typescript' ? 'ts' : fence[1],
         flags: fence[2].trim().split(/\s+/).filter(Boolean),
         line: index + 1
       }
@@ -167,11 +192,6 @@ for (const file of markdownFiles) {
 // qualified jsr:/npm: specifier.
 // ---------------------------------------------------------------------
 
-const rootConfig = JSON.parse(await Deno.readTextFile(join(denoDir, 'deno.json'))) as {
-  workspace?: string[]
-  imports?: Record<string, string>
-}
-
 const memberNames = new Set<string>()
 for (const member of rootConfig.workspace ?? []) {
   try {
@@ -190,12 +210,20 @@ const isResolvable = (specifier: string): boolean => {
   if (specifier.startsWith('jsr:') || specifier.startsWith('npm:')) {
     return true
   }
-  if (memberNames.has(specifier)) return true
+  // A member is importable by its name and by its subpaths, such as
+  // `@skmtc/core/Settings`.
+  if ([...memberNames].some(name => specifier === name || specifier.startsWith(`${name}/`))) {
+    return true
+  }
   return rootImports.some(key => specifier === key || specifier.startsWith(`${key}/`))
 }
 
+// The names of an import can go over several lines, so the part before
+// `from` can hold line breaks. It holds only names, `*`, `as`, commas and
+// one `{ … }` list, so `export const x = 1` followed by a comment such as
+// `// rows from 'users'` is not read as an import.
 const importPattern =
-  /(?:^|\n)\s*(?:import|export)[^'"\n]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
+  /(?:^|\n)\s*(?:import|export)\s+(?:type\s+)?[\w$*\s,]*(?:\{[^}]*\})?\s*from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
 type Skip = { block: Block; reason: string }
 

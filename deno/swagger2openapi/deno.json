@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/swagger2openapi",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts",
@@ -26,6 +26,9 @@
     "publish:dry": "deno publish --dry-run --allow-dirty"
   },
   "publish": {
-    "exclude": ["**/*.test.ts", "fixtures/"]
+    "exclude": [
+      "**/*.test.ts",
+      "fixtures/"
+    ]
   }
 }

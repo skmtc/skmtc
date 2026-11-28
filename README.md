@@ -171,51 +171,6 @@ openapi-ts-zod  11.95s  ██████████████████�
 ```
 See [openapi-codegen-benchmarks](https://github.com/skmtc/openapi-codegen-benchmarks) for full details
 
-<!-- ## 
-## How does it work?
-
-Skmtc handles all OpenAPI parsing and output rendering, which means each generator only needs to specify how to represent its API schema input as a code string.
-
-The process runs in 3 phases
-
-1. **Parse** - Converts input OpenAPI schema into an **OasDocument** object
-2. **Generate** - Creates **Projection** objects from operations and models in OasDocument and writes them to respective **File** objects
-3. **Render** - Outputs generated **File** objects as code files
-
-Let's take a look at an example, where we create a `fetch` based API client with Zod type checking
-
-```typescript
-import { ZodInsertable } from '@skmtc/gen-zod'
-
-class ZodFetch extends BaseProjection {
-  zodName: string;
-
-  constructor({context, operation, settings}){
-    super({context, operation, settings})
-
-    // To add Zod type checks, we look up the response schema for each operation,
-    const response = operation.toSuccessResponse()?.resolve().toSchema()
-
-    // generate a Zod schema from it and insert it into current file
-    const zodResponse = this.insert(ZodInsertable, response)
-
-    // Assign schema name to object so it can be accessed from `toString()` below
-    this.zodName = zodResponse.identifier.name
-  }
-
-  // Map object properties to output code
-  toString(){
-    return `() => {
-      const res = await fetch('${this.operation.path}')
-      const data = await res.json()
-
-      return ${zodName}.parse(data)
-    }`
-  }
-}
-```
--->
-
 ## Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.

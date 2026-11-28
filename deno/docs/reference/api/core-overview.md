@@ -15,19 +15,21 @@ worker runtime), see the [docs README](../../README.md) and
 
 ## Top-level exports
 
-The package's `mod.ts` re-exports from internal modules. There is no
-deep-import support (e.g., `@skmtc/core/dsl`) — consumers always
-import from the top-level package:
+The package's `mod.ts` re-exports from internal modules. Import from
+the top-level package:
 
 ```ts
 import {
   toArtifacts,
   GenerateContext,
-  Identifier,
+  IdentifierBase,
   toOasOperationEntry,
   OasOperation
 } from '@skmtc/core'
 ```
+
+The `exports` of the package's `deno.json` also list subpaths, such as
+`@skmtc/core/Settings`, for a consumer that needs one module only.
 
 ## Pipeline entry points
 

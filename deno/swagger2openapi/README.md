@@ -28,6 +28,12 @@ wrappers) when you need external references pulled in.
 ```ts
 import { convertObj } from '@skmtc/swagger2openapi'
 
+const swaggerDocument = {
+  swagger: '2.0',
+  info: { title: 'Pets', version: '1.0.0' },
+  paths: {}
+}
+
 const { openapi } = convertObj(swaggerDocument, { patch: true })
 ```
 
@@ -40,7 +46,13 @@ const { openapi } = await convertFile('./swagger.yaml', { patch: true, resolve: 
 ### Validation
 
 ```ts
-import { validateSync, ValidationError } from '@skmtc/swagger2openapi'
+import { convertObj, validateSync, ValidationError } from '@skmtc/swagger2openapi'
+
+const { openapi } = convertObj({
+  swagger: '2.0',
+  info: { title: 'Pets', version: '1.0.0' },
+  paths: {}
+})
 
 try {
   validateSync(openapi, {}) // returns true, or throws ValidationError
@@ -56,9 +68,15 @@ against the bundled OpenAPI 3.0 schema (via `ajv` + `ajv-draft-04`).
 ### Linting
 
 ```ts
-import { validateSync } from '@skmtc/swagger2openapi'
+import { convertObj, type ValidateOptions, validateSync } from '@skmtc/swagger2openapi'
 
-const options = { lint: true }
+const { openapi } = convertObj({
+  swagger: '2.0',
+  info: { title: 'Pets', version: '1.0.0' },
+  paths: {}
+})
+
+const options: ValidateOptions = { lint: true }
 validateSync(openapi, options)
 console.log(options.violations) // [{ rule, description, pointer }, ...]
 ```

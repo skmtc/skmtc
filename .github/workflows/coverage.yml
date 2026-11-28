@@ -8,12 +8,15 @@ on:
       # The skills catalogue check reads this manifest, so a PR that only
       # edits it has to run the gate that would catch the disagreement.
       - '.claude-plugin/**'
+      # doc-test type-checks the code blocks of the root README.
+      - 'README.md'
       - '.github/workflows/coverage.yml'
   pull_request:
     branches: [main]
     paths:
       - 'deno/**'
       - '.claude-plugin/**'
+      - 'README.md'
       - '.github/workflows/coverage.yml'
 
 jobs:

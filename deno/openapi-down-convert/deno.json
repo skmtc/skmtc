@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/openapi-down-convert",
-  "version": "0.14.8",
+  "version": "0.14.9",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -15,6 +15,9 @@
     "publish:dry": "deno publish --dry-run --allow-dirty"
   },
   "publish": {
-    "exclude": ["**/*.test.ts", "fixtures/"]
+    "exclude": [
+      "**/*.test.ts",
+      "fixtures/"
+    ]
   }
 }
