@@ -53,6 +53,13 @@ const createMockTasks = (): Task[] => [
   }
 ]
 
+/**
+ * Gives a second `leave` or `Project.create` call time to show up before a
+ * test asserts there was only one. A correct run passes however long this
+ * takes, so the sleep cannot make the test fail at random.
+ */
+const settleForSecondCall = () => new Promise(resolve => setTimeout(resolve, 300))
+
 const createMockProject = () => ({
   name: 'test-project',
   toPath: () => '/path/to/test-project',
@@ -108,7 +115,8 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
 
   // Wait for generators to load and error to occur
   await waitFor(() => assertSpyCalls(leaveSpy, 1))
-  // Still once after the effects that call queued have run
+  // Still once: a second call would come from the effect running again
+  await settleForSecondCall()
   assertSpyCalls(leaveSpy, 1)
 
   // Verify console.error was called with the error
@@ -179,7 +187,8 @@ Deno.test({
 
     // Verify leave was called with task state
     await waitFor(() => assertSpyCalls(leaveSpy, 1))
-    // Still once after the effects that call queued have run
+    // Still once: a second call would come from the effect running again
+    await settleForSecondCall()
     assertSpyCalls(leaveSpy, 1)
     assertSpyCall(leaveSpy, 0, {
       args: [
@@ -236,7 +245,8 @@ Deno.test({
     try {
       // Wait for generators to load and Project.create to be called
       await waitFor(() => assertSpyCalls(projectCreateStub, 1))
-      // Still once after the effects that call queued have run
+      // Still once: a second call would come from the effect running again
+      await settleForSecondCall()
       assertSpyCalls(projectCreateStub, 1)
 
       // Verify it was called with correct arguments
@@ -314,7 +324,8 @@ Deno.test({
 
     // Verify Project.create was called with the exact task state values
     await waitFor(() => assertSpyCalls(projectCreateStub, 1))
-    // Still once after the effects that call queued have run
+    // Still once: a second call would come from the effect running again
+    await settleForSecondCall()
     assertSpyCalls(projectCreateStub, 1)
     assertSpyCall(projectCreateStub, 0, {
       args: [
