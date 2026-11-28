@@ -22,7 +22,7 @@ import {
 } from './MyLibScalars.ts'
 
 export const toMyLibValue: SchemaToValueFn = (
-  { schema: schemaNode, destinationPath, required, context, rootRef },
+  { schema: schemaNode, destinationPath, required, context },
 ) => {
   // `schemaNode` arrives typed as the generic `Schema` parameter, and
   // TypeScript does not narrow a type parameter by discriminant.
@@ -47,7 +47,6 @@ export const toMyLibValue: SchemaToValueFn = (
         destinationPath,
         ref: schema,
         modifiers,
-        rootRef,
       })
     case 'array':
       return new MyLibArray({
@@ -56,7 +55,6 @@ export const toMyLibValue: SchemaToValueFn = (
         modifiers,
         items: schema.items,
         generatorKey,
-        rootRef,
         schema,
       })
     case 'object':
@@ -66,7 +64,6 @@ export const toMyLibValue: SchemaToValueFn = (
         objectSchema: schema,
         modifiers,
         generatorKey,
-        rootRef,
       })
     case 'union':
       return new MyLibUnion({
@@ -76,7 +73,6 @@ export const toMyLibValue: SchemaToValueFn = (
         discriminator: schema.discriminator,
         modifiers,
         generatorKey,
-        rootRef,
         schema,
       })
     case 'intersection':
@@ -86,7 +82,6 @@ export const toMyLibValue: SchemaToValueFn = (
         intersectionSchema: schema,
         modifiers,
         generatorKey,
-        rootRef,
       })
     case 'string':
       return new MyLibString({

@@ -51,21 +51,18 @@ class MockProjection extends MockGeneratedValue {
   context: GenerateContextType
   settings: ContentSettings<any>
   destinationPath: string
-  rootRef?: RefParts
 
   constructor(args: {
     ref: RefParts
     context: GenerateContextType
     settings: ContentSettings<any>
     destinationPath: string
-    rootRef?: RefParts
   }) {
     super()
     this.ref = args.ref
     this.context = args.context
     this.settings = args.settings
     this.destinationPath = args.destinationPath
-    this.rootRef = args.rootRef
     // Read the static `id` off the actual constructed class so subclasses
     // with their own `id` stamp a matching `generatorKey` (the integrity
     // check compares against `this.projection.id`).
@@ -166,7 +163,6 @@ Deno.test('ModelDriver', async t => {
       assertEquals(driver.projection, projection)
       assertEquals(driver.ref.refName, refName)
       assertEquals(driver.destinationPath, undefined)
-      assertEquals(driver.rootRef, undefined)
       assertEquals(driver.noExport, false)
     })
 
@@ -175,20 +171,17 @@ Deno.test('ModelDriver', async t => {
       const projection = createMockProjection()
       const refName = 'Product' as RefName
       const destinationPath = '@/path/to/destination.ts'
-      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       const driver = new ModelDriver({
         context,
         projection,
         ref: toSchemaComponentRef(refName),
         destinationPath,
-        rootRef,
         noExport: true,
         variant: 'main'
       })
 
       assertEquals(driver.destinationPath, destinationPath)
-      assertEquals(driver.rootRef, rootRef)
       assertEquals(driver.noExport, true)
     })
 
@@ -480,13 +473,11 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       new ModelDriver({
         context,
         projection,
         ref: toSchemaComponentRef(refName),
-        rootRef,
         variant: 'main'
       })
 
@@ -543,23 +534,6 @@ Deno.test('ModelDriver', async t => {
       })
 
       assertEquals(driver.definition !== undefined, true)
-    })
-
-    await t.step('should handle rootRef parameter', () => {
-      const context = createMockContext()
-      const projection = createMockProjection()
-      const refName = 'User' as RefName
-      const rootRef = toSchemaComponentRef('Root' as RefName)
-
-      const driver = new ModelDriver({
-        context,
-        projection,
-        ref: toSchemaComponentRef(refName),
-        rootRef,
-        variant: 'main'
-      })
-
-      assertEquals(driver.rootRef, rootRef)
     })
 
     await t.step('should return created definition', () => {
@@ -1052,23 +1026,6 @@ Deno.test('ModelDriver', async t => {
       })
 
       assertEquals(driver.noExport, true)
-    })
-
-    await t.step('should handle rootRef throughout lifecycle', () => {
-      const context = createMockContext()
-      const projection = createMockProjection()
-      const refName = 'User' as RefName
-      const rootRef = toSchemaComponentRef('Root' as RefName)
-
-      const driver = new ModelDriver({
-        context,
-        projection,
-        ref: toSchemaComponentRef(refName),
-        rootRef,
-        variant: 'main'
-      })
-
-      assertEquals(driver.rootRef, rootRef)
     })
   })
 
