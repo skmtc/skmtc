@@ -33,3 +33,26 @@ Deno.test('waitFor - runs the work queued with setImmediate before it returns', 
 
   assertEquals(ran, ['effect'])
 })
+
+// On a slow runner the event loop stalls. A timer that is due by then fires
+// before the immediates queued ahead of it.
+Deno.test('waitFor - runs the queued work even when the event loop stalls', async () => {
+  const ran: string[] = []
+  setImmediate(() => ran.push('effect'))
+
+  // The check passes at once, so waitFor has queued its wait when it returns
+  // the promise. The stall then runs before the event loop turns.
+  const waiting = waitFor(() => {})
+  stall(5)
+  await waiting
+
+  assertEquals(ran, ['effect'])
+})
+
+/** Blocks the event loop for `milliseconds`. */
+const stall = (milliseconds: number): void => {
+  const until = Date.now() + milliseconds
+  while (Date.now() < until) {
+    // Busy-wait so no timer or immediate can run.
+  }
+}
