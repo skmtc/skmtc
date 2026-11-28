@@ -8,7 +8,8 @@ import { assertSpyCall, stub } from '@std/testing/mock'
 import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
 import { type CreateProjectArgs, Project } from '../lib/project.ts'
-import { pointer } from '@/test/pointer.ts'
+import { pointer, tick } from '@/test/pointer.ts'
+import { waitFor } from '@/test/wait-for.ts'
 import type { AliasRoot } from '@/lib/alias-root.ts'
 
 // Mock generators data
@@ -75,60 +76,73 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
     basePath: undefined
   })
 
-  const projectNamePrompt = lastFrame()
-
-  assertEquals(
-    projectNamePrompt,
-    `│  Project name
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
 │`
+    )
   )
 
   stdin.write('test-project')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  const projectName = lastFrame()
-
-  assertEquals(
-    projectName,
-    `│  Project name
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
 │  test-project`
+    )
   )
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  const generatorsPrompt = lastFrame()
-
-  assertEquals(
-    generatorsPrompt,
-    `│  Project name
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
 │  test-project
 │
 │  Select generators to install
 │  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
+    )
   )
 
   // Arrow down to select the Zod generator
   stdin.write('\u001B[B')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
+│  test-project
+│
+│  Select generators to install
+│    @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-zod`
+    )
+  )
 
   stdin.write(' ')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
+│  test-project
+│
+│  Select generators to install
+│    @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-zod ${tick}`
+    )
+  )
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  const basePathPrompt = lastFrame()
-
-  assertEquals(
-    basePathPrompt,
-    `│  Project name
+  await waitFor(() =>
+    assertEquals(
+      lastFrame(),
+      `│  Project name
 │  test-project
 │
 │  Select generators to install
@@ -136,23 +150,24 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 │
 │  Output directory for generated files
 │  src`
+    )
   )
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  assertSpyCall(projectCreateStub, 0, {
-    args: [
-      {
-        name: 'test-project',
-        basePath: 'src',
-        generators: ['@skmtc/gen-zod'],
-        skmtcRoot: initialState.skmtcRoot,
-        availableGenerators: mockGenerators
-      }
-    ]
-  })
+  await waitFor(() =>
+    assertSpyCall(projectCreateStub, 0, {
+      args: [
+        {
+          name: 'test-project',
+          basePath: 'src',
+          generators: ['@skmtc/gen-zod'],
+          skmtcRoot: initialState.skmtcRoot,
+          availableGenerators: mockGenerators
+        }
+      ]
+    })
+  )
 
   // Component should render without errors
   unmount()
@@ -178,17 +193,17 @@ Deno.test('CreateProject - the basePath prompt names the "@/" folder and has it 
     aliasRoot: { path: 'app/src', from: 'tsconfig.json' }
   })
 
-  assertEquals(
-    lastFrame()?.trim(),
-    `│  Output directory for generated files ("@/" points to "app/src" in tsconfig.json)
+  await waitFor(() =>
+    assertEquals(
+      lastFrame()?.trim(),
+      `│  Output directory for generated files ("@/" points to "app/src" in tsconfig.json)
 │  app/src`
+    )
   )
 
   stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
-
-  assertEquals(projectCreateStub.calls[0].args[0].basePath, 'app/src')
+  await waitFor(() => assertEquals(projectCreateStub.calls[0]?.args[0].basePath, 'app/src'))
 
   unmount()
 })

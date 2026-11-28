@@ -9,6 +9,7 @@ import type { Generator } from '@/types/generator.ts'
 import { stubRegistryGenerators } from '../tests/mocks/registry.mock.ts'
 import { MessageBox } from '@/components/MessageBox.tsx'
 import { assertStringIncludes } from '@std/assert/string-includes'
+import { waitFor } from '@/test/wait-for.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -106,7 +107,7 @@ Deno.test('CreateProjectTask - handles Project.create error correctly', async ()
   )
 
   // Wait for generators to load and error to occur
-  await new Promise(resolve => setTimeout(resolve, 300))
+  await waitFor(() => assertSpyCalls(leaveSpy, 1))
 
   // Verify console.error was called with the error
   assertSpyCalls(consoleErrorSpy, 1)
@@ -174,11 +175,8 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 300))
-
     // Verify leave was called with task state
-    assertSpyCalls(leaveSpy, 1)
+    await waitFor(() => assertSpyCalls(leaveSpy, 1))
     assertSpyCall(leaveSpy, 0, {
       args: [
         {
@@ -233,10 +231,7 @@ Deno.test({
 
     try {
       // Wait for generators to load and Project.create to be called
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // Verify Project.create was called
-      assertSpyCalls(projectCreateStub, 1)
+      await waitFor(() => assertSpyCalls(projectCreateStub, 1))
 
       // Verify it was called with correct arguments
       assertSpyCall(projectCreateStub, 0, {
@@ -311,10 +306,8 @@ Deno.test({
 
     const { unmount } = render(<TestWrapper />)
 
-    await new Promise(resolve => setTimeout(resolve, 200))
-
     // Verify Project.create was called with the exact task state values
-    assertSpyCalls(projectCreateStub, 1)
+    await waitFor(() => assertSpyCalls(projectCreateStub, 1))
     assertSpyCall(projectCreateStub, 0, {
       args: [
         {
@@ -362,12 +355,15 @@ Deno.test({
       </SkmtcProvider>
     )
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await waitFor(() => {
+      const frame = (lastFrame() ?? '').replace(/\s+/g, ' ')
 
-    const frame = (lastFrame() ?? '').replace(/\s+/g, ' ')
-
-    assertStringIncludes(frame, 'Project "test-project" created')
-    assertStringIncludes(frame, 'Warning: "@/" points to "app/src" (tsconfig.json), not to "./src"')
+      assertStringIncludes(frame, 'Project "test-project" created')
+      assertStringIncludes(
+        frame,
+        'Warning: "@/" points to "app/src" (tsconfig.json), not to "./src"'
+      )
+    })
 
     unmount()
   }
